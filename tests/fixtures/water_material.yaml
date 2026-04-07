@@ -1,0 +1,69 @@
+name: "test_water_membrane"
+domain: "water"
+version: "1.0"
+description: "Test fixture for water purification membrane"
+
+parameters:
+  - name: pore_diameter
+    range: [0.5, 5.0]
+    unit: "nm"
+    type: continuous
+
+  - name: active_layer_thickness
+    range: [50, 500]
+    unit: "nm"
+    type: continuous
+
+  - name: surface_charge_density
+    range: [-50, 0]
+    unit: "mC/m2"
+    type: continuous
+
+  - name: crosslink_density
+    range: [0.1, 0.9]
+    unit: "fraction"
+    type: continuous
+
+  - name: hydrophilicity
+    range: [20, 90]
+    unit: "degrees"
+    type: continuous
+
+objectives:
+  - name: pfos_rejection
+    direction: maximize
+    unit: "%"
+    weight: 1.0
+    equation: "water.pfos_rejection"
+
+  - name: permeability
+    direction: maximize
+    unit: "LMH/bar"
+    weight: 0.8
+    equation: "water.permeability"
+
+  - name: fouling_resistance
+    direction: maximize
+    unit: "score"
+    weight: 0.6
+    equation: "water.fouling_resistance"
+
+constraints:
+  - expression: "pore_diameter > 0.28"
+    description: "Pore larger than water molecule"
+
+surrogate:
+  hidden_layers: [32, 32]
+  learning_rate: 0.001
+  epochs: 50
+  mc_samples: 10
+
+optimizer:
+  sigma0: 0.3
+  max_generations: 50
+
+active_learning:
+  initial_samples: 20
+  samples_per_round: 5
+  max_rounds: 3
+  acquisition: max_uncertainty

@@ -1,0 +1,84 @@
+name: "water_purification_membrane"
+domain: "water"
+version: "1.0"
+description: |
+  Nanofiltration membrane optimization for contaminant removal.
+  Default target: PFOS/PFOA removal from drinking water.
+  Customize parameters and objectives for your specific application.
+
+parameters:
+  - name: pore_diameter
+    range: [0.5, 5.0]
+    unit: "nm"
+    type: continuous
+    description: "Average pore diameter of membrane active layer"
+
+  - name: active_layer_thickness
+    range: [50, 500]
+    unit: "nm"
+    type: continuous
+    description: "Thickness of the selective layer"
+
+  - name: surface_charge_density
+    range: [-50, 0]
+    unit: "mC/m2"
+    type: continuous
+    description: "Surface charge density (negative for anion rejection)"
+
+  - name: crosslink_density
+    range: [0.1, 0.9]
+    unit: "fraction"
+    type: continuous
+    description: "Degree of crosslinking in polymer matrix"
+
+  - name: hydrophilicity
+    range: [20, 90]
+    unit: "degrees"
+    type: continuous
+    description: "Water contact angle"
+
+objectives:
+  - name: pfos_rejection
+    direction: maximize
+    unit: "%"
+    weight: 1.0
+    equation: "water.pfos_rejection"
+    description: "PFOS rejection rate"
+
+  - name: permeability
+    direction: maximize
+    unit: "LMH/bar"
+    weight: 0.8
+    equation: "water.permeability"
+    description: "Pure water permeability"
+
+  - name: fouling_resistance
+    direction: maximize
+    unit: "score"
+    weight: 0.6
+    equation: "water.fouling_resistance"
+    description: "Fouling resistance score"
+
+constraints:
+  - expression: "pore_diameter > 0.28"
+    description: "Pore must be larger than water molecule diameter"
+  - expression: "crosslink_density > 0.2 or pore_diameter < 2.0"
+    description: "Low crosslinking requires small pores for stability"
+
+surrogate:
+  architecture: mlp
+  hidden_layers: [64, 64]
+  learning_rate: 0.001
+  epochs: 200
+  mc_samples: 20
+
+optimizer:
+  algorithm: cmaes
+  sigma0: 0.3
+  max_generations: 200
+
+active_learning:
+  initial_samples: 50
+  samples_per_round: 10
+  max_rounds: 15
+  acquisition: max_uncertainty

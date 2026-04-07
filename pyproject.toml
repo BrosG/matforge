@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "materia"
+version = "0.1.0"
+description = "Materials discovery platform using surrogate models, active learning, and Pareto optimization"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "The MatForge Collective"},
+]
+keywords = ["materials", "discovery", "optimization", "surrogate", "active-learning", "pareto"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+    "click>=8.1",
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.7"]
+analysis = ["scipy>=1.10", "pandas>=2.0"]
+onnx = ["onnxruntime>=1.16"]
+chgnet = ["chgnet>=0.3"]
+mace = ["mace-torch>=0.3"]
+gnn = ["materia[chgnet,mace]"]
+pymatgen = ["pymatgen>=2024.1"]
+gpu = ["torch>=2.0"]
+tracking = ["wandb>=0.15"]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "mypy>=1.5",
+    "ruff>=0.1",
+]
+all = ["materia[viz,analysis,tracking,pymatgen]"]
+
+[project.scripts]
+materia = "materia.cli.main:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/materia"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "B", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
