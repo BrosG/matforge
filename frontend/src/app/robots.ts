@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/dashboard/"],
       },
     ],
-    sitemap: "https://matforge.io/sitemap.xml",
+    sitemap: "https://matcraft.ai/sitemap.xml",
   };
 }

@@ -243,7 +243,7 @@ export default function DomainsPage() {
               Materials Science <span className="gradient-text">Domains</span>
             </h1>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-              MatForge supports optimization across 16 materials science domains,
+              MatCraft supports optimization across 16 materials science domains,
               each with domain-specific physics models and parameter spaces.
             </p>
           </motion.div>

@@ -37,7 +37,8 @@
     "aos": "^2.3.4",
     "three": "^0.170.0",
     "@react-three/fiber": "^8.17.10",
-    "@react-three/drei": "^9.117.0"
+    "@react-three/drei": "^9.117.0",
+    "firebase": "^10.14.0"
   },
   "devDependencies": {
     "@types/aos": "^3.0.7",

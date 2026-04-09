@@ -133,7 +133,7 @@ def oauth_google(body: OAuthGoogleRequest, db: Session = Depends(get_db)):
     )
 
 
-GUEST_EMAIL = "guest@matforge.local"
+GUEST_EMAIL = "guest@matcraft.local"
 
 
 @router.post("/guest", response_model=TokenResponse)

@@ -28,5 +28,5 @@ variable "db_password" {
 variable "domain" {
   description = "Primary domain"
   type        = string
-  default     = "matforge.ai"
+  default     = "matcraft.ai"
 }

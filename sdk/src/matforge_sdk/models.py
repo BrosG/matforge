@@ -1,4 +1,4 @@
-"""Pydantic models mirroring the MatForge API responses."""
+"""Pydantic models mirroring the MatCraft API responses."""
 
 from __future__ import annotations
 

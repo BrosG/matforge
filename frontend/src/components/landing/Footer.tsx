@@ -33,7 +33,7 @@ export function Footer() {
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
               <Atom className="h-7 w-7 text-blue-400" />
-              <span className="text-xl font-bold text-white">MatForge</span>
+              <span className="text-xl font-bold text-white">MatCraft</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-sm">
               Accelerate materials discovery with AI-powered surrogate models,
@@ -42,7 +42,7 @@ export function Footer() {
             </p>
             <div className="flex gap-3">
               <a
-                href="https://github.com/matforge"
+                href="https://github.com/matcraft"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
@@ -51,7 +51,7 @@ export function Footer() {
                 <Github className="h-4 w-4" />
               </a>
               <a
-                href="mailto:hello@matforge.io"
+                href="mailto:hello@matcraft.ai"
                 className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
                 aria-label="Email"
               >
@@ -85,7 +85,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-gray-800 py-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} MatForge &mdash; matforge.io. All
+            &copy; {new Date().getFullYear()} MatCraft &mdash; matcraft.ai. All
             rights reserved.
           </p>
           <p className="text-xs text-gray-600">

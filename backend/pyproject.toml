@@ -3,9 +3,9 @@ requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
 
 [project]
-name = "matforge-backend"
+name = "matcraft-backend"
 version = "0.1.0"
-description = "MatForge backend - FastAPI server for materials discovery"
+description = "MatCraft backend - FastAPI server for materials discovery"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 

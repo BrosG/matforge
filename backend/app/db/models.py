@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM models for MatForge."""
+"""SQLAlchemy ORM models for MatCraft."""
 
 from __future__ import annotations
 

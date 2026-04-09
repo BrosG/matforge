@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     """Application settings, loaded from environment variables."""
 
     # App
-    PROJECT_NAME: str = "MatForge"
+    PROJECT_NAME: str = "MatCraft"
     ENVIRONMENT: str = "development"
     SECRET_KEY: str = "change-me-in-production"
     API_V1_PREFIX: str = "/api/v1"

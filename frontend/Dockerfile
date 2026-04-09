@@ -15,7 +15,7 @@ CMD ["npm", "run", "dev"]
 # ---- Builder ----
 FROM base AS builder
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install
 COPY . .
 
 ARG NEXTAUTH_SECRET

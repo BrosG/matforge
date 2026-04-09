@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description:
     "Discover public materials optimization campaigns — browse results, Pareto fronts, and winning material compositions.",
   openGraph: {
-    title: "Explore Campaigns | MatForge",
+    title: "Explore Campaigns | MatCraft",
     description:
       "Discover public materials optimization campaigns and Pareto-optimal material compositions.",
   },

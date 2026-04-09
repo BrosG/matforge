@@ -1,4 +1,4 @@
-"""MatForge FastAPI application."""
+"""MatCraft FastAPI application."""
 
 from __future__ import annotations
 

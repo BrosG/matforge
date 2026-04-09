@@ -120,7 +120,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://api.matforge.ai/api/v1
+          NEXT_PUBLIC_API_URL: https://api.matcraft.ai/api/v1
           NEXTAUTH_SECRET: build-time-placeholder
           NEXT_PUBLIC_FIREBASE_API_KEY: build-placeholder
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: matforge-50499

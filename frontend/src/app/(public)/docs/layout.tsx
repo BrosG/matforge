@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Documentation",
   description:
-    "MatForge documentation — YAML campaign definitions, Python SDK, REST API reference, plugin development, and deployment guides.",
+    "MatCraft documentation — YAML campaign definitions, Python SDK, REST API reference, plugin development, and deployment guides.",
   openGraph: {
-    title: "Documentation | MatForge",
+    title: "Documentation | MatCraft",
     description:
-      "Complete documentation for MatForge: campaign definitions, Python SDK, and API reference.",
+      "Complete documentation for MatCraft: campaign definitions, Python SDK, and API reference.",
   },
 };
 

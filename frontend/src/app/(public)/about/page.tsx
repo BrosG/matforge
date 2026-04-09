@@ -27,7 +27,7 @@ export default function AboutPage() {
             animate={{ opacity: 1, y: 0 }}
           >
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              About <span className="gradient-text">MatForge</span>
+              About <span className="gradient-text">MatCraft</span>
             </h1>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto">
               MATERIA - Materials Accelerated Through Engineering, Research,
@@ -51,7 +51,7 @@ export default function AboutPage() {
               simulations, lengthy experiments, and expert intuition.
             </p>
             <p className="text-gray-600 leading-relaxed">
-              MatForge democratizes this process by combining physics-based
+              MatCraft democratizes this process by combining physics-based
               evaluation with machine learning surrogate models and intelligent
               active learning. Our platform enables researchers to explore
               vast material design spaces 100x faster, discovering

@@ -118,7 +118,7 @@ export default function DashboardLayout({
               {!collapsed && (
                 <span className="text-lg font-bold">
                   <span className="text-gray-900">Mat</span>
-                  <span className="gradient-text">Forge</span>
+                  <span className="gradient-text">Craft</span>
                 </span>
               )}
             </Link>
@@ -213,7 +213,7 @@ export default function DashboardLayout({
           </button>
           <Link href="/" className="flex items-center gap-2">
             <Atom className="h-6 w-6 text-blue-600" />
-            <span className="font-bold text-sm">MatForge</span>
+            <span className="font-bold text-sm">MatCraft</span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <button className="p-1.5 rounded-lg hover:bg-gray-100 relative">
@@ -242,7 +242,7 @@ export default function DashboardLayout({
               >
                 <div className="flex items-center h-14 px-4 border-b">
                   <Atom className="h-7 w-7 text-blue-600" />
-                  <span className="ml-2 text-lg font-bold">MatForge</span>
+                  <span className="ml-2 text-lg font-bold">MatCraft</span>
                 </div>
                 <nav className="p-3 space-y-1">
                   {NAV_ITEMS.map((item) => (

@@ -11,7 +11,7 @@ from app.db.base import get_db_context
 logger = logging.getLogger(__name__)
 
 
-class MatForgeTask(Task):
+class MatCraftTask(Task):
     """Base task class that updates Job records on success/failure."""
 
     abstract = True

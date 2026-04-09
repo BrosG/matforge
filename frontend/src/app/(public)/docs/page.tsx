@@ -29,7 +29,7 @@ const SECTIONS = [
     gradient: "from-blue-500 to-cyan-500",
     items: [
       { title: "Quick Start Guide", desc: "Create your first campaign in 5 minutes", badge: "Essential" },
-      { title: "Installation", desc: "Set up MatForge locally with Docker or pip" },
+      { title: "Installation", desc: "Set up MatCraft locally with Docker or pip" },
       { title: "Core Concepts", desc: "Materials, parameters, objectives, and Pareto fronts" },
     ],
   },
@@ -105,7 +105,7 @@ export default function DocsPage() {
               Documentation
             </span>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Learn <span className="gradient-text">MatForge</span>
+              Learn <span className="gradient-text">MatCraft</span>
             </h1>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto">
               Everything you need to know about materials optimization with
@@ -130,7 +130,7 @@ export default function DocsPage() {
             <CardContent className="p-0">
               <pre className="p-6 text-sm font-mono text-gray-300 overflow-x-auto">
                 <code>
-                  <span className="text-gray-500"># Install MatForge</span>{"\n"}
+                  <span className="text-gray-500"># Install MatCraft</span>{"\n"}
                   <span className="text-green-400">$</span> pip install materia{"\n\n"}
                   <span className="text-gray-500"># Initialize a water filtration project</span>{"\n"}
                   <span className="text-green-400">$</span> materia init --domain water --name my-membrane{"\n\n"}

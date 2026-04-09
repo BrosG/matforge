@@ -14,13 +14,13 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
-const SITE_URL = "https://matforge.ai";
+const SITE_URL = "https://matcraft.ai";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "MatForge — AI-Powered Materials Discovery Platform",
-    template: "%s | MatForge",
+    default: "MatCraft — AI-Powered Materials Discovery Platform",
+    template: "%s | MatCraft",
   },
   description:
     "Accelerate materials discovery with AI surrogate models, active learning, and multi-objective Pareto optimization. Search 8+ public databases, run GNN surrogates (CHGNet, MACE), and export CIF/POSCAR.",
@@ -40,20 +40,20 @@ export const metadata: Metadata = {
     "band gap",
     "formation energy",
   ],
-  authors: [{ name: "MatForge", url: SITE_URL }],
-  creator: "MatForge",
+  authors: [{ name: "MatCraft", url: SITE_URL }],
+  creator: "MatCraft",
   openGraph: {
-    title: "MatForge — AI-Powered Materials Discovery Platform",
+    title: "MatCraft — AI-Powered Materials Discovery Platform",
     description:
       "Accelerate materials discovery with AI surrogate models, active learning, and multi-objective Pareto optimization.",
     url: SITE_URL,
-    siteName: "MatForge",
+    siteName: "MatCraft",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "MatForge — AI-Powered Materials Discovery Platform",
+    title: "MatCraft — AI-Powered Materials Discovery Platform",
     description:
       "Accelerate materials discovery with AI surrogate models, active learning, and Pareto optimization.",
   },

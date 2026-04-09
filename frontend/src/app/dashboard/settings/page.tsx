@@ -34,7 +34,7 @@ export default function SettingsPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("matforge_notifications");
+      const stored = localStorage.getItem("matcraft_notifications");
       if (stored) return JSON.parse(stored);
     }
     return { campaignComplete: true, campaignFailed: true, weeklyReport: false };
@@ -68,7 +68,7 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     // Persist notification preferences to localStorage
-    localStorage.setItem("matforge_notifications", JSON.stringify(notifications));
+    localStorage.setItem("matcraft_notifications", JSON.stringify(notifications));
 
     // Update profile if name changed
     const newName = fullName ?? user?.name ?? "";

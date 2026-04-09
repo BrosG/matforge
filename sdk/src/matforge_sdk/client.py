@@ -1,4 +1,4 @@
-"""MatForge API client."""
+"""MatCraft API client."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ class MatForgeError(Exception):
 
 
 class MatForgeClient:
-    """Synchronous Python client for the MatForge REST API.
+    """Synchronous Python client for the MatCraft REST API.
 
     Usage::
 

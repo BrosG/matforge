@@ -1,4 +1,4 @@
-"""MatForge Python SDK — programmatic access to the MatForge platform."""
+"""MatCraft Python SDK — programmatic access to the MatCraft platform."""
 
 from matforge_sdk.client import MatForgeClient
 from matforge_sdk.models import (

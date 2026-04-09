@@ -8,12 +8,12 @@ import tempfile
 from pathlib import Path
 
 from app.tasks.celery_app import celery_app
-from app.tasks.base import MatForgeTask
+from app.tasks.base import MatCraftTask
 
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(bind=True, base=MatForgeTask, name="app.tasks.run_campaign.run_campaign_task")
+@celery_app.task(bind=True, base=MatCraftTask, name="app.tasks.run_campaign.run_campaign_task")
 def run_campaign_task(self, campaign_id: str) -> dict:
     """Execute a campaign using the materia core engine.
 

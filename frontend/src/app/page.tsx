@@ -197,7 +197,7 @@ export default function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                MatForge combines surrogate models, active learning, and Pareto
+                MatCraft combines surrogate models, active learning, and Pareto
                 optimization to find optimal materials 100x faster than brute-force
                 search. No GPU required.
               </motion.p>
@@ -434,7 +434,7 @@ export default function LandingPage() {
               custom={0}
             >
               <span className="text-sm font-semibold text-amber-600 uppercase tracking-wider">
-                Why MatForge
+                Why MatCraft
               </span>
               <h2 className="text-4xl font-bold mt-3 mb-6">
                 Built for{" "}
@@ -527,10 +527,10 @@ active_learning:
             custom={0}
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Ready to <span className="gradient-text">Forge</span> Your Next Material?
+              Ready to <span className="gradient-text">Craft</span> Your Next Material?
             </h2>
             <p className="text-lg text-gray-500 mb-8 max-w-2xl mx-auto">
-              Join researchers using MatForge to discover novel materials for
+              Join researchers using MatCraft to discover novel materials for
               water, energy, construction, and beyond.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">

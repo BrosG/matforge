@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "matforge-sdk"
 version = "0.1.0"
-description = "Python SDK for the MatForge materials discovery platform"
+description = "Python SDK for the MatCraft materials discovery platform"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
-    {name = "The MatForge Collective"},
+    {name = "The MatCraft Collective"},
 ]
-keywords = ["matforge", "materials", "sdk", "api"]
+keywords = ["matcraft", "materials", "sdk", "api"]
 
 dependencies = [
     "httpx>=0.25",

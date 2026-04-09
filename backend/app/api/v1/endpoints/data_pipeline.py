@@ -124,6 +124,6 @@ def export_training_data(
         generate_jsonl(),
         media_type="application/x-ndjson",
         headers={
-            "Content-Disposition": "attachment; filename=matforge_training_data.jsonl"
+            "Content-Disposition": "attachment; filename=matcraft_training_data.jsonl"
         },
     )

@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   description:
     "Explore 16 material domains: water treatment, batteries, solar cells, CO2 capture, catalysts, hydrogen storage, construction, bio-materials, and more.",
   openGraph: {
-    title: "Material Domains | MatForge",
+    title: "Material Domains | MatCraft",
     description:
-      "Explore 16 material domains supported by MatForge for multi-objective optimization.",
+      "Explore 16 material domains supported by MatCraft for multi-objective optimization.",
   },
 };
 

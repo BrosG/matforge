@@ -1,5 +1,5 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -12,16 +12,24 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const app =
-  getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+function getApp(): FirebaseApp | null {
+  if (!firebaseConfig.apiKey) return null;
+  return getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+}
 
-export const auth = getAuth(app);
+export function getFirebaseAuth(): Auth | null {
+  const app = getApp();
+  if (!app) return null;
+  return getAuth(app);
+}
 
 export const initAnalytics = async () => {
   if (typeof window !== "undefined" && (await isSupported())) {
+    const app = getApp();
+    if (!app) return null;
     return getAnalytics(app);
   }
   return null;
 };
 
-export default app;
+export default getApp;
