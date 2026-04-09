@@ -28,8 +28,8 @@ export const authOptions: NextAuthOptions = {
           const data = await res.json();
           return {
             id: data.user_id || "unknown",
-            email: data.email || "",
-            name: data.name || data.email || "",
+            email: data.email || data.phone_number || "",
+            name: data.name || data.email || data.phone_number || "",
             accessToken: data.access_token,
             refreshToken: data.refresh_token,
             is_admin: data.is_admin || false,

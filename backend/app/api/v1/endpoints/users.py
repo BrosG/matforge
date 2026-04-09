@@ -41,11 +41,16 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    user_id: str | None = None
+    email: str | None = None
+    name: str | None = None
+    phone_number: str | None = None
 
 
 class UserResponse(BaseModel):
     id: str
-    email: str
+    email: str | None
+    phone_number: str | None = None
     full_name: str | None
     is_admin: bool
 
@@ -233,28 +238,38 @@ def firebase_auth_endpoint(body: FirebaseAuthRequest, db: Session = Depends(get_
         )
 
     email = decoded.get("email")
+    phone = decoded.get("phone_number")
     uid = decoded.get("uid")
-    name = decoded.get("name", email)
+    name = decoded.get("name", email or phone)
 
-    if not email:
+    if not email and not phone:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Firebase token missing email claim",
+            detail="Firebase token missing email and phone claims",
         )
 
+    # Look up by Firebase uid first
     user = (
         db.query(User)
         .filter(User.oauth_provider == "firebase", User.oauth_id == uid)
         .first()
     )
     if not user:
-        user = db.query(User).filter(User.email == email).first()
+        # Try matching by email or phone
+        if email:
+            user = db.query(User).filter(User.email == email).first()
+        if not user and phone:
+            user = db.query(User).filter(User.phone_number == phone).first()
+
         if user:
             user.oauth_provider = "firebase"
             user.oauth_id = uid
+            if phone and not user.phone_number:
+                user.phone_number = phone
         else:
             user = User(
                 email=email,
+                phone_number=phone,
                 full_name=name,
                 oauth_provider="firebase",
                 oauth_id=uid,
@@ -266,4 +281,8 @@ def firebase_auth_endpoint(body: FirebaseAuthRequest, db: Session = Depends(get_
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
+        user_id=user.id,
+        email=user.email,
+        name=user.full_name,
+        phone_number=user.phone_number,
     )
