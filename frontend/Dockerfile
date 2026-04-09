@@ -1,7 +1,7 @@
 # Frontend Dockerfile with multi-stage build
 
 # ---- Base ----
-FROM node:18-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 
 # ---- Development ----
@@ -40,7 +40,7 @@ RUN npx prisma generate || true
 RUN npm run build
 
 # ---- Production ----
-FROM node:18-alpine AS production
+FROM node:22-alpine AS production
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs && \
