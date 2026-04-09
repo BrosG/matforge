@@ -6,9 +6,21 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/dashboard/"],
+        disallow: ["/dashboard/", "/api/", "/_next/"],
+      },
+      {
+        userAgent: "GPTBot",
+        disallow: "/",
+      },
+      {
+        userAgent: "CCBot",
+        disallow: "/",
       },
     ],
-    sitemap: "https://matcraft.ai/sitemap.xml",
+    sitemap: [
+      "https://matcraft.ai/sitemap.xml",
+      "https://matcraft.ai/material-sitemap/1",
+    ],
+    host: "https://matcraft.ai",
   };
 }

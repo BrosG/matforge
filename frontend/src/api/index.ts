@@ -106,6 +106,38 @@ export interface AnalyticsData {
   recent_campaigns: Campaign[];
 }
 
+export interface MaterialSummary {
+  id: string;
+  external_id: string;
+  source_db: string;
+  formula: string;
+  formula_anonymous: string | null;
+  elements: string[];
+  n_elements: number;
+  band_gap: number | null;
+  formation_energy: number | null;
+  energy_above_hull: number | null;
+  density: number | null;
+  space_group: string | null;
+  crystal_system: string | null;
+  is_stable: boolean;
+  tags: string[];
+}
+
+export interface MaterialDetail extends MaterialSummary {
+  composition: Record<string, number>;
+  total_magnetization: number | null;
+  volume: number | null;
+  lattice_params: Record<string, number> | null;
+  structure_data: {
+    atoms?: { element: string; x: number; y: number; z: number }[];
+  } | null;
+  properties_json: Record<string, unknown>;
+  source_url: string | null;
+  fetched_at: string;
+  updated_at: string | null;
+}
+
 export interface HealthFull {
   status: string;
   database: { connected: boolean; users?: number; campaigns?: number; materials?: number };
@@ -227,6 +259,50 @@ export const api = {
       }),
     delete: (id: string) =>
       apiRequest<void>(`/templates/${id}`, { method: "DELETE" }),
+  },
+  materials: {
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      q?: string;
+      elements?: string;
+      formula?: string;
+      crystal_system?: string;
+      band_gap_min?: number;
+      band_gap_max?: number;
+      formation_energy_min?: number;
+      formation_energy_max?: number;
+      is_stable?: boolean;
+      source_db?: string;
+      sort_by?: string;
+      sort_dir?: string;
+    }) => {
+      const p = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") p.set(k, String(v));
+        });
+      }
+      return publicRequest<{
+        materials: MaterialSummary[];
+        total: number;
+        page: number;
+        limit: number;
+      }>(`/materials?${p}`);
+    },
+    get: (id: string) => publicRequest<MaterialDetail>(`/materials/${id}`),
+    related: (id: string, limit = 12) =>
+      publicRequest<MaterialSummary[]>(`/materials/${id}/related?limit=${limit}`),
+    stats: () =>
+      publicRequest<{
+        total_materials: number;
+        stable_materials: number;
+        sources: Record<string, number>;
+        crystal_systems: Record<string, number>;
+        n_elements_distribution: Record<number, number>;
+        avg_band_gap: number | null;
+      }>("/materials/stats"),
+    elements: () => publicRequest<Record<string, number>>("/materials/elements"),
   },
   system: {
     health: () => publicRequest<{ status: string }>("/health"),

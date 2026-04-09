@@ -161,3 +161,32 @@ class TemplateLike(Base):
     id = Column(String(36), primary_key=True, default=_uuid)
     template_id = Column(String(36), ForeignKey("templates.id"), nullable=False, index=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+
+
+class IndexedMaterial(Base):
+    __tablename__ = "indexed_materials"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    external_id = Column(String(100), unique=True, nullable=False, index=True)
+    source_db = Column(String(50), nullable=False, index=True)
+    formula = Column(String(255), nullable=False, index=True)
+    formula_anonymous = Column(String(255), nullable=True, index=True)
+    elements = Column(JSON, nullable=False, default=list)
+    n_elements = Column(Integer, nullable=False, default=0, index=True)
+    composition = Column(JSON, default=dict)
+    band_gap = Column(Float, nullable=True, index=True)
+    formation_energy = Column(Float, nullable=True, index=True)
+    energy_above_hull = Column(Float, nullable=True, index=True)
+    density = Column(Float, nullable=True, index=True)
+    total_magnetization = Column(Float, nullable=True)
+    volume = Column(Float, nullable=True)
+    space_group = Column(String(20), nullable=True, index=True)
+    crystal_system = Column(String(20), nullable=True, index=True)
+    lattice_params = Column(JSON, nullable=True)
+    structure_data = Column(JSON, nullable=True)
+    properties_json = Column(JSON, default=dict)
+    source_url = Column(String(500), nullable=True)
+    is_stable = Column(Boolean, default=False, index=True)
+    tags = Column(JSON, default=list)
+    fetched_at = Column(DateTime(timezone=True), default=_now, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)

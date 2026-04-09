@@ -1,0 +1,185 @@
+"use client";
+
+import { useMemo } from "react";
+import dynamic from "next/dynamic";
+import { cn } from "@/lib/utils";
+
+// ── CPK coloring map (hex) ──────────────────────────────────────────────────
+export const CPK_COLORS: Record<string, string> = {
+  H: "#FFFFFF",
+  He: "#D9FFFF",
+  Li: "#CC80FF",
+  Be: "#C2FF00",
+  B: "#FFB5B5",
+  C: "#909090",
+  N: "#3050F8",
+  O: "#FF0D0D",
+  F: "#90E050",
+  Ne: "#B3E3F5",
+  Na: "#AB5CF2",
+  Mg: "#8AFF00",
+  Al: "#BFA6A6",
+  Si: "#F0C8A0",
+  P: "#FF8000",
+  S: "#FFFF30",
+  Cl: "#1FF01F",
+  Ar: "#80D1E3",
+  K: "#8F40D4",
+  Ca: "#3DFF00",
+  Ti: "#BFC2C7",
+  V: "#A6A6AB",
+  Cr: "#8A99C7",
+  Mn: "#9C7AC7",
+  Fe: "#E06633",
+  Co: "#F090A0",
+  Ni: "#50D050",
+  Cu: "#C88033",
+  Zn: "#7D80B0",
+  Ga: "#C28F8F",
+  Ge: "#668F8F",
+  As: "#BD80E3",
+  Se: "#FFA100",
+  Br: "#A62929",
+  Kr: "#5CB8D1",
+  Rb: "#702EB0",
+  Sr: "#00FF00",
+  Y: "#94FFFF",
+  Zr: "#94E0E0",
+  Nb: "#73C2C9",
+  Mo: "#54B5B5",
+  Ru: "#248F8F",
+  Rh: "#0A7D8C",
+  Pd: "#006985",
+  Ag: "#C0C0C0",
+  Cd: "#FFD98F",
+  In: "#A67573",
+  Sn: "#668080",
+  Sb: "#9E63B5",
+  Te: "#D47A00",
+  I: "#940094",
+  Xe: "#429EB0",
+  Cs: "#57178F",
+  Ba: "#00C900",
+  La: "#70D4FF",
+  Ce: "#FFFFC7",
+  Pt: "#D0D0E0",
+  Au: "#FFD123",
+  Hg: "#B8B8D0",
+  Pb: "#575961",
+  Bi: "#9E4FB5",
+  U: "#008FFF",
+};
+
+/** Default covalent-ish radii (Angstrom) for sphere sizing */
+const ELEMENT_RADII: Record<string, number> = {
+  H: 0.25,
+  He: 0.28,
+  C: 0.35,
+  N: 0.35,
+  O: 0.33,
+  F: 0.32,
+  Si: 0.45,
+  P: 0.4,
+  S: 0.4,
+  Cl: 0.38,
+  Fe: 0.45,
+  Cu: 0.42,
+  Zn: 0.42,
+  Br: 0.42,
+  I: 0.48,
+};
+const DEFAULT_RADIUS = 0.38;
+
+// ── Types ───────────────────────────────────────────────────────────────────
+interface AtomData {
+  element: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface LatticeParams {
+  a: number;
+  b: number;
+  c: number;
+  alpha: number;
+  beta: number;
+  gamma: number;
+}
+
+interface MaterialStructureViewerProps {
+  atoms: AtomData[];
+  lattice?: LatticeParams;
+  className?: string;
+}
+
+// ── Lazy-loaded 3D scene (SSR disabled) ─────────────────────────────────────
+const Scene3D = dynamic(() => import("./MaterialStructureScene"), {
+  ssr: false,
+  loading: () => <StructureViewerFallback />,
+});
+
+function StructureViewerFallback() {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-gray-900 rounded-xl">
+      <div className="text-center">
+        <div className="relative mx-auto w-16 h-16">
+          <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
+          <div className="absolute inset-2 rounded-full bg-blue-500/40 animate-pulse" />
+          <div className="absolute inset-4 rounded-full bg-blue-500/60 animate-pulse" />
+        </div>
+        <p className="text-xs text-gray-400 mt-4">Loading 3D viewer...</p>
+      </div>
+    </div>
+  );
+}
+
+export function MaterialStructureViewer({
+  atoms,
+  lattice,
+  className,
+}: MaterialStructureViewerProps) {
+  // Precompute centred positions, colors, radii, and bonds
+  const { positions, colors, radii, bonds } = useMemo(() => {
+    if (atoms.length === 0) {
+      return { positions: [], colors: [], radii: [], bonds: [] };
+    }
+
+    // Centre of mass
+    const cx = atoms.reduce((s, a) => s + a.x, 0) / atoms.length;
+    const cy = atoms.reduce((s, a) => s + a.y, 0) / atoms.length;
+    const cz = atoms.reduce((s, a) => s + a.z, 0) / atoms.length;
+
+    const pos = atoms.map((a) => [a.x - cx, a.y - cy, a.z - cz] as [number, number, number]);
+    const cols = atoms.map((a) => CPK_COLORS[a.element] ?? "#888888");
+    const rads = atoms.map((a) => ELEMENT_RADII[a.element] ?? DEFAULT_RADIUS);
+
+    // Auto-detect bonds (distance < 2.5 A)
+    const bondList: [number, number][] = [];
+    const BOND_THRESHOLD = 2.5;
+    for (let i = 0; i < pos.length; i++) {
+      for (let j = i + 1; j < pos.length; j++) {
+        const dx = pos[i][0] - pos[j][0];
+        const dy = pos[i][1] - pos[j][1];
+        const dz = pos[i][2] - pos[j][2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < BOND_THRESHOLD && dist > 0.4) {
+          bondList.push([i, j]);
+        }
+      }
+    }
+
+    return { positions: pos, colors: cols, radii: rads, bonds: bondList };
+  }, [atoms]);
+
+  return (
+    <div className={cn("w-full h-80 rounded-xl overflow-hidden bg-gray-900", className)}>
+      <Scene3D
+        positions={positions}
+        colors={colors}
+        radii={radii}
+        bonds={bonds}
+      />
+    </div>
+  );
+}
