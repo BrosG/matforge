@@ -23,6 +23,7 @@ dependencies = [
     "redis>=5.0",
     # Auth
     "passlib[bcrypt]>=1.7",
+    "bcrypt>=4.0,<4.1",
     "pyjwt>=2.8",
     "python-multipart>=0.0.6",
     # Config
