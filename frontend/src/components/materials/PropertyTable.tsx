@@ -20,14 +20,13 @@ function formatValue(value: number): string {
 }
 
 export function PropertyTable({ properties, units }: PropertyTableProps) {
-  const entries = Object.entries(properties);
+  // Only show rows that have actual values — never show dashes for missing data
+  const entries = Object.entries(properties).filter(
+    ([, v]) => v !== null && v !== undefined
+  );
 
   if (entries.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground italic">
-        No properties available.
-      </p>
-    );
+    return null; // Don't render empty tables
   }
 
   return (

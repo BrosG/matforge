@@ -345,7 +345,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                             <ElementBadge element={el} size="sm" />
                             <span className="font-mono text-gray-700">
                               {typeof frac === "number"
-                                ? frac.toFixed(3)
+                                ? `${(frac * 100).toFixed(1)}%`
                                 : String(frac)}
                             </span>
                           </div>
