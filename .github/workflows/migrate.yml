@@ -1,0 +1,161 @@
+name: DB Migrate & Ingest
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to run"
+        required: true
+        type: choice
+        options:
+          - migrate
+          - ingest
+          - migrate-and-ingest
+      ingest_source:
+        description: "Connector source for ingestion (ignored for migrate-only)"
+        required: false
+        default: "materials_project"
+        type: choice
+        options:
+          - materials_project
+          - aflow
+          - jarvis
+          - all
+      ingest_max:
+        description: "Max materials to ingest per source"
+        required: false
+        default: "200"
+
+env:
+  GCP_PROJECT_ID: matforge-50499
+  GCP_REGION: us-central1
+  AR_REPO: matforge
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      - name: Pull latest API image
+        run: |
+          # Get the latest image tag from Cloud Run
+          IMAGE=$(gcloud run services describe matforge-api \
+            --region ${{ env.GCP_REGION }} \
+            --format 'value(spec.template.spec.containers[0].image)' 2>/dev/null || true)
+
+          if [ -z "$IMAGE" ]; then
+            IMAGE=$(gcloud run services describe matforge-api-staging \
+              --region ${{ env.GCP_REGION }} \
+              --format 'value(spec.template.spec.containers[0].image)')
+          fi
+
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          docker pull $IMAGE
+
+      - name: Run Alembic Migration
+        if: ${{ inputs.action == 'migrate' || inputs.action == 'migrate-and-ingest' }}
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            -e REDIS_URL="${{ secrets.REDIS_URL }}" \
+            -e CELERY_BROKER_URL="${{ secrets.CELERY_BROKER_URL }}" \
+            -e CELERY_RESULT_BACKEND="${{ secrets.CELERY_RESULT_BACKEND }}" \
+            -e WEBSOCKET_REDIS_URL="${{ secrets.WEBSOCKET_REDIS_URL }}" \
+            -e ENVIRONMENT=production \
+            ${{ env.IMAGE }} \
+            python -c "
+import subprocess, sys
+result = subprocess.run(
+    ['alembic', 'upgrade', 'head'],
+    capture_output=True, text=True
+)
+print(result.stdout)
+if result.stderr:
+    print(result.stderr, file=sys.stderr)
+sys.exit(result.returncode)
+"
+
+      - name: Ingest Data
+        if: ${{ inputs.action == 'ingest' || inputs.action == 'migrate-and-ingest' }}
+        run: |
+          SOURCES="${{ inputs.ingest_source }}"
+          MAX="${{ inputs.ingest_max }}"
+
+          if [ "$SOURCES" = "all" ]; then
+            SOURCES="materials_project aflow jarvis"
+          fi
+
+          for SOURCE in $SOURCES; do
+            echo "=== Ingesting from $SOURCE (max $MAX) ==="
+            docker run --rm \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+              -e REDIS_URL="${{ secrets.REDIS_URL }}" \
+              -e CELERY_BROKER_URL="${{ secrets.CELERY_BROKER_URL }}" \
+              -e CELERY_RESULT_BACKEND="${{ secrets.CELERY_RESULT_BACKEND }}" \
+              -e WEBSOCKET_REDIS_URL="${{ secrets.WEBSOCKET_REDIS_URL }}" \
+              -e ENVIRONMENT=production \
+              -e MATERIALS_PROJECT_API_KEY="${{ secrets.MATERIALS_PROJECT_API_KEY }}" \
+              ${{ env.IMAGE }} \
+              python -c "
+import sys
+sys.path.insert(0, '.')
+from app.db.base import get_db_context
+from app.services.ingest_service import ingest_batch
+
+SOURCE = '$SOURCE'
+MAX = int('$MAX')
+
+# Import the right connector
+if SOURCE == 'materials_project':
+    from materia.connectors.materials_project import MaterialsProjectConnector
+    connector = MaterialsProjectConnector()
+elif SOURCE == 'aflow':
+    from materia.connectors.aflow import AflowConnector
+    connector = AflowConnector()
+elif SOURCE == 'jarvis':
+    from materia.connectors.jarvis import JarvisConnector
+    connector = JarvisConnector()
+else:
+    print(f'Unknown source: {SOURCE}')
+    sys.exit(1)
+
+print(f'Fetching up to {MAX} materials from {SOURCE}...')
+entries = connector.search(max_results=MAX)
+print(f'Fetched {len(entries)} entries')
+
+batch = [
+    {
+        'external_id': e.external_id,
+        'formula': e.formula,
+        'properties': e.properties,
+        'structure': e.structure if e.structure else None,
+        'metadata': e.metadata,
+    }
+    for e in entries
+]
+
+with get_db_context() as db:
+    count = ingest_batch(db, batch, SOURCE)
+    print(f'Ingested {count} materials from {SOURCE}')
+"
+          done
+
+      - name: Summary
+        run: echo "Done. Action=${{ inputs.action }}, Source=${{ inputs.ingest_source }}, Max=${{ inputs.ingest_max }}"
