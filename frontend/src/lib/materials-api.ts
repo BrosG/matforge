@@ -47,7 +47,9 @@ export interface MaterialDetail extends MaterialSummary {
     };
   } | null;
   structure_data: {
-    atoms: { element: string; x: number; y: number; z: number }[];
+    atoms: { element: string; x: number; y: number; z: number; cartesian?: boolean }[];
+    primitive_lattice?: { a: number; b: number; c: number; alpha: number; beta: number; gamma: number };
+    lattice?: { a: number; b: number; c: number; alpha: number; beta: number; gamma: number };
   } | null;
 
   // Mechanical properties

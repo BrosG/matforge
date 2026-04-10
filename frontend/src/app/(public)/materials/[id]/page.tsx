@@ -588,7 +588,12 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 {hasStructure ? (
                   <MaterialStructureViewer
                     atoms={material.structure_data!.atoms}
-                    lattice={material.lattice_params ?? undefined}
+                    lattice={
+                      material.structure_data!.primitive_lattice ??
+                      material.structure_data!.lattice ??
+                      material.lattice_params ??
+                      undefined
+                    }
                     className="h-96 lg:h-[28rem]"
                   />
                 ) : (

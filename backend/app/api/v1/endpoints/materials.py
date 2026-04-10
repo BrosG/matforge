@@ -201,20 +201,24 @@ def get_material(material_id: str, db: Session = Depends(get_db)):
     # Apply all data quality normalizations before responding
     normalize_material(mat)
 
-    # Replicate primitive cell atoms to conventional cell for 3D viewer
+    # For 3D viewer: include primitive lattice params alongside atoms
+    # Atoms from MP are in primitive cell Cartesian coords — the primitive
+    # lattice is needed to draw the correct unit cell box around them
     if mat.structure_data and mat.lattice_params:
-        atoms = mat.structure_data.get("atoms", [])
-        if atoms and len(atoms) < 20:  # Only replicate small primitive cells
-            from app.services.lattice_utils import primitive_to_conventional_atoms
-
-            conv_atoms = primitive_to_conventional_atoms(
-                atoms,
-                mat.lattice_params,
-                crystal_system=mat.crystal_system,
-                space_group=mat.space_group,
-            )
-            if len(conv_atoms) > len(atoms):
-                mat.structure_data = {"atoms": conv_atoms}
+        prim = mat.lattice_params.get("primitive")
+        if prim:
+            # Atoms are in primitive frame — include primitive lattice for the viewer
+            mat.structure_data["primitive_lattice"] = prim
+        else:
+            # No conversion happened — lattice matches the atoms
+            mat.structure_data["lattice"] = {
+                "a": mat.lattice_params.get("a"),
+                "b": mat.lattice_params.get("b"),
+                "c": mat.lattice_params.get("c"),
+                "alpha": mat.lattice_params.get("alpha"),
+                "beta": mat.lattice_params.get("beta"),
+                "gamma": mat.lattice_params.get("gamma"),
+            }
 
     # Strip internal pipeline fields — never expose to frontend
     if mat.properties_json and isinstance(mat.properties_json, dict):
