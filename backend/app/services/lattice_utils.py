@@ -138,85 +138,78 @@ def primitive_to_conventional_atoms(
 ) -> list[dict]:
     """Replicate primitive cell atoms to fill the conventional cell.
 
-    For centered lattices (FCC, BCC, base-centered), the primitive cell
-    contains fewer atoms than the conventional cell. This function applies
-    the centering translations to generate all conventional cell atoms.
+    For FCC (Fm-3m etc): 4 primitive atoms → 16 conventional atoms
+    For BCC (Im-3m etc): 2 primitive atoms → 4 conventional atoms
+
+    The atoms from MP are in PRIMITIVE cell fractional coordinates.
+    The lattice we have is the CONVENTIONAL cell (after our conversion).
+    We need to:
+    1. Convert primitive fractional → primitive Cartesian (using primitive lattice)
+    2. Apply centering translations in Cartesian
+    3. Return Cartesian coordinates for the conventional cell
     """
     if not atoms or not crystal_system:
         return atoms
 
     sg = (space_group or "").strip()
-    cs = crystal_system.lower()
+    if not sg:
+        return atoms
 
-    # Determine centering from space group symbol
-    centering = "P"  # primitive (no replication needed)
-    if sg:
-        first = sg[0]
-        if first in ("F", "I", "C", "A", "R"):
-            centering = first
+    centering = sg[0] if sg[0] in ("F", "I", "C", "A", "R") else "P"
+    if centering == "P":
+        return atoms  # No replication needed
 
-    # Define translation vectors for each centering type
-    translations: list[tuple[float, float, float]] = [(0, 0, 0)]
+    # Get conventional lattice parameters
+    a_conv = float(lattice.get("a", 1))
+    b_conv = float(lattice.get("b", 1))
+    c_conv = float(lattice.get("c", 1))
+    al_conv = float(lattice.get("alpha", 90))
+    be_conv = float(lattice.get("beta", 90))
+    ga_conv = float(lattice.get("gamma", 90))
 
+    # Centering translation vectors in CONVENTIONAL fractional coordinates
     if centering == "F":
-        # Face-centered: 4 atoms per primitive → conventional
         translations = [(0, 0, 0), (0.5, 0.5, 0), (0.5, 0, 0.5), (0, 0.5, 0.5)]
     elif centering == "I":
-        # Body-centered: 2 atoms per primitive → conventional
         translations = [(0, 0, 0), (0.5, 0.5, 0.5)]
     elif centering == "C":
-        # C-centered: 2 atoms per primitive → conventional
         translations = [(0, 0, 0), (0.5, 0.5, 0)]
     elif centering == "A":
-        # A-centered
         translations = [(0, 0, 0), (0, 0.5, 0.5)]
     elif centering == "R":
-        # Rhombohedral (in hexagonal setting): 3 atoms
         translations = [(0, 0, 0), (2/3, 1/3, 1/3), (1/3, 2/3, 2/3)]
+    else:
+        return atoms
 
-    if len(translations) <= 1:
-        return atoms  # Primitive — no replication needed
+    # For each primitive atom, figure out its conventional fractional coords
+    # Primitive abc coords → conventional fractional coords depends on centering
+    # For FCC cubic: conv_frac = prim_frac (they share the same fractional positions
+    # within the primitive cell, centering adds the translated copies)
 
-    # Get conventional lattice params for Cartesian conversion
-    conv_lat = lattice
-
-    conv_atoms = []
-    seen: set[tuple[str, float, float, float]] = set()
+    conv_atoms: list[dict] = []
+    seen: set[tuple[str, int, int, int]] = set()
 
     for atom in atoms:
-        # Use fractional coordinates if available, else use x,y,z
+        # Get fractional coords (primitive cell basis)
         fx = atom.get("fx", atom.get("x", 0))
         fy = atom.get("fy", atom.get("y", 0))
         fz = atom.get("fz", atom.get("z", 0))
-
-        # If atom has cartesian flag, we need to convert back to fractional
-        # for replication, then back to Cartesian
-        if atom.get("cartesian"):
-            # Skip Cartesian atoms — can't easily convert back without inverse matrix
-            # Just use them as-is
-            conv_atoms.append(atom)
-            continue
 
         for tx, ty, tz in translations:
             nfx = (fx + tx) % 1.0
             nfy = (fy + ty) % 1.0
             nfz = (fz + tz) % 1.0
 
-            # Deduplicate (same element at same fractional position)
-            key = (atom["element"], round(nfx, 3), round(nfy, 3), round(nfz, 3))
+            # Deduplicate with tolerance
+            key = (atom["element"], round(nfx * 100), round(nfy * 100), round(nfz * 100))
             if key in seen:
                 continue
             seen.add(key)
 
-            # Convert to Cartesian
-            a_val = float(conv_lat.get("a", 1))
-            b_val = float(conv_lat.get("b", 1))
-            c_val = float(conv_lat.get("c", 1))
-            alpha = float(conv_lat.get("alpha", 90))
-            beta = float(conv_lat.get("beta", 90))
-            gamma = float(conv_lat.get("gamma", 90))
-
-            cx, cy, cz = _frac_to_cart_simple(nfx, nfy, nfz, a_val, b_val, c_val, alpha, beta, gamma)
+            # Convert conventional fractional → Cartesian using conventional lattice
+            cx, cy, cz = _frac_to_cart_simple(
+                nfx, nfy, nfz, a_conv, b_conv, c_conv, al_conv, be_conv, ga_conv
+            )
 
             conv_atoms.append({
                 "element": atom["element"],
