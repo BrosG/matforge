@@ -77,10 +77,20 @@ class IndexedMaterialDetail(BaseModel):
     effective_mass_electron: float | None
     effective_mass_hole: float | None
 
+    # Electronic extras
+    efermi: float | None
+    is_gap_direct: bool | None
+
+    # Decomposition
+    decomposes_to: list | None
+
     # Provenance
     oxidation_states: dict | None
     calculation_method: str | None
     is_theoretical: bool | None
+    experimentally_observed: bool | None
+    icsd_ids: list | None
+    database_ids: dict | None
     warnings: list[str] | None
 
     properties_json: dict

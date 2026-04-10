@@ -43,10 +43,14 @@ class MaterialsProjectConnector(DatasetConnector):
         # Electronic
         "total_magnetization", "ordering",
         "e_electronic", "n",
+        "is_gap_direct", "efermi",
+        # Thermal
+        "decomposes_to",
         # Structure
         "symmetry", "structure",
         # Provenance
         "theoretical", "oxidation_states",
+        "database_IDs", "builder_meta",
     ])
 
     def search(
@@ -179,7 +183,38 @@ class MaterialsProjectConnector(DatasetConnector):
             metadata["is_theoretical"] = bool(item["theoretical"])
 
         metadata["is_stable"] = bool(item.get("is_stable", False))
-        metadata["calculation_method"] = "GGA-PBE"  # MP default functional
+
+        # DFT functional from builder_meta
+        builder = item.get("builder_meta")
+        if isinstance(builder, dict):
+            metadata["calculation_method"] = builder.get("run_type", "GGA-PBE")
+        else:
+            metadata["calculation_method"] = "GGA-PBE"
+
+        # Band gap type
+        if item.get("is_gap_direct") is not None:
+            metadata["is_gap_direct"] = bool(item["is_gap_direct"])
+
+        # Fermi energy
+        efermi = item.get("efermi")
+        if efermi is not None and isinstance(efermi, (int, float)):
+            properties["efermi"] = float(efermi)
+
+        # Decomposition pathway
+        decomp = item.get("decomposes_to")
+        if decomp:
+            metadata["decomposes_to"] = decomp
+
+        # External database IDs (for citations/cross-references)
+        db_ids = item.get("database_IDs")
+        if isinstance(db_ids, dict):
+            metadata["database_ids"] = db_ids
+            # Extract ICSD IDs as experimental validation
+            icsd = db_ids.get("icsd", [])
+            if icsd:
+                metadata["icsd_ids"] = icsd
+                metadata["experimentally_observed"] = True
+                metadata["is_theoretical"] = False
 
         return DatasetEntry(
             external_id=item.get("material_id", fallback_id),

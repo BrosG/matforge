@@ -70,10 +70,20 @@ export interface MaterialDetail extends MaterialSummary {
   effective_mass_electron: number | null;
   effective_mass_hole: number | null;
 
+  // Electronic extras
+  efermi: number | null;
+  is_gap_direct: boolean | null;
+
+  // Decomposition
+  decomposes_to: { formula: string; amount: number }[] | null;
+
   // Provenance
   oxidation_states: Record<string, number> | null;
   calculation_method: string | null;
   is_theoretical: boolean | null;
+  experimentally_observed: boolean | null;
+  icsd_ids: string[] | null;
+  database_ids: Record<string, string[]> | null;
   warnings: string[] | null;
 
   properties_json: Record<string, unknown> | null;

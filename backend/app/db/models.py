@@ -204,10 +204,20 @@ class IndexedMaterial(Base):
     effective_mass_electron = Column(Float, nullable=True)  # m_e units
     effective_mass_hole = Column(Float, nullable=True)      # m_e units
 
+    # Electronic extras
+    efermi = Column(Float, nullable=True)             # eV
+    is_gap_direct = Column(Boolean, nullable=True)
+
+    # Decomposition
+    decomposes_to = Column(JSON, nullable=True)       # list of competing phases
+
     # Provenance & reliability
     oxidation_states = Column(JSON, nullable=True)    # e.g. {"Fe": 3, "O": -2}
     calculation_method = Column(String(50), nullable=True)  # e.g. "GGA-PBE"
     is_theoretical = Column(Boolean, default=True)    # computed vs experimental
+    experimentally_observed = Column(Boolean, default=False)  # has ICSD entry
+    icsd_ids = Column(JSON, nullable=True)            # ICSD reference IDs
+    database_ids = Column(JSON, nullable=True)        # cross-references to other DBs
     warnings = Column(JSON, default=list)             # e.g. ["disordered structure"]
 
     properties_json = Column(JSON, default=dict)

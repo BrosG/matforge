@@ -390,6 +390,54 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                       {material.magnetic_ordering}
                     </Badge>
                   )}
+                  {material.experimentally_observed && (
+                    <Badge variant="info" className="text-xs">
+                      Experimentally Observed
+                    </Badge>
+                  )}
+                  {material.is_gap_direct !== null && material.band_gap !== null && material.band_gap > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {material.is_gap_direct ? "Direct Gap" : "Indirect Gap"}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Experimental References */}
+              {material.icsd_ids && material.icsd_ids.length > 0 && (
+                <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <h2 className="text-sm font-semibold text-green-800 mb-1">
+                    Experimental Validation
+                  </h2>
+                  <p className="text-sm text-green-700">
+                    Structure verified in ICSD (Inorganic Crystal Structure Database):
+                    {" "}{material.icsd_ids.slice(0, 5).map(id => `#${id}`).join(", ")}
+                    {material.icsd_ids.length > 5 && ` and ${material.icsd_ids.length - 5} more`}
+                  </p>
+                </div>
+              )}
+
+              {/* Decomposition Pathway */}
+              {material.decomposes_to && material.decomposes_to.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                    Decomposition Pathway
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {material.decomposes_to.map((phase, i) => (
+                      <div
+                        key={i}
+                        className="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
+                      >
+                        {typeof phase === "object" && phase !== null
+                          ? `${(phase as Record<string, unknown>).formula ?? JSON.stringify(phase)}`
+                          : String(phase)}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Competing phases this material would decompose into
+                  </p>
                 </div>
               )}
 
@@ -576,6 +624,47 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                   </div>
                 </div>
               )}
+
+              {/* Citation / Data Source */}
+              <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h2 className="text-sm font-semibold text-blue-800 mb-1">
+                  Data Source &amp; Citation
+                </h2>
+                <p className="text-sm text-blue-700">
+                  Data from {material.source_db === "materials_project" ? "The Materials Project" :
+                    material.source_db === "aflow" ? "AFLOW" :
+                    material.source_db === "jarvis" ? "JARVIS-DFT (NIST)" :
+                    material.source_db}
+                  {" "}(ID: {material.external_id})
+                </p>
+                {material.source_url && (
+                  <a
+                    href={material.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    View original data source
+                  </a>
+                )}
+                {material.source_db === "materials_project" && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Cite: A. Jain et al., APL Materials 1, 011002 (2013). DOI: 10.1063/1.4812323
+                  </p>
+                )}
+                {material.source_db === "aflow" && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Cite: S. Curtarolo et al., Comp. Mat. Sci. 58, 218 (2012). DOI: 10.1016/j.commatsci.2012.02.005
+                  </p>
+                )}
+                {material.database_ids && Object.keys(material.database_ids).length > 0 && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Cross-references: {Object.entries(material.database_ids).map(([db, ids]) =>
+                      `${db.toUpperCase()}: ${Array.isArray(ids) ? ids.slice(0, 3).join(", ") : ids}`
+                    ).join(" | ")}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Right column: 3D structure viewer */}
@@ -588,11 +677,13 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 {hasStructure ? (
                   <MaterialStructureViewer
                     atoms={material.structure_data!.atoms}
-                    lattice={
-                      (material.structure_data as Record<string, unknown>)?.viewer_lattice as typeof material.lattice_params ??
-                      material.lattice_params ??
-                      undefined
-                    }
+                    lattice={(() => {
+                      const sd = material.structure_data as Record<string, unknown> | null;
+                      const vl = sd?.viewer_lattice as Record<string, number> | undefined;
+                      if (vl && typeof vl.a === "number") return vl as unknown as typeof material.lattice_params;
+                      if (material.lattice_params) return material.lattice_params;
+                      return undefined;
+                    })()}
                     className="h-96 lg:h-[28rem]"
                   />
                 ) : (

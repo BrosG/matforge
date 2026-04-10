@@ -152,6 +152,15 @@ def ingest_entry(
     record.effective_mass_electron = _safe_float(properties.get("effective_mass_electron"))
     record.effective_mass_hole = _safe_float(properties.get("effective_mass_hole"))
 
+    # Electronic extras
+    record.efermi = _safe_float(properties.get("efermi"))
+    if "is_gap_direct" in meta:
+        record.is_gap_direct = bool(meta["is_gap_direct"])
+
+    # Decomposition pathway
+    if meta.get("decomposes_to"):
+        record.decomposes_to = meta["decomposes_to"]
+
     # Metadata-driven fields
     record.magnetic_ordering = meta.get("magnetic_ordering")
     record.space_group = meta.get("space_group")
@@ -160,6 +169,15 @@ def ingest_entry(
     record.calculation_method = meta.get("calculation_method")
     record.is_theoretical = meta.get("is_theoretical", True)
     record.is_stable = meta.get("is_stable", False)
+
+    # Experimental validation
+    if meta.get("experimentally_observed"):
+        record.experimentally_observed = True
+        record.is_theoretical = False
+    if meta.get("icsd_ids"):
+        record.icsd_ids = meta["icsd_ids"]
+    if meta.get("database_ids"):
+        record.database_ids = meta["database_ids"]
 
     # Stability detection
     if record.energy_above_hull is not None:
