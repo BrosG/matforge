@@ -198,7 +198,10 @@ export function MaterialStructureViewer({
     const hasLattice = lattice && lattice.a > 0;
 
     // Check if coordinates are already Cartesian (from API flag) or fractional
-    const isCartesian = atoms.length > 0 && atoms[0].cartesian === true;
+    // If no flag, detect: if max coordinate > 1.1, likely Cartesian Angstrom
+    const hasFlag = atoms.length > 0 && atoms[0].cartesian !== undefined;
+    const maxCoord = Math.max(...atoms.map(a => Math.max(Math.abs(a.x), Math.abs(a.y), Math.abs(a.z))));
+    const isCartesian = hasFlag ? atoms[0].cartesian === true : maxCoord > 1.1;
 
     let cartAtoms: { element: string; x: number; y: number; z: number }[];
 
