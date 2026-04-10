@@ -106,6 +106,7 @@ interface LatticeParams {
   alpha: number;
   beta: number;
   gamma: number;
+  [key: string]: unknown; // Allow extra fields like cell_type, converted, primitive
 }
 
 interface MaterialStructureViewerProps {

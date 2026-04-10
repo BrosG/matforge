@@ -677,13 +677,12 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 {hasStructure ? (
                   <MaterialStructureViewer
                     atoms={material.structure_data!.atoms}
-                    lattice={(() => {
-                      const sd = material.structure_data as Record<string, unknown> | null;
-                      const vl = sd?.viewer_lattice as Record<string, number> | undefined;
-                      if (vl && typeof vl.a === "number") return vl as unknown as typeof material.lattice_params;
-                      if (material.lattice_params) return material.lattice_params;
-                      return undefined;
-                    })()}
+                    lattice={
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      (material.structure_data as any)?.viewer_lattice ??
+                      material.lattice_params ??
+                      undefined
+                    }
                     className="h-96 lg:h-[28rem]"
                   />
                 ) : (
