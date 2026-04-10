@@ -51,10 +51,9 @@ async def lifespan(app: FastAPI):
         "Starting %s environment=%s", settings.PROJECT_NAME, settings.ENVIRONMENT
     )
 
-    # Create tables in development mode
-    if settings.ENVIRONMENT == "development":
-        create_tables()
-        logger.info("Database tables created/verified")
+    # Ensure all tables and columns exist
+    create_tables()
+    logger.info("Database tables created/verified")
 
     yield
 
