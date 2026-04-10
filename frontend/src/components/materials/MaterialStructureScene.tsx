@@ -64,11 +64,46 @@ function Bond({
 
 // ── Scene props (serialisable – passed across dynamic import boundary) ──────
 
+function CellEdge({
+  start,
+  end,
+}: {
+  start: [number, number, number];
+  end: [number, number, number];
+}) {
+  const { position, rotation, length } = useMemo(() => {
+    const s = new THREE.Vector3(...start);
+    const e = new THREE.Vector3(...end);
+    const mid = s.clone().add(e).multiplyScalar(0.5);
+    const dir = e.clone().sub(s);
+    const len = dir.length();
+    const orientation = new THREE.Quaternion();
+    orientation.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      dir.normalize()
+    );
+    const euler = new THREE.Euler().setFromQuaternion(orientation);
+    return {
+      position: [mid.x, mid.y, mid.z] as [number, number, number],
+      rotation: [euler.x, euler.y, euler.z] as [number, number, number],
+      length: len,
+    };
+  }, [start, end]);
+
+  return (
+    <mesh position={position} rotation={rotation}>
+      <cylinderGeometry args={[0.02, 0.02, length, 4]} />
+      <meshStandardMaterial color="#4b5563" metalness={0.1} roughness={0.8} transparent opacity={0.6} />
+    </mesh>
+  );
+}
+
 interface SceneProps {
   positions: [number, number, number][];
   colors: string[];
   radii: number[];
   bonds: [number, number][];
+  cellEdges?: [number, number, number, number, number, number][];
 }
 
 export default function MaterialStructureScene({
@@ -76,6 +111,7 @@ export default function MaterialStructureScene({
   colors,
   radii,
   bonds,
+  cellEdges = [],
 }: SceneProps) {
   if (positions.length === 0) {
     return (
@@ -102,9 +138,21 @@ export default function MaterialStructureScene({
       <directionalLight position={[-5, -5, -8]} intensity={0.3} />
 
       <group>
+        {/* Unit cell wireframe */}
+        {cellEdges.map((e, i) => (
+          <CellEdge
+            key={`cell-${i}`}
+            start={[e[0], e[1], e[2]]}
+            end={[e[3], e[4], e[5]]}
+          />
+        ))}
+
+        {/* Atoms */}
         {positions.map((pos, i) => (
           <Atom key={`a-${i}`} position={pos} color={colors[i]} radius={radii[i]} />
         ))}
+
+        {/* Bonds */}
         {bonds.map(([a, b], i) => (
           <Bond key={`b-${i}`} start={positions[a]} end={positions[b]} />
         ))}

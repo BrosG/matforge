@@ -134,43 +134,134 @@ function StructureViewerFallback() {
   );
 }
 
+/** Convert fractional (abc) to Cartesian (xyz) using lattice parameters. */
+function fracToCart(
+  fx: number, fy: number, fz: number,
+  lat: LatticeParams
+): [number, number, number] {
+  const { a, b, c, alpha, beta, gamma } = lat;
+  const ar = (alpha * Math.PI) / 180;
+  const br = (beta * Math.PI) / 180;
+  const gr = (gamma * Math.PI) / 180;
+
+  const cosA = Math.cos(ar), cosB = Math.cos(br), cosG = Math.cos(gr);
+  const sinG = Math.sin(gr);
+
+  const va: [number, number, number] = [a, 0, 0];
+  const vb: [number, number, number] = [b * cosG, b * sinG, 0];
+  const cx2 = c * cosB;
+  const cy2 = c * (cosA - cosB * cosG) / sinG;
+  const cz2 = Math.sqrt(Math.max(0, c * c - cx2 * cx2 - cy2 * cy2));
+  const vc: [number, number, number] = [cx2, cy2, cz2];
+
+  return [
+    fx * va[0] + fy * vb[0] + fz * vc[0],
+    fx * va[1] + fy * vb[1] + fz * vc[1],
+    fx * va[2] + fy * vb[2] + fz * vc[2],
+  ];
+}
+
+/** Build the 12 edges of a parallelepiped unit cell. */
+function unitCellEdges(lat: LatticeParams): [number, number, number, number, number, number][] {
+  const o = fracToCart(0, 0, 0, lat);
+  const a = fracToCart(1, 0, 0, lat);
+  const b = fracToCart(0, 1, 0, lat);
+  const c = fracToCart(0, 0, 1, lat);
+  const ab = fracToCart(1, 1, 0, lat);
+  const ac = fracToCart(1, 0, 1, lat);
+  const bc = fracToCart(0, 1, 1, lat);
+  const abc = fracToCart(1, 1, 1, lat);
+
+  const edge = (p1: [number, number, number], p2: [number, number, number]) =>
+    [...p1, ...p2] as [number, number, number, number, number, number];
+
+  return [
+    edge(o, a), edge(o, b), edge(o, c),
+    edge(a, ab), edge(a, ac),
+    edge(b, ab), edge(b, bc),
+    edge(c, ac), edge(c, bc),
+    edge(ab, abc), edge(ac, abc), edge(bc, abc),
+  ];
+}
+
 export function MaterialStructureViewer({
   atoms,
   lattice,
   className,
 }: MaterialStructureViewerProps) {
-  // Precompute centred positions, colors, radii, and bonds
-  const { positions, colors, radii, bonds } = useMemo(() => {
+  const { positions, colors, radii, bonds, cellEdges } = useMemo(() => {
     if (atoms.length === 0) {
-      return { positions: [], colors: [], radii: [], bonds: [] };
+      return { positions: [], colors: [], radii: [], bonds: [], cellEdges: [] };
+    }
+
+    // Detect if coordinates are fractional (all between 0-1) or Cartesian
+    const allFractional = atoms.every(
+      (a) => a.x >= -0.01 && a.x <= 1.01 && a.y >= -0.01 && a.y <= 1.01 && a.z >= -0.01 && a.z <= 1.01
+    );
+    const hasLattice = lattice && lattice.a > 0;
+
+    // Convert to Cartesian if fractional + have lattice
+    let cartAtoms: { element: string; x: number; y: number; z: number }[];
+
+    if (allFractional && hasLattice) {
+      // Replicate atoms in nearby cells for better visualization (2x2x2)
+      cartAtoms = [];
+      const offsets = [0]; // Just the original cell
+      // Add nearby images if few atoms
+      const cellOffsets = atoms.length < 8
+        ? [0, 1] // 2x2x2 for small cells
+        : [0];   // Just 1x1x1 for large cells
+
+      for (const dx of cellOffsets) {
+        for (const dy of cellOffsets) {
+          for (const dz of cellOffsets) {
+            for (const a of atoms) {
+              const [cx, cy, cz] = fracToCart(a.x + dx, a.y + dy, a.z + dz, lattice!);
+              cartAtoms.push({ element: a.element, x: cx, y: cy, z: cz });
+            }
+          }
+        }
+      }
+    } else {
+      cartAtoms = atoms;
     }
 
     // Centre of mass
-    const cx = atoms.reduce((s, a) => s + a.x, 0) / atoms.length;
-    const cy = atoms.reduce((s, a) => s + a.y, 0) / atoms.length;
-    const cz = atoms.reduce((s, a) => s + a.z, 0) / atoms.length;
+    const cx = cartAtoms.reduce((s, a) => s + a.x, 0) / cartAtoms.length;
+    const cy = cartAtoms.reduce((s, a) => s + a.y, 0) / cartAtoms.length;
+    const cz = cartAtoms.reduce((s, a) => s + a.z, 0) / cartAtoms.length;
 
-    const pos = atoms.map((a) => [a.x - cx, a.y - cy, a.z - cz] as [number, number, number]);
-    const cols = atoms.map((a) => CPK_COLORS[a.element] ?? "#888888");
-    const rads = atoms.map((a) => ELEMENT_RADII[a.element] ?? DEFAULT_RADIUS);
+    const pos = cartAtoms.map((a) => [a.x - cx, a.y - cy, a.z - cz] as [number, number, number]);
+    const cols = cartAtoms.map((a) => CPK_COLORS[a.element] ?? "#888888");
+    const rads = cartAtoms.map((a) => ELEMENT_RADII[a.element] ?? DEFAULT_RADIUS);
 
-    // Auto-detect bonds (distance < 2.5 A)
+    // Auto-detect bonds with proper Cartesian distances
     const bondList: [number, number][] = [];
-    const BOND_THRESHOLD = 2.5;
+    const BOND_MAX = 3.2; // Angstrom — covers most bonds
+    const BOND_MIN = 0.5;
     for (let i = 0; i < pos.length; i++) {
       for (let j = i + 1; j < pos.length; j++) {
         const dx = pos[i][0] - pos[j][0];
         const dy = pos[i][1] - pos[j][1];
         const dz = pos[i][2] - pos[j][2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < BOND_THRESHOLD && dist > 0.4) {
+        if (dist < BOND_MAX && dist > BOND_MIN) {
           bondList.push([i, j]);
         }
       }
     }
 
-    return { positions: pos, colors: cols, radii: rads, bonds: bondList };
-  }, [atoms]);
+    // Unit cell wireframe edges
+    let edges: [number, number, number, number, number, number][] = [];
+    if (hasLattice) {
+      edges = unitCellEdges(lattice!).map((e) => [
+        e[0] - cx, e[1] - cy, e[2] - cz,
+        e[3] - cx, e[4] - cy, e[5] - cz,
+      ] as [number, number, number, number, number, number]);
+    }
+
+    return { positions: pos, colors: cols, radii: rads, bonds: bondList, cellEdges: edges };
+  }, [atoms, lattice]);
 
   return (
     <div className={cn("w-full h-80 rounded-xl overflow-hidden bg-gray-900", className)}>
@@ -179,6 +270,7 @@ export function MaterialStructureViewer({
         colors={colors}
         radii={radii}
         bonds={bonds}
+        cellEdges={cellEdges}
       />
     </div>
   );
