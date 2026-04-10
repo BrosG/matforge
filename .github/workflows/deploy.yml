@@ -188,6 +188,37 @@ jobs:
             --port 3000 \
             --allow-unauthenticated
 
+      - name: Run Database Migrations
+        run: |
+          echo "=== Running Alembic Migrations ==="
+          IMAGE=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/api:${{ needs.determine-env.outputs.image_tag }}
+
+          # Create or update a Cloud Run job for migrations
+          gcloud run jobs create matforge-migrate${{ needs.determine-env.outputs.suffix }} \
+            --image $IMAGE \
+            --region ${{ env.GCP_REGION }} \
+            --vpc-connector matforge-connector \
+            --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,REDIS_URL=REDIS_URL:latest,CELERY_BROKER_URL=CELERY_BROKER_URL:latest,CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest,WEBSOCKET_REDIS_URL=WEBSOCKET_REDIS_URL:latest" \
+            --set-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }}" \
+            --service-account matforge-api@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
+            --memory 1Gi \
+            --cpu 1 \
+            --max-retries 0 \
+            --task-timeout 300 \
+            --command "alembic" \
+            --args "upgrade,head" \
+            2>/dev/null || \
+          gcloud run jobs update matforge-migrate${{ needs.determine-env.outputs.suffix }} \
+            --image $IMAGE \
+            --region ${{ env.GCP_REGION }} \
+            --command "alembic" \
+            --args "upgrade,head"
+
+          # Execute the migration job and wait
+          gcloud run jobs execute matforge-migrate${{ needs.determine-env.outputs.suffix }} \
+            --region ${{ env.GCP_REGION }} \
+            --wait
+
       - name: Print service URLs
         run: |
           echo "=== Deployment Complete ==="
