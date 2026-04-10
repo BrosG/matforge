@@ -17,7 +17,7 @@ import {
 } from "firebase/auth";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "https://api.matcraft.ai/api/v1";
 
 export default function RegisterPage() {
   const router = useRouter();

@@ -1,6 +1,6 @@
 const SITE_URL = "https://matcraft.ai";
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "https://api.matcraft.ai/api/v1";
 
 interface Material {
   id: string;
