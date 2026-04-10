@@ -26,14 +26,16 @@ _SEEDED_SOURCES = {"materials_project", "aflow", "oqmd"}
 _DEFAULT_BATCH_SIZE = int(os.environ.get("INGEST_BATCH_SIZE", "100"))
 
 
-_INGEST_MARKER_KEY = "_matcraft_api_ingested"
+_INGEST_VERSION = "v3"  # Bump this to force re-ingestion with latest code
+_INGEST_MARKER_KEY = f"_matcraft_ingest_{_INGEST_VERSION}"
 
 
 def _has_real_data(db) -> bool:
-    """Check if the DB has real API-ingested data.
+    """Check if the DB has data ingested with the CURRENT code version.
 
-    We stamp every API-ingested record with a marker in properties_json.
-    If no records have this marker, all data is seeded/fake.
+    Each ingestion version stamps records with a versioned marker.
+    If no records have the current version marker, all data is stale
+    and needs re-ingestion.
     """
     from sqlalchemy import cast, String
 

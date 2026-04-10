@@ -181,10 +181,12 @@ def ingest_entry(
     # Source URL
     record.source_url = _source_url(source_db, external_id)
 
-    # Store full properties dict as JSON catch-all + API ingestion marker
+    # Store full properties dict as JSON catch-all + versioned ingestion marker
     # Strip internal keys before storage — never leak pipeline metadata to frontend
+    from app.services.startup_ingest import _INGEST_MARKER_KEY
+
     props_json = {k: v for k, v in properties.items() if not k.startswith("_")}
-    props_json["_matcraft_api_ingested"] = True
+    props_json[_INGEST_MARKER_KEY] = True
     record.properties_json = props_json
 
     record.updated_at = datetime.now(timezone.utc)
