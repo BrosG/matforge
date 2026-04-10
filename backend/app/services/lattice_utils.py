@@ -249,6 +249,52 @@ def _frac_to_cart_simple(
     return (x, y, z)
 
 
+def conventional_to_primitive_lattice(lattice: dict, space_group: str) -> dict:
+    """Derive primitive lattice params from conventional cell + space group.
+
+    MP returns atoms in primitive Cartesian coords. To draw the unit cell
+    box around those atoms, we need the primitive lattice.
+
+    FCC: a_prim = a_conv / √2, α=β=γ=60°
+    BCC: a_prim = a_conv × √3/2, α=β=γ=109.47°
+    """
+    sg = space_group.strip() if space_group else ""
+    centering = sg[0] if sg and sg[0] in ("F", "I", "C", "A", "R") else "P"
+
+    a = float(lattice.get("a", 1))
+    b = float(lattice.get("b", 1))
+    c = float(lattice.get("c", 1))
+    alpha = float(lattice.get("alpha", 90))
+    beta = float(lattice.get("beta", 90))
+    gamma = float(lattice.get("gamma", 90))
+
+    if centering == "P":
+        return {"a": a, "b": b, "c": c, "alpha": alpha, "beta": beta, "gamma": gamma}
+
+    if centering == "F":
+        # FCC: a_prim = a_conv / √2
+        ap = round(a / math.sqrt(2), 4)
+        return {"a": ap, "b": ap, "c": ap, "alpha": 60.0, "beta": 60.0, "gamma": 60.0}
+
+    if centering == "I":
+        # BCC: a_prim = a_conv × √3/2
+        ap = round(a * math.sqrt(3) / 2, 4)
+        return {"a": ap, "b": ap, "c": ap, "alpha": 109.47, "beta": 109.47, "gamma": 109.47}
+
+    if centering == "C":
+        ap = round(math.sqrt(a**2/4 + b**2/4), 4)
+        return {"a": ap, "b": ap, "c": c, "alpha": 90.0, "beta": 90.0, "gamma": round(2*math.degrees(math.atan2(b, a)), 2)}
+
+    if centering == "R":
+        # Rhombohedral
+        ap = round(math.sqrt(a**2/3 + c**2/9), 4)
+        cos_alpha = (2*c**2/9 - a**2/3) / (2*(a**2/3 + c**2/9))
+        al = round(math.degrees(math.acos(max(-1, min(1, cos_alpha)))), 2)
+        return {"a": ap, "b": ap, "c": ap, "alpha": al, "beta": al, "gamma": al}
+
+    return {"a": a, "b": b, "c": c, "alpha": alpha, "beta": beta, "gamma": gamma}
+
+
 def _approx_eq(a: float, b: float, tol: float = 0.02) -> bool:
     """Check if two values are approximately equal (relative tolerance)."""
     if abs(a) < 1e-10 and abs(b) < 1e-10:
