@@ -225,18 +225,28 @@ export function MaterialStructureViewer({
       cartAtoms = atoms;
     }
 
-    // Centre of mass
-    const cx = cartAtoms.reduce((s, a) => s + a.x, 0) / cartAtoms.length;
-    const cy = cartAtoms.reduce((s, a) => s + a.y, 0) / cartAtoms.length;
-    const cz = cartAtoms.reduce((s, a) => s + a.z, 0) / cartAtoms.length;
+    // Compute unit cell center for centering everything together
+    let originX = 0, originY = 0, originZ = 0;
+    if (hasLattice) {
+      // Center of the conventional unit cell (at fractional 0.5, 0.5, 0.5)
+      const cellCenter = fracToCart(0.5, 0.5, 0.5, lattice!);
+      originX = cellCenter[0];
+      originY = cellCenter[1];
+      originZ = cellCenter[2];
+    } else {
+      // Fallback: center of mass
+      originX = cartAtoms.reduce((s, a) => s + a.x, 0) / cartAtoms.length;
+      originY = cartAtoms.reduce((s, a) => s + a.y, 0) / cartAtoms.length;
+      originZ = cartAtoms.reduce((s, a) => s + a.z, 0) / cartAtoms.length;
+    }
 
-    const pos = cartAtoms.map((a) => [a.x - cx, a.y - cy, a.z - cz] as [number, number, number]);
+    const pos = cartAtoms.map((a) => [a.x - originX, a.y - originY, a.z - originZ] as [number, number, number]);
     const cols = cartAtoms.map((a) => CPK_COLORS[a.element] ?? "#888888");
     const rads = cartAtoms.map((a) => ELEMENT_RADII[a.element] ?? DEFAULT_RADIUS);
 
     // Auto-detect bonds with proper Cartesian distances
     const bondList: [number, number][] = [];
-    const BOND_MAX = 3.2; // Angstrom — covers most bonds
+    const BOND_MAX = 3.5; // Angstrom — covers metallic bonds too
     const BOND_MIN = 0.5;
     for (let i = 0; i < pos.length; i++) {
       for (let j = i + 1; j < pos.length; j++) {
@@ -250,12 +260,12 @@ export function MaterialStructureViewer({
       }
     }
 
-    // Unit cell wireframe edges
+    // Unit cell wireframe edges — centered with same origin as atoms
     let edges: [number, number, number, number, number, number][] = [];
     if (hasLattice) {
       edges = unitCellEdges(lattice!).map((e) => [
-        e[0] - cx, e[1] - cy, e[2] - cz,
-        e[3] - cx, e[4] - cy, e[5] - cz,
+        e[0] - originX, e[1] - originY, e[2] - originZ,
+        e[3] - originX, e[4] - originY, e[5] - originZ,
       ] as [number, number, number, number, number, number]);
     }
 
