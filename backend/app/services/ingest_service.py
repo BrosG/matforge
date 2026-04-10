@@ -47,6 +47,30 @@ def _safe_float(val: Any) -> float | None:
         return None
 
 
+_BRAVAIS_TO_CRYSTAL_SYSTEM: dict[str, str] = {
+    # AFLOW Bravais lattice codes → standard crystal system names
+    "cub": "Cubic", "fcc": "Cubic", "bcc": "Cubic",
+    "tet": "Tetragonal", "bct": "Tetragonal",
+    "orc": "Orthorhombic", "orcf": "Orthorhombic", "orci": "Orthorhombic", "orcc": "Orthorhombic",
+    "hex": "Hexagonal",
+    "rhl": "Trigonal",
+    "mcl": "Monoclinic", "mclc": "Monoclinic",
+    "tri": "Triclinic",
+    # Already proper names (from MP)
+    "cubic": "Cubic", "tetragonal": "Tetragonal", "orthorhombic": "Orthorhombic",
+    "hexagonal": "Hexagonal", "trigonal": "Trigonal", "monoclinic": "Monoclinic",
+    "triclinic": "Triclinic",
+}
+
+
+def _normalize_crystal_system(raw: str | None) -> str | None:
+    """Normalize crystal system to standard capitalized name."""
+    if not raw:
+        return None
+    key = raw.strip().lower()
+    return _BRAVAIS_TO_CRYSTAL_SYSTEM.get(key, raw.capitalize())
+
+
 def _source_url(source_db: str, external_id: str) -> str | None:
     urls = {
         "materials_project": f"https://next-gen.materialsproject.org/materials/{external_id}",
@@ -131,14 +155,17 @@ def ingest_entry(
     # Metadata-driven fields
     record.magnetic_ordering = meta.get("magnetic_ordering")
     record.space_group = meta.get("space_group")
-    record.crystal_system = meta.get("crystal_system")
+    record.crystal_system = _normalize_crystal_system(meta.get("crystal_system", ""))
     record.oxidation_states = meta.get("oxidation_states")
     record.calculation_method = meta.get("calculation_method")
     record.is_theoretical = meta.get("is_theoretical", True)
     record.is_stable = meta.get("is_stable", False)
 
-    # Stability from energy above hull
-    if record.energy_above_hull is not None and record.energy_above_hull <= 0.0:
+    # Stability detection
+    if record.energy_above_hull is not None:
+        record.is_stable = record.energy_above_hull <= 0.025  # 25 meV/atom threshold
+    elif record.formation_energy is not None and record.formation_energy < -0.1:
+        # No Ehull available — use formation energy as rough proxy
         record.is_stable = True
 
     # Structure: extract lattice and atoms from pymatgen-format dict
