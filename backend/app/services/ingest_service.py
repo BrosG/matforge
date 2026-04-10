@@ -163,6 +163,17 @@ def ingest_entry(
         # Extract atom positions for 3D viewer
         atoms = extract_atoms_from_structure(structure)
         if atoms:
+            # Replicate primitive cell atoms to fill conventional cell
+            from app.services.lattice_utils import primitive_to_conventional_atoms
+
+            conv_lattice = record.lattice_params or lattice
+            if conv_lattice:
+                atoms = primitive_to_conventional_atoms(
+                    atoms,
+                    conv_lattice,
+                    crystal_system=record.crystal_system,
+                    space_group=record.space_group,
+                )
             record.structure_data = {"atoms": atoms}
     elif meta.get("lattice_params"):
         from app.services.lattice_utils import normalize_lattice_for_display

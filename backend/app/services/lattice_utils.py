@@ -130,6 +130,132 @@ def extract_atoms_from_structure(structure: dict) -> list[dict] | None:
     return atoms if atoms else None
 
 
+def primitive_to_conventional_atoms(
+    atoms: list[dict],
+    lattice: dict,
+    crystal_system: str | None = None,
+    space_group: str | None = None,
+) -> list[dict]:
+    """Replicate primitive cell atoms to fill the conventional cell.
+
+    For centered lattices (FCC, BCC, base-centered), the primitive cell
+    contains fewer atoms than the conventional cell. This function applies
+    the centering translations to generate all conventional cell atoms.
+    """
+    if not atoms or not crystal_system:
+        return atoms
+
+    sg = (space_group or "").strip()
+    cs = crystal_system.lower()
+
+    # Determine centering from space group symbol
+    centering = "P"  # primitive (no replication needed)
+    if sg:
+        first = sg[0]
+        if first in ("F", "I", "C", "A", "R"):
+            centering = first
+
+    # Define translation vectors for each centering type
+    translations: list[tuple[float, float, float]] = [(0, 0, 0)]
+
+    if centering == "F":
+        # Face-centered: 4 atoms per primitive → conventional
+        translations = [(0, 0, 0), (0.5, 0.5, 0), (0.5, 0, 0.5), (0, 0.5, 0.5)]
+    elif centering == "I":
+        # Body-centered: 2 atoms per primitive → conventional
+        translations = [(0, 0, 0), (0.5, 0.5, 0.5)]
+    elif centering == "C":
+        # C-centered: 2 atoms per primitive → conventional
+        translations = [(0, 0, 0), (0.5, 0.5, 0)]
+    elif centering == "A":
+        # A-centered
+        translations = [(0, 0, 0), (0, 0.5, 0.5)]
+    elif centering == "R":
+        # Rhombohedral (in hexagonal setting): 3 atoms
+        translations = [(0, 0, 0), (2/3, 1/3, 1/3), (1/3, 2/3, 2/3)]
+
+    if len(translations) <= 1:
+        return atoms  # Primitive — no replication needed
+
+    # Get conventional lattice params for Cartesian conversion
+    conv_lat = lattice
+
+    conv_atoms = []
+    seen: set[tuple[str, float, float, float]] = set()
+
+    for atom in atoms:
+        # Use fractional coordinates if available, else use x,y,z
+        fx = atom.get("fx", atom.get("x", 0))
+        fy = atom.get("fy", atom.get("y", 0))
+        fz = atom.get("fz", atom.get("z", 0))
+
+        # If atom has cartesian flag, we need to convert back to fractional
+        # for replication, then back to Cartesian
+        if atom.get("cartesian"):
+            # Skip Cartesian atoms — can't easily convert back without inverse matrix
+            # Just use them as-is
+            conv_atoms.append(atom)
+            continue
+
+        for tx, ty, tz in translations:
+            nfx = (fx + tx) % 1.0
+            nfy = (fy + ty) % 1.0
+            nfz = (fz + tz) % 1.0
+
+            # Deduplicate (same element at same fractional position)
+            key = (atom["element"], round(nfx, 3), round(nfy, 3), round(nfz, 3))
+            if key in seen:
+                continue
+            seen.add(key)
+
+            # Convert to Cartesian
+            a_val = float(conv_lat.get("a", 1))
+            b_val = float(conv_lat.get("b", 1))
+            c_val = float(conv_lat.get("c", 1))
+            alpha = float(conv_lat.get("alpha", 90))
+            beta = float(conv_lat.get("beta", 90))
+            gamma = float(conv_lat.get("gamma", 90))
+
+            cx, cy, cz = _frac_to_cart_simple(nfx, nfy, nfz, a_val, b_val, c_val, alpha, beta, gamma)
+
+            conv_atoms.append({
+                "element": atom["element"],
+                "x": round(cx, 4),
+                "y": round(cy, 4),
+                "z": round(cz, 4),
+                "cartesian": True,
+            })
+
+    return conv_atoms
+
+
+def _frac_to_cart_simple(
+    fx: float, fy: float, fz: float,
+    a: float, b: float, c: float,
+    alpha: float, beta: float, gamma: float,
+) -> tuple[float, float, float]:
+    """Convert fractional to Cartesian coordinates."""
+    ar = math.radians(alpha)
+    br = math.radians(beta)
+    gr = math.radians(gamma)
+
+    cos_a, cos_b, cos_g = math.cos(ar), math.cos(br), math.cos(gr)
+    sin_g = math.sin(gr)
+
+    vax = a
+    vbx = b * cos_g
+    vby = b * sin_g
+    vcx = c * cos_b
+    vcy = c * (cos_a - cos_b * cos_g) / sin_g
+    vcz = math.sqrt(max(0, c * c - vcx * vcx - vcy * vcy))
+
+    x = fx * vax + fy * vbx + fz * vcx
+    y = fy * vby + fz * vcy
+    z = fz * vcz
+
+    return (x, y, z)
+
+
 def _approx_eq(a: float, b: float, tol: float = 0.02) -> bool:
     """Check if two values are approximately equal (relative tolerance)."""
     if abs(a) < 1e-10 and abs(b) < 1e-10:

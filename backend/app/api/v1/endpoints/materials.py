@@ -201,6 +201,21 @@ def get_material(material_id: str, db: Session = Depends(get_db)):
     # Apply all data quality normalizations before responding
     normalize_material(mat)
 
+    # Replicate primitive cell atoms to conventional cell for 3D viewer
+    if mat.structure_data and mat.lattice_params:
+        atoms = mat.structure_data.get("atoms", [])
+        if atoms and len(atoms) < 20:  # Only replicate small primitive cells
+            from app.services.lattice_utils import primitive_to_conventional_atoms
+
+            conv_atoms = primitive_to_conventional_atoms(
+                atoms,
+                mat.lattice_params,
+                crystal_system=mat.crystal_system,
+                space_group=mat.space_group,
+            )
+            if len(conv_atoms) > len(atoms):
+                mat.structure_data = {"atoms": conv_atoms}
+
     # Strip internal pipeline fields — never expose to frontend
     if mat.properties_json and isinstance(mat.properties_json, dict):
         mat.properties_json = {
