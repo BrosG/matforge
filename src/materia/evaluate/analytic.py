@@ -10,6 +10,7 @@ import numpy as np
 from materia.evaluate.base import Evaluator
 from materia.material import Material
 from materia.mdl import MaterialDef
+from materia.safe_eval import safe_eval, safe_exec
 from materia.types import MaterialSource
 from materia.exceptions import MateriaEvalError
 
@@ -53,8 +54,7 @@ class AnalyticEvaluator(Evaluator):
         # Check constraints
         for constraint in material_def.constraints:
             try:
-                namespace = {"np": np, **physical_values}
-                satisfied = eval(constraint.expression, {"__builtins__": {}}, namespace)
+                satisfied = safe_eval(constraint.expression, physical_values)
                 if not satisfied:
                     # Return a heavily penalized material (finite values to avoid NaN in surrogate training)
                     properties = {obj.name: -1e6 if obj.direction.value == "maximize" else 1e6
@@ -66,8 +66,10 @@ class AnalyticEvaluator(Evaluator):
                         source=MaterialSource.PHYSICS,
                         metadata={"material_def": material_def, "constraint_violated": constraint.description},
                     )
-            except Exception:
-                pass  # Skip constraint if evaluation fails
+            except MateriaEvalError as e:
+                logger.warning(
+                    "Constraint '%s' evaluation failed: %s", constraint.description, e
+                )
 
         # Evaluate each objective
         properties: dict[str, float] = {}
@@ -109,26 +111,21 @@ class AnalyticEvaluator(Evaluator):
         if equation in self._plugin_functions:
             return self._plugin_functions[equation](**physical_values)
 
-        # Otherwise treat as inline Python expression
-        namespace: dict[str, Any] = {"np": np, "max": max, "min": min, "abs": abs}
-        namespace.update(physical_values)
-
+        # Otherwise treat as inline Python expression via safe AST evaluator
         # Handle multi-line equations (last expression is the result)
         lines = equation.strip().split("\n")
-        lines = [l.strip() for l in lines if l.strip() and not l.strip().startswith("#")]
+        lines = [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]
 
         if not lines:
             return 0.0
 
-        # Execute all lines except the last as statements
-        local_ns: dict[str, Any] = dict(namespace)
-        for line in lines[:-1]:
-            exec(line, {"__builtins__": {"max": max, "min": min, "abs": abs, "np": np}}, local_ns)
+        if len(lines) == 1:
+            # Single expression - use safe_eval directly
+            result = safe_eval(lines[0], physical_values)
+        else:
+            # Multi-line: execute preamble as assignments, evaluate last line
+            preamble = "\n".join(lines[:-1])
+            ns = safe_exec(preamble, physical_values)
+            result = safe_eval(lines[-1], ns)
 
-        # Evaluate the last line as an expression
-        result = eval(
-            lines[-1],
-            {"__builtins__": {"max": max, "min": min, "abs": abs, "np": np}},
-            local_ns,
-        )
         return float(result)

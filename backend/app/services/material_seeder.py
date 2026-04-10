@@ -378,14 +378,93 @@ def seed_materials(db: Session, count: int = 1000) -> int:
         # Space group
         sg = rng.choice(SPACE_GROUPS_BY_SYSTEM.get(crystal_system, ["P1"]))
 
-        # Magnetization for metals
+        # Magnetization and magnetic ordering
         total_mag = 0.0
+        magnetic_ordering = "non-magnetic"
         if band_gap == 0.0 and "Fe" in elements:
             total_mag = _jitter(2.2, 0.15)
+            magnetic_ordering = "ferromagnetic"
         elif band_gap == 0.0 and "Co" in elements:
             total_mag = _jitter(1.72, 0.15)
+            magnetic_ordering = "ferromagnetic"
         elif band_gap == 0.0 and "Ni" in elements:
             total_mag = _jitter(0.60, 0.15)
+            magnetic_ordering = "ferromagnetic"
+        elif band_gap == 0.0 and ("Mn" in elements or "Cr" in elements):
+            total_mag = _jitter(0.3, 0.20)
+            magnetic_ordering = "antiferromagnetic"
+        elif band_gap > 0:
+            magnetic_ordering = "diamagnetic"
+
+        # Mechanical properties (realistic ranges based on material class)
+        bulk_modulus = None
+        shear_modulus = None
+        young_modulus = None
+        poisson_ratio = None
+        if band_gap == 0.0:  # metals
+            bulk_modulus = _jitter(160.0, 0.30)
+            shear_modulus = _jitter(80.0, 0.30)
+            poisson_ratio = _jitter(0.30, 0.10)
+        elif band_gap < 4.0:  # semiconductors
+            bulk_modulus = _jitter(80.0, 0.25)
+            shear_modulus = _jitter(50.0, 0.25)
+            poisson_ratio = _jitter(0.26, 0.10)
+        else:  # insulators
+            bulk_modulus = _jitter(200.0, 0.30)
+            shear_modulus = _jitter(120.0, 0.30)
+            poisson_ratio = _jitter(0.22, 0.10)
+        if bulk_modulus and shear_modulus and (3 * bulk_modulus + shear_modulus) > 0:
+            young_modulus = 9 * bulk_modulus * shear_modulus / (3 * bulk_modulus + shear_modulus)
+
+        # Electronic properties
+        dielectric_constant = None
+        refractive_index = None
+        if band_gap > 0:
+            dielectric_constant = _jitter(max(3.0, 30.0 / max(band_gap, 0.5)), 0.20)
+            refractive_index = _jitter(max(1.5, 4.0 / max(band_gap, 0.5) ** 0.5), 0.10)
+
+        # Thermal properties
+        thermal_conductivity = None
+        seebeck_coefficient = None
+        if band_gap == 0.0:
+            thermal_conductivity = _jitter(50.0, 0.40)
+        elif band_gap < 2.0:
+            thermal_conductivity = _jitter(10.0, 0.40)
+            seebeck_coefficient = _jitter(200.0, 0.30)
+        else:
+            thermal_conductivity = _jitter(3.0, 0.40)
+
+        # Carrier properties
+        eff_mass_e = None
+        eff_mass_h = None
+        if 0 < band_gap < 5.0:
+            eff_mass_e = _jitter(0.3, 0.40)
+            eff_mass_h = _jitter(0.5, 0.40)
+
+        # Oxidation states
+        oxidation_states = {}
+        for el in elements:
+            ox_map = {
+                "Li": 1, "Na": 1, "K": 1, "Ca": 2, "Mg": 2, "Ba": 2, "Sr": 2,
+                "Al": 3, "Fe": 3, "Co": 2, "Ni": 2, "Cu": 2, "Zn": 2,
+                "Ti": 4, "Zr": 4, "Hf": 4, "V": 5, "Nb": 5, "Cr": 3, "Mn": 4,
+                "Si": 4, "Ge": 4, "Sn": 4, "Pb": 2, "Bi": 3,
+                "O": -2, "S": -2, "Se": -2, "Te": -2,
+                "N": -3, "P": -3, "As": -3,
+                "F": -1, "Cl": -1, "Br": -1, "I": -1,
+                "C": 4, "B": 3, "Ga": 3, "In": 3, "La": 3, "Ce": 4, "Y": 3,
+                "W": 6, "Mo": 4, "Cs": 1,
+            }
+            if el in ox_map:
+                oxidation_states[el] = ox_map[el]
+
+        is_theoretical = True
+        calculation_method = rng.choice(["GGA-PBE", "GGA-PBE", "GGA-PBE", "HSE06", "GGA+U"])
+        warnings_list: list[str] = []
+        if not is_stable:
+            warnings_list.append("Structure may be thermodynamically unstable")
+        if crystal_system == "triclinic":
+            warnings_list.append("Low-symmetry structure — DFT approximation may be less reliable")
 
         # Build structure data for 3D viewer
         structure_data = {
@@ -433,11 +512,31 @@ def seed_materials(db: Session, count: int = 1000) -> int:
             energy_above_hull=round(energy_above_hull, 4),
             density=round(density, 3),
             total_magnetization=round(total_mag, 3) if total_mag else None,
+            magnetic_ordering=magnetic_ordering,
             volume=round(volume, 3),
             space_group=sg,
             crystal_system=crystal_system,
             lattice_params=lattice_params,
             structure_data=structure_data,
+            # Mechanical
+            bulk_modulus=round(bulk_modulus, 2) if bulk_modulus else None,
+            shear_modulus=round(shear_modulus, 2) if shear_modulus else None,
+            young_modulus=round(young_modulus, 2) if young_modulus else None,
+            poisson_ratio=round(poisson_ratio, 4) if poisson_ratio else None,
+            # Electronic
+            dielectric_constant=round(dielectric_constant, 2) if dielectric_constant else None,
+            refractive_index=round(refractive_index, 3) if refractive_index else None,
+            # Thermal
+            thermal_conductivity=round(thermal_conductivity, 2) if thermal_conductivity else None,
+            seebeck_coefficient=round(seebeck_coefficient, 1) if seebeck_coefficient else None,
+            # Carrier
+            effective_mass_electron=round(eff_mass_e, 4) if eff_mass_e else None,
+            effective_mass_hole=round(eff_mass_h, 4) if eff_mass_h else None,
+            # Provenance
+            oxidation_states=oxidation_states if oxidation_states else None,
+            calculation_method=calculation_method,
+            is_theoretical=is_theoretical,
+            warnings=warnings_list if warnings_list else None,
             properties_json={
                 "band_gap": round(band_gap, 4),
                 "formation_energy_per_atom": round(formation_energy, 4),

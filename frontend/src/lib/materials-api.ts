@@ -26,6 +26,7 @@ export interface MaterialSummary {
 export interface MaterialDetail extends MaterialSummary {
   composition: Record<string, number> | null;
   total_magnetization: number | null;
+  magnetic_ordering: string | null;
   volume: number | null;
   lattice_params: {
     a: number;
@@ -38,6 +39,31 @@ export interface MaterialDetail extends MaterialSummary {
   structure_data: {
     atoms: { element: string; x: number; y: number; z: number }[];
   } | null;
+
+  // Mechanical properties
+  bulk_modulus: number | null;
+  shear_modulus: number | null;
+  young_modulus: number | null;
+  poisson_ratio: number | null;
+
+  // Electronic properties
+  dielectric_constant: number | null;
+  refractive_index: number | null;
+
+  // Thermal / thermoelectric
+  thermal_conductivity: number | null;
+  seebeck_coefficient: number | null;
+
+  // Carrier properties
+  effective_mass_electron: number | null;
+  effective_mass_hole: number | null;
+
+  // Provenance
+  oxidation_states: Record<string, number> | null;
+  calculation_method: string | null;
+  is_theoretical: boolean | null;
+  warnings: string[] | null;
+
   properties_json: Record<string, unknown> | null;
   source_url: string | null;
   fetched_at: string | null;

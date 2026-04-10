@@ -52,11 +52,37 @@ class IndexedMaterialDetail(BaseModel):
     energy_above_hull: float | None
     density: float | None
     total_magnetization: float | None
+    magnetic_ordering: str | None
     volume: float | None
     space_group: str | None
     crystal_system: str | None
     lattice_params: dict | None
     structure_data: dict | None
+
+    # Mechanical properties
+    bulk_modulus: float | None
+    shear_modulus: float | None
+    young_modulus: float | None
+    poisson_ratio: float | None
+
+    # Electronic properties
+    dielectric_constant: float | None
+    refractive_index: float | None
+
+    # Thermal / thermoelectric
+    thermal_conductivity: float | None
+    seebeck_coefficient: float | None
+
+    # Carrier properties
+    effective_mass_electron: float | None
+    effective_mass_hole: float | None
+
+    # Provenance
+    oxidation_states: dict | None
+    calculation_method: str | None
+    is_theoretical: bool | None
+    warnings: list[str] | None
+
     properties_json: dict
     source_url: str | None
     is_stable: bool

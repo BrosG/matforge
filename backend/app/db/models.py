@@ -179,11 +179,37 @@ class IndexedMaterial(Base):
     energy_above_hull = Column(Float, nullable=True, index=True)
     density = Column(Float, nullable=True, index=True)
     total_magnetization = Column(Float, nullable=True)
+    magnetic_ordering = Column(String(30), nullable=True)  # ferromagnetic, antiferromagnetic, ...
     volume = Column(Float, nullable=True)
     space_group = Column(String(20), nullable=True, index=True)
     crystal_system = Column(String(20), nullable=True, index=True)
     lattice_params = Column(JSON, nullable=True)
     structure_data = Column(JSON, nullable=True)
+
+    # Mechanical properties
+    bulk_modulus = Column(Float, nullable=True)       # GPa
+    shear_modulus = Column(Float, nullable=True)      # GPa
+    young_modulus = Column(Float, nullable=True)      # GPa
+    poisson_ratio = Column(Float, nullable=True)      # dimensionless
+
+    # Electronic properties
+    dielectric_constant = Column(Float, nullable=True)
+    refractive_index = Column(Float, nullable=True)
+
+    # Thermal / thermoelectric
+    thermal_conductivity = Column(Float, nullable=True)   # W/(m·K)
+    seebeck_coefficient = Column(Float, nullable=True)    # uV/K
+
+    # Carrier properties
+    effective_mass_electron = Column(Float, nullable=True)  # m_e units
+    effective_mass_hole = Column(Float, nullable=True)      # m_e units
+
+    # Provenance & reliability
+    oxidation_states = Column(JSON, nullable=True)    # e.g. {"Fe": 3, "O": -2}
+    calculation_method = Column(String(50), nullable=True)  # e.g. "GGA-PBE"
+    is_theoretical = Column(Boolean, default=True)    # computed vs experimental
+    warnings = Column(JSON, default=list)             # e.g. ["disordered structure"]
+
     properties_json = Column(JSON, default=dict)
     source_url = Column(String(500), nullable=True)
     is_stable = Column(Boolean, default=False, index=True)

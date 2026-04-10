@@ -116,24 +116,70 @@ export default async function MaterialDetailPage({ params }: PageProps) {
   const hasStructure =
     material.structure_data?.atoms && material.structure_data.atoms.length > 0;
 
-  // Build property map for PropertyTable
-  const properties: Record<string, number | null> = {
+  // Build property maps grouped by category
+  const thermodynamicProps: Record<string, number | null> = {
     band_gap: material.band_gap,
     formation_energy: material.formation_energy,
     energy_above_hull: material.energy_above_hull,
     density: material.density,
-    total_magnetization: material.total_magnetization,
     volume: material.volume,
   };
 
-  const units: Record<string, string> = {
+  const thermodynamicUnits: Record<string, string> = {
     band_gap: "eV",
     formation_energy: "eV/atom",
     energy_above_hull: "eV/atom",
-    density: "g/cm3",
-    total_magnetization: "uB",
-    volume: "A3",
+    density: "g/cm\u00B3",
+    volume: "\u00C5\u00B3",
   };
+
+  const mechanicalProps: Record<string, number | null> = {
+    bulk_modulus: material.bulk_modulus,
+    shear_modulus: material.shear_modulus,
+    young_modulus: material.young_modulus,
+    poisson_ratio: material.poisson_ratio,
+  };
+
+  const mechanicalUnits: Record<string, string> = {
+    bulk_modulus: "GPa",
+    shear_modulus: "GPa",
+    young_modulus: "GPa",
+    poisson_ratio: "",
+  };
+
+  const electronicProps: Record<string, number | null> = {
+    total_magnetization: material.total_magnetization,
+    dielectric_constant: material.dielectric_constant,
+    refractive_index: material.refractive_index,
+    effective_mass_electron: material.effective_mass_electron,
+    effective_mass_hole: material.effective_mass_hole,
+  };
+
+  const electronicUnits: Record<string, string> = {
+    total_magnetization: "\u00B5B",
+    dielectric_constant: "",
+    refractive_index: "",
+    effective_mass_electron: "m\u2091",
+    effective_mass_hole: "m\u2091",
+  };
+
+  const thermalProps: Record<string, number | null> = {
+    thermal_conductivity: material.thermal_conductivity,
+    seebeck_coefficient: material.seebeck_coefficient,
+  };
+
+  const thermalUnits: Record<string, string> = {
+    thermal_conductivity: "W/(m\u00B7K)",
+    seebeck_coefficient: "\u00B5V/K",
+  };
+
+  // Check if sections have any non-null values
+  const hasValues = (props: Record<string, number | null>) =>
+    Object.values(props).some((v) => v !== null && v !== undefined);
+
+  // Legacy combined view for backward compat
+  const properties = { ...thermodynamicProps };
+  const units = { ...thermodynamicUnits };
 
   return (
     <>
@@ -309,13 +355,106 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
-              {/* Properties Table */}
+              {/* Warnings / Provenance Alerts */}
+              {material.warnings && material.warnings.length > 0 && (
+                <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <h2 className="text-sm font-semibold text-amber-800 mb-1">
+                    Warnings
+                  </h2>
+                  <ul className="text-sm text-amber-700 list-disc list-inside">
+                    {material.warnings.map((w, i) => (
+                      <li key={i}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Provenance */}
+              {(material.calculation_method || material.is_theoretical !== null) && (
+                <div className="mb-6 flex flex-wrap gap-2">
+                  {material.calculation_method && (
+                    <Badge variant="outline" className="text-xs gap-1">
+                      DFT: {material.calculation_method}
+                    </Badge>
+                  )}
+                  {material.is_theoretical !== null && (
+                    <Badge
+                      variant={material.is_theoretical ? "secondary" : "info"}
+                      className="text-xs"
+                    >
+                      {material.is_theoretical ? "Theoretical / Computed" : "Experimental"}
+                    </Badge>
+                  )}
+                  {material.magnetic_ordering && (
+                    <Badge variant="outline" className="text-xs">
+                      {material.magnetic_ordering}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Thermodynamic Properties */}
               <div className="mb-6">
                 <h2 className="text-sm font-semibold text-gray-700 mb-2">
-                  Properties
+                  Thermodynamic Properties
                 </h2>
-                <PropertyTable properties={properties} units={units} />
+                <PropertyTable properties={thermodynamicProps} units={thermodynamicUnits} />
               </div>
+
+              {/* Mechanical Properties */}
+              {hasValues(mechanicalProps) && (
+                <div className="mb-6">
+                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                    Mechanical Properties
+                  </h2>
+                  <PropertyTable properties={mechanicalProps} units={mechanicalUnits} />
+                </div>
+              )}
+
+              {/* Electronic & Magnetic Properties */}
+              {hasValues(electronicProps) && (
+                <div className="mb-6">
+                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                    Electronic &amp; Magnetic Properties
+                  </h2>
+                  <PropertyTable properties={electronicProps} units={electronicUnits} />
+                </div>
+              )}
+
+              {/* Thermal Properties */}
+              {hasValues(thermalProps) && (
+                <div className="mb-6">
+                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                    Thermal Properties
+                  </h2>
+                  <PropertyTable properties={thermalProps} units={thermalUnits} />
+                </div>
+              )}
+
+              {/* Oxidation States */}
+              {material.oxidation_states &&
+                Object.keys(material.oxidation_states).length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                      Oxidation States
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(material.oxidation_states).map(
+                        ([el, state]) => (
+                          <div
+                            key={el}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-50 border text-sm"
+                          >
+                            <ElementBadge element={el} size="sm" />
+                            <span className="font-mono text-gray-700">
+                              {Number(state) > 0 ? `+${state}` : String(state)}
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
 
               {/* Lattice Parameters */}
               {material.lattice_params && (

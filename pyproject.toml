@@ -61,8 +61,31 @@ line-length = 88
 src = ["src"]
 
 [tool.ruff.lint]
-select = ["F", "E", "W", "I", "B", "RUF"]
-ignore = ["E501"]
+select = [
+    "F",     # Pyflakes
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "I",     # isort
+    "B",     # flake8-bugbear
+    "RUF",   # Ruff-specific
+    "UP",    # pyupgrade
+    "SIM",   # flake8-simplify
+    "PIE",   # flake8-pie
+    "T20",   # flake8-print (no print() in library code)
+    "S",     # flake8-bandit (security)
+    "C4",    # flake8-comprehensions
+    "DTZ",   # flake8-datetimez
+    "PT",    # flake8-pytest-style
+    "ERA",   # eradicate (commented-out code)
+]
+ignore = [
+    "E501",   # line length (handled by formatter)
+    "S101",   # assert in tests is fine
+    "S311",   # random not for crypto - we use it for sampling
+    "S603",   # subprocess calls are not user-facing
+    "S607",   # partial executable path
+    "ERA001", # commented-out code - sometimes useful for reference
+]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -76,4 +99,8 @@ pythonpath = ["src"]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+check_untyped_defs = true
 ignore_missing_imports = true
