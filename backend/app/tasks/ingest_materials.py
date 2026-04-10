@@ -112,6 +112,7 @@ def _ingest_materials_project(db, max_total: int) -> int:
         req = Request(url)
         req.add_header("X-API-KEY", api_key)
         req.add_header("Accept", "application/json")
+        req.add_header("User-Agent", "MatCraft/1.0")
 
         try:
             with urlopen(req, timeout=120) as response:

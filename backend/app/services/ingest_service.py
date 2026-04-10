@@ -92,7 +92,6 @@ def ingest_entry(
         external_id=external_id,
         source_db=source_db,
         formula=formula,
-        created_at=datetime.now(timezone.utc),
     )
 
     # Core identity

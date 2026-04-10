@@ -52,6 +52,7 @@ class JarvisConnector(DatasetConnector):
         url = f"{self.config.base_url}/entries?{urlencode(params)}"
         req = Request(url)
         req.add_header("Accept", "application/json")
+        req.add_header("User-Agent", "MatCraft/1.0")
 
         try:
             with urlopen(req, timeout=self.config.timeout) as response:
@@ -114,6 +115,7 @@ class JarvisConnector(DatasetConnector):
         url = f"{self.config.base_url}/entries/{external_id}"
         req = Request(url)
         req.add_header("Accept", "application/json")
+        req.add_header("User-Agent", "MatCraft/1.0")
 
         with urlopen(req, timeout=self.config.timeout) as response:
             data = json.loads(response.read().decode())

@@ -72,6 +72,7 @@ class MaterialsProjectConnector(DatasetConnector):
         if self.config.api_key:
             req.add_header("X-API-KEY", self.config.api_key)
         req.add_header("Accept", "application/json")
+        req.add_header("User-Agent", "MatCraft/1.0 (materials discovery platform)")
 
         try:
             with urlopen(req, timeout=self.config.timeout) as response:
@@ -93,6 +94,7 @@ class MaterialsProjectConnector(DatasetConnector):
         if self.config.api_key:
             req.add_header("X-API-KEY", self.config.api_key)
         req.add_header("Accept", "application/json")
+        req.add_header("User-Agent", "MatCraft/1.0 (materials discovery platform)")
 
         with urlopen(req, timeout=self.config.timeout) as response:
             data = json.loads(response.read().decode())

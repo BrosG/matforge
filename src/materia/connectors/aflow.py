@@ -51,6 +51,7 @@ class AflowConnector(DatasetConnector):
         try:
             req = Request(url)
             req.add_header("Accept", "application/json")
+            req.add_header("User-Agent", "MatCraft/1.0")
             with urlopen(req, timeout=self.config.timeout) as response:
                 data = json.loads(response.read().decode())
         except Exception as e:
