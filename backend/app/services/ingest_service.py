@@ -142,41 +142,41 @@ def ingest_entry(
     if record.energy_above_hull is not None and record.energy_above_hull <= 0.0:
         record.is_stable = True
 
-    # Structure
-    if structure:
-        record.structure_data = structure
+    # Structure: extract lattice and atoms from pymatgen-format dict
+    if structure and isinstance(structure, dict):
+        from app.services.lattice_utils import (
+            extract_atoms_from_structure,
+            extract_lattice_from_structure,
+            normalize_lattice_for_display,
+        )
 
-    # Lattice from structure or metadata
-    lattice = meta.get("lattice_params") or (structure.get("lattice") if structure else None)
-    if lattice and isinstance(lattice, dict):
-        record.lattice_params = lattice
+        # Extract lattice params from 3x3 matrix
+        lattice = extract_lattice_from_structure(structure)
+        if lattice:
+            # Convert primitive → conventional if needed
+            lattice = normalize_lattice_for_display(
+                lattice,
+                crystal_system=record.crystal_system,
+                space_group=record.space_group,
+            )
+            record.lattice_params = lattice
 
-    # Warnings
-    warnings: list[str] = []
-    if record.energy_above_hull is not None and record.energy_above_hull > 0.1:
-        warnings.append("Thermodynamically unstable (Ehull > 0.1 eV/atom)")
-    if record.is_theoretical:
-        warnings.append("Computationally predicted structure")
-    record.warnings = warnings if warnings else None
+        # Extract atom positions for 3D viewer
+        atoms = extract_atoms_from_structure(structure)
+        if atoms:
+            record.structure_data = {"atoms": atoms}
+    elif meta.get("lattice_params"):
+        from app.services.lattice_utils import normalize_lattice_for_display
 
-    # Tags
-    tags: list[str] = []
-    if record.band_gap is not None:
-        if record.band_gap == 0:
-            tags.append("metal")
-        elif record.band_gap < 4.0:
-            tags.append("semiconductor")
-        else:
-            tags.append("insulator")
-    if record.is_stable:
-        tags.append("stable")
-    if record.bulk_modulus is not None:
-        tags.append("elastic-data")
-    if record.thermal_conductivity is not None:
-        tags.append("thermal-data")
-    if record.seebeck_coefficient is not None:
-        tags.append("thermoelectric")
-    record.tags = tags
+        record.lattice_params = normalize_lattice_for_display(
+            meta["lattice_params"],
+            crystal_system=record.crystal_system,
+            space_group=record.space_group,
+        )
+
+    # Apply data quality normalization (magnetization noise, warnings, tags)
+    from app.services.data_quality import normalize_material
+    normalize_material(record)
 
     # Source URL
     record.source_url = _source_url(source_db, external_id)

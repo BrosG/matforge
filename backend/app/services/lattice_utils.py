@@ -1,18 +1,112 @@
-"""Lattice parameter utilities: primitive ↔ conventional cell conversion.
+"""Lattice parameter utilities: extraction, validation, primitive ↔ conventional.
 
-Materials databases often return primitive cell parameters, but users expect
-conventional cell parameters for standard crystal systems. This module
-detects mismatches and converts to conventional representation.
+Materials databases return lattice data in various formats:
+- pymatgen structure dict with 3x3 lattice matrix
+- Direct a,b,c,alpha,beta,gamma params
+- Primitive or conventional cell
 
-Example: cubic Fm-3m (FCC)
-  Primitive:    a=b=c, α=β=γ=60°
-  Conventional: a=b=c (×√2), α=β=γ=90°
+This module normalizes all formats to conventional cell params.
 """
 
 from __future__ import annotations
 
 import math
 from typing import Any
+
+
+def extract_lattice_from_structure(structure: dict) -> dict[str, float] | None:
+    """Extract a,b,c,alpha,beta,gamma from a pymatgen-style structure dict.
+
+    MP v2 API returns structure as:
+      {"lattice": {"matrix": [[ax,ay,az],[bx,by,bz],[cx,cy,cz]], ...}, ...}
+
+    Or sometimes:
+      {"lattice": {"a": .., "b": .., "c": .., "alpha": .., ...}}
+    """
+    if not structure or not isinstance(structure, dict):
+        return None
+
+    lattice = structure.get("lattice")
+    if not lattice or not isinstance(lattice, dict):
+        return None
+
+    # Case 1: already has a,b,c,alpha,beta,gamma
+    if "a" in lattice and "alpha" in lattice:
+        return {
+            "a": float(lattice["a"]),
+            "b": float(lattice["b"]),
+            "c": float(lattice["c"]),
+            "alpha": float(lattice["alpha"]),
+            "beta": float(lattice["beta"]),
+            "gamma": float(lattice["gamma"]),
+        }
+
+    # Case 2: has matrix - compute params from lattice vectors
+    matrix = lattice.get("matrix")
+    if matrix and isinstance(matrix, list) and len(matrix) == 3:
+        return _matrix_to_params(matrix)
+
+    return None
+
+
+def _matrix_to_params(matrix: list[list[float]]) -> dict[str, float]:
+    """Convert 3x3 lattice matrix to a,b,c,alpha,beta,gamma."""
+    va = matrix[0]
+    vb = matrix[1]
+    vc = matrix[2]
+
+    a = math.sqrt(sum(x**2 for x in va))
+    b = math.sqrt(sum(x**2 for x in vb))
+    c = math.sqrt(sum(x**2 for x in vc))
+
+    def _angle(v1: list[float], v2: list[float], len1: float, len2: float) -> float:
+        dot = sum(x * y for x, y in zip(v1, v2))
+        cos_angle = max(-1.0, min(1.0, dot / (len1 * len2)))
+        return math.degrees(math.acos(cos_angle))
+
+    alpha = _angle(vb, vc, b, c)  # angle between b and c
+    beta = _angle(va, vc, a, c)   # angle between a and c
+    gamma = _angle(va, vb, a, b)  # angle between a and b
+
+    return {
+        "a": round(a, 4),
+        "b": round(b, 4),
+        "c": round(c, 4),
+        "alpha": round(alpha, 2),
+        "beta": round(beta, 2),
+        "gamma": round(gamma, 2),
+    }
+
+
+def extract_atoms_from_structure(structure: dict) -> list[dict] | None:
+    """Extract atom list [{element, x, y, z}] from pymatgen structure dict."""
+    if not structure or not isinstance(structure, dict):
+        return None
+
+    sites = structure.get("sites")
+    if not sites or not isinstance(sites, list):
+        return None
+
+    atoms = []
+    for site in sites:
+        species = site.get("species", [])
+        element = ""
+        if isinstance(species, list) and species:
+            el = species[0]
+            element = el.get("element", "") if isinstance(el, dict) else str(el)
+        elif site.get("label"):
+            element = site["label"]
+
+        xyz = site.get("xyz") or site.get("abc", [0, 0, 0])
+        if element and len(xyz) >= 3:
+            atoms.append({
+                "element": element,
+                "x": round(float(xyz[0]), 4),
+                "y": round(float(xyz[1]), 4),
+                "z": round(float(xyz[2]), 4),
+            })
+
+    return atoms if atoms else None
 
 
 def _approx_eq(a: float, b: float, tol: float = 0.02) -> bool:

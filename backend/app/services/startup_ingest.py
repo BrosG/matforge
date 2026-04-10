@@ -1,0 +1,150 @@
+"""Startup data ingestion: replace seeded data with real API data.
+
+On first boot (or when the DB contains only seeded data), this module:
+1. Deletes all seeded/synthetic IndexedMaterial records
+2. Fetches real materials from Materials Project, AFLOW, and JARVIS
+3. Ingests them with full property mapping and data quality normalization
+
+Subsequent boots skip ingestion if real data already exists.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+
+from app.db.base import get_db_context
+from app.db.models import IndexedMaterial
+from app.services.ingest_service import ingest_batch
+
+logger = logging.getLogger(__name__)
+
+# Sources that indicate seeded/fake data
+_SEEDED_SOURCES = {"materials_project", "aflow", "oqmd"}
+
+# How many materials to fetch from each source on startup
+_DEFAULT_BATCH_SIZE = int(os.environ.get("INGEST_BATCH_SIZE", "100"))
+
+
+def _has_real_data(db) -> bool:
+    """Check if the DB already has API-ingested data (not just seeded)."""
+    # Real data has non-null calculation_method or bulk_modulus
+    # Seeded data from the old seeder won't have these columns populated
+    # (they were added after the seeder was written)
+    real_count = (
+        db.query(IndexedMaterial)
+        .filter(IndexedMaterial.calculation_method.isnot(None))
+        .limit(1)
+        .count()
+    )
+    return real_count > 0
+
+
+def _delete_seeded_data(db) -> int:
+    """Delete all existing indexed materials (they're synthetic)."""
+    count = db.query(IndexedMaterial).count()
+    if count > 0:
+        db.query(IndexedMaterial).delete()
+        db.commit()
+        logger.info("Deleted %d seeded/synthetic materials", count)
+    return count
+
+
+def _ingest_from_materials_project(db, max_results: int) -> int:
+    """Fetch and ingest from Materials Project API."""
+    api_key = os.environ.get("MATERIALS_PROJECT_API_KEY", "")
+    if not api_key:
+        logger.warning("MATERIALS_PROJECT_API_KEY not set — skipping MP ingestion")
+        return 0
+
+    try:
+        from materia.connectors.materials_project import MaterialsProjectConnector
+
+        connector = MaterialsProjectConnector()
+        entries = connector.search(max_results=max_results)
+        batch = [
+            {
+                "external_id": e.external_id,
+                "formula": e.formula,
+                "properties": e.properties,
+                "structure": e.structure if e.structure else None,
+                "metadata": e.metadata,
+            }
+            for e in entries
+        ]
+        return ingest_batch(db, batch, "materials_project")
+    except Exception as e:
+        logger.error("Materials Project ingestion failed: %s", e)
+        return 0
+
+
+def _ingest_from_aflow(db, max_results: int) -> int:
+    """Fetch and ingest from AFLOW."""
+    try:
+        from materia.connectors.aflow import AflowConnector
+
+        connector = AflowConnector()
+        entries = connector.search(max_results=max_results)
+        batch = [
+            {
+                "external_id": e.external_id,
+                "formula": e.formula,
+                "properties": e.properties,
+                "structure": e.structure if e.structure else None,
+                "metadata": e.metadata,
+            }
+            for e in entries
+        ]
+        return ingest_batch(db, batch, "aflow")
+    except Exception as e:
+        logger.error("AFLOW ingestion failed: %s", e)
+        return 0
+
+
+def _ingest_from_jarvis(db, max_results: int) -> int:
+    """Fetch and ingest from JARVIS-DFT."""
+    try:
+        from materia.connectors.jarvis import JarvisConnector
+
+        connector = JarvisConnector()
+        entries = connector.search(max_results=max_results)
+        batch = [
+            {
+                "external_id": e.external_id,
+                "formula": e.formula,
+                "properties": e.properties,
+                "structure": e.structure if e.structure else None,
+                "metadata": e.metadata,
+            }
+            for e in entries
+        ]
+        return ingest_batch(db, batch, "jarvis")
+    except Exception as e:
+        logger.error("JARVIS ingestion failed: %s", e)
+        return 0
+
+
+def ensure_real_data() -> None:
+    """Ensure the IndexedMaterial table has real API data, not synthetic seed data."""
+    with get_db_context() as db:
+        if _has_real_data(db):
+            total = db.query(IndexedMaterial).count()
+            logger.info(
+                "Real API data already present (%d materials) — skipping ingestion",
+                total,
+            )
+            return
+
+        logger.info("No real API data found — ingesting from public databases...")
+        _delete_seeded_data(db)
+
+        batch_size = _DEFAULT_BATCH_SIZE
+        total = 0
+
+        total += _ingest_from_materials_project(db, batch_size)
+        total += _ingest_from_aflow(db, batch_size)
+        total += _ingest_from_jarvis(db, batch_size)
+
+        logger.info(
+            "Startup ingestion complete: %d real materials from public APIs", total
+        )

@@ -55,17 +55,13 @@ async def lifespan(app: FastAPI):
     create_tables()
     logger.info("Database tables created/verified")
 
-    # Normalize all existing material data (lattice, magnetization, tags, warnings)
+    # Ingest real data from public APIs (replaces seeded fake data)
     try:
-        from app.services.data_quality import normalize_all_materials
-        from app.db.base import get_db_context
+        from app.services.startup_ingest import ensure_real_data
 
-        with get_db_context() as db:
-            count = normalize_all_materials(db)
-            if count > 0:
-                logger.info("Normalized %d indexed materials on startup", count)
+        ensure_real_data()
     except Exception as e:
-        logger.warning("Material normalization skipped: %s", e)
+        logger.warning("Startup ingestion skipped: %s", e)
 
     yield
 
