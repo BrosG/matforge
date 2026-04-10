@@ -51,11 +51,12 @@ async def lifespan(app: FastAPI):
         "Starting %s environment=%s", settings.PROJECT_NAME, settings.ENVIRONMENT
     )
 
-    # Ensure all tables and columns exist
-    create_tables()
-    logger.info("Database tables created/verified")
+    # Create tables in development mode only (production uses migrations)
+    if settings.ENVIRONMENT == "development":
+        create_tables()
+        logger.info("Database tables created/verified")
 
-    # Queue background ingestion of real data from public APIs
+    # Queue background ingestion of real data from public APIs (non-blocking)
     try:
         from app.services.startup_ingest import ensure_real_data
 
