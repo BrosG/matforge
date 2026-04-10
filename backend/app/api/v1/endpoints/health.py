@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import logging
+import threading
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.base import check_connection, get_db
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+_ingestion_triggered = False
+_ingestion_lock = threading.Lock()
 
 
 @router.get("/health/live")
@@ -62,6 +69,9 @@ async def full_health(db: Session = Depends(get_db)):
     except Exception:
         pass
 
+    # Trigger real data ingestion on first health check (lazy init)
+    ingestion_status = _maybe_trigger_ingestion(db)
+
     overall = db_ok and redis_ok
     return {
         "status": "healthy" if overall else "degraded",
@@ -69,7 +79,35 @@ async def full_health(db: Session = Depends(get_db)):
         "redis": {"connected": redis_ok},
         "celery": {"connected": celery_ok, "workers": celery_workers},
         "engine": {"version": engine_version},
+        "ingestion": ingestion_status,
     }
+
+
+def _maybe_trigger_ingestion(db: Session) -> str:
+    """Trigger data ingestion once, on first health check after deploy."""
+    global _ingestion_triggered
+
+    if _ingestion_triggered:
+        return "already_triggered"
+
+    with _ingestion_lock:
+        if _ingestion_triggered:
+            return "already_triggered"
+
+        try:
+            from app.db.base import create_tables
+            create_tables()
+        except Exception as e:
+            logger.warning("create_tables in health check: %s", e)
+
+        try:
+            from app.services.startup_ingest import ensure_real_data
+            ensure_real_data()
+            _ingestion_triggered = True
+            return "triggered"
+        except Exception as e:
+            logger.warning("Ingestion trigger failed: %s", e)
+            return f"failed: {e}"
 
 
 @router.get("/health")
@@ -90,9 +128,11 @@ async def info():
     except ImportError:
         pass
 
+    from app.main import _BUILD_VERSION
+
     return {
         "name": settings.PROJECT_NAME,
-        "version": "0.1.0",
+        "version": _BUILD_VERSION,
         "engine_version": engine_version,
         "environment": settings.ENVIRONMENT,
     }

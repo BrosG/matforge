@@ -56,14 +56,6 @@ async def lifespan(app: FastAPI):
         create_tables()
         logger.info("Database tables created/verified")
 
-    # Queue background ingestion of real data from public APIs (non-blocking)
-    try:
-        from app.services.startup_ingest import ensure_real_data
-
-        ensure_real_data()
-    except Exception as e:
-        logger.warning("Startup ingestion skipped: %s", e)
-
     yield
 
     # Shutdown
