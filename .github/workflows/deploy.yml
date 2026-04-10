@@ -141,13 +141,13 @@ jobs:
             --platform managed \
             --vpc-connector matforge-connector \
             --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,REDIS_URL=REDIS_URL:latest,CELERY_BROKER_URL=CELERY_BROKER_URL:latest,CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest,WEBSOCKET_REDIS_URL=WEBSOCKET_REDIS_URL:latest" \
-            --set-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }},BACKEND_CORS_ORIGINS=https://matcraft.ai" \
+            --set-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }},BACKEND_CORS_ORIGINS=https://matcraft.ai,MATERIALS_PROJECT_API_KEY=${{ secrets.MATERIALS_PROJECT_API_KEY }}" \
             --service-account matforge-api@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances 0 \
             --max-instances 10 \
-            --memory 1Gi \
+            --memory 2Gi \
             --cpu 1 \
-            --timeout 300 \
+            --timeout 600 \
             --port 8000 \
             --allow-unauthenticated
 
