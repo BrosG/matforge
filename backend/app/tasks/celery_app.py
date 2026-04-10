@@ -10,7 +10,7 @@ celery_app = Celery(
     "matcraft",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.run_campaign"],
+    include=["app.tasks.run_campaign", "app.tasks.ingest_materials"],
 )
 
 celery_app.conf.update(
@@ -25,9 +25,11 @@ celery_app.conf.update(
     task_queues={
         "default": {"exchange": "default", "routing_key": "default"},
         "campaigns": {"exchange": "campaigns", "routing_key": "campaigns"},
+        "ingestion": {"exchange": "ingestion", "routing_key": "ingestion"},
     },
     task_routes={
         "app.tasks.run_campaign.*": {"queue": "campaigns"},
+        "app.tasks.ingest_materials.*": {"queue": "default"},
     },
 )
 

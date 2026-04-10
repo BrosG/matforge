@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
     create_tables()
     logger.info("Database tables created/verified")
 
-    # Ingest real data from public APIs (replaces seeded fake data)
+    # Queue background ingestion of real data from public APIs
     try:
         from app.services.startup_ingest import ensure_real_data
 

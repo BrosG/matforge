@@ -125,26 +125,52 @@ def _ingest_from_jarvis(db, max_results: int) -> int:
 
 
 def ensure_real_data() -> None:
-    """Ensure the IndexedMaterial table has real API data, not synthetic seed data."""
+    """Ensure the IndexedMaterial table has real API data, not synthetic seed data.
+
+    Two-phase approach:
+    1. Blocking: ingest ~100 materials per source for immediate availability
+    2. Background: queue Celery task to paginate through ALL materials (~200k+)
+    """
     with get_db_context() as db:
         if _has_real_data(db):
             total = db.query(IndexedMaterial).count()
             logger.info(
-                "Real API data already present (%d materials) — skipping ingestion",
+                "Real API data already present (%d materials) — skipping seed phase",
                 total,
             )
+            # Still queue full ingestion if we have less than 10k
+            if total < 10000:
+                _queue_full_ingestion()
             return
 
         logger.info("No real API data found — ingesting from public databases...")
         _delete_seeded_data(db)
 
+        # Phase 1: blocking quick ingest for immediate data
         batch_size = _DEFAULT_BATCH_SIZE
         total = 0
-
         total += _ingest_from_materials_project(db, batch_size)
         total += _ingest_from_aflow(db, batch_size)
         total += _ingest_from_jarvis(db, batch_size)
 
         logger.info(
-            "Startup ingestion complete: %d real materials from public APIs", total
+            "Phase 1 complete: %d real materials available immediately", total
         )
+
+    # Phase 2: queue background job for full ingestion
+    _queue_full_ingestion()
+
+
+def _queue_full_ingestion() -> None:
+    """Queue a Celery task to ingest ALL materials from public APIs."""
+    try:
+        from app.tasks.celery_app import celery_app
+
+        celery_app.send_task(
+            "app.tasks.ingest_materials.ingest_all",
+            args=[["materials_project", "aflow", "jarvis"], 0],
+            queue="default",
+        )
+        logger.info("Queued full background ingestion task")
+    except Exception as e:
+        logger.warning("Could not queue background ingestion: %s", e)

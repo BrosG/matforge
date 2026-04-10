@@ -255,3 +255,36 @@ def ingest_from_connector(
 
     logger.info("Ingested %d materials from %s", ingested, body.source)
     return IngestResponse(ingested=ingested, source=body.source)
+
+
+class BulkIngestRequest(BaseModel):
+    sources: list[str] = ["materials_project", "aflow", "jarvis"]
+    max_per_source: int = 0  # 0 = unlimited
+
+
+class BulkIngestResponse(BaseModel):
+    task_id: str
+    status: str
+    sources: list[str]
+
+
+@router.post("/ingest/all", response_model=BulkIngestResponse)
+def trigger_bulk_ingestion(
+    body: BulkIngestRequest,
+    _admin: User = Depends(require_admin),
+):
+    """Admin: trigger background bulk ingestion of ALL materials from public APIs.
+
+    This queues a Celery task that paginates through every source and
+    ingests all available materials. Progress is logged.
+    """
+    from app.tasks.celery_app import celery_app
+
+    task = celery_app.send_task(
+        "app.tasks.ingest_materials.ingest_all",
+        args=[body.sources, body.max_per_source],
+        queue="default",
+    )
+    return BulkIngestResponse(
+        task_id=task.id, status="queued", sources=body.sources
+    )

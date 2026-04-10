@@ -159,11 +159,11 @@ jobs:
             --platform managed \
             --vpc-connector matforge-connector \
             --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,CELERY_BROKER_URL=CELERY_BROKER_URL:latest,CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest,WEBSOCKET_REDIS_URL=WEBSOCKET_REDIS_URL:latest" \
-            --set-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }}" \
+            --set-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }},MATERIALS_PROJECT_API_KEY=${{ secrets.MATERIALS_PROJECT_API_KEY }}" \
             --service-account matforge-api@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances 1 \
             --max-instances 5 \
-            --memory 2Gi \
+            --memory 4Gi \
             --cpu 2 \
             --timeout 3600 \
             --no-cpu-throttling \
