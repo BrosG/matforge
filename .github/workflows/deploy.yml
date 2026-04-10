@@ -140,6 +140,7 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --vpc-connector matforge-connector \
+            --add-cloudsql-instances ${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:matforge-db \
             --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,REDIS_URL=REDIS_URL:latest,CELERY_BROKER_URL=CELERY_BROKER_URL:latest,CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest,WEBSOCKET_REDIS_URL=WEBSOCKET_REDIS_URL:latest" \
             --set-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }},BACKEND_CORS_ORIGINS=https://matcraft.ai,MATERIALS_PROJECT_API_KEY=${{ secrets.MATERIALS_PROJECT_API_KEY }}" \
             --service-account matforge-api@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
@@ -158,6 +159,7 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --vpc-connector matforge-connector \
+            --add-cloudsql-instances ${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:matforge-db \
             --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,CELERY_BROKER_URL=CELERY_BROKER_URL:latest,CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest,WEBSOCKET_REDIS_URL=WEBSOCKET_REDIS_URL:latest" \
             --set-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }},MATERIALS_PROJECT_API_KEY=${{ secrets.MATERIALS_PROJECT_API_KEY }}" \
             --service-account matforge-api@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
