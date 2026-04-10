@@ -15,32 +15,41 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Check if columns already exist (idempotent migration)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing_cols = {c["name"] for c in inspector.get_columns("indexed_materials")}
+
+    def _add_col(table: str, col: sa.Column) -> None:
+        if col.name not in existing_cols:
+            op.add_column(table, col)
+
     # Magnetic
-    op.add_column("indexed_materials", sa.Column("magnetic_ordering", sa.String(30), nullable=True))
+    _add_col("indexed_materials", sa.Column("magnetic_ordering", sa.String(30), nullable=True))
 
     # Mechanical
-    op.add_column("indexed_materials", sa.Column("bulk_modulus", sa.Float, nullable=True))
-    op.add_column("indexed_materials", sa.Column("shear_modulus", sa.Float, nullable=True))
-    op.add_column("indexed_materials", sa.Column("young_modulus", sa.Float, nullable=True))
-    op.add_column("indexed_materials", sa.Column("poisson_ratio", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("bulk_modulus", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("shear_modulus", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("young_modulus", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("poisson_ratio", sa.Float, nullable=True))
 
     # Electronic
-    op.add_column("indexed_materials", sa.Column("dielectric_constant", sa.Float, nullable=True))
-    op.add_column("indexed_materials", sa.Column("refractive_index", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("dielectric_constant", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("refractive_index", sa.Float, nullable=True))
 
     # Thermal
-    op.add_column("indexed_materials", sa.Column("thermal_conductivity", sa.Float, nullable=True))
-    op.add_column("indexed_materials", sa.Column("seebeck_coefficient", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("thermal_conductivity", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("seebeck_coefficient", sa.Float, nullable=True))
 
     # Carrier
-    op.add_column("indexed_materials", sa.Column("effective_mass_electron", sa.Float, nullable=True))
-    op.add_column("indexed_materials", sa.Column("effective_mass_hole", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("effective_mass_electron", sa.Float, nullable=True))
+    _add_col("indexed_materials", sa.Column("effective_mass_hole", sa.Float, nullable=True))
 
     # Provenance
-    op.add_column("indexed_materials", sa.Column("oxidation_states", sa.JSON, nullable=True))
-    op.add_column("indexed_materials", sa.Column("calculation_method", sa.String(50), nullable=True))
-    op.add_column("indexed_materials", sa.Column("is_theoretical", sa.Boolean, server_default="true"))
-    op.add_column("indexed_materials", sa.Column("warnings", sa.JSON, nullable=True))
+    _add_col("indexed_materials", sa.Column("oxidation_states", sa.JSON, nullable=True))
+    _add_col("indexed_materials", sa.Column("calculation_method", sa.String(50), nullable=True))
+    _add_col("indexed_materials", sa.Column("is_theoretical", sa.Boolean, server_default="true"))
+    _add_col("indexed_materials", sa.Column("warnings", sa.JSON, nullable=True))
 
 
 def downgrade() -> None:

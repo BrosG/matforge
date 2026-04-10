@@ -16,6 +16,15 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Check if tables already exist (created by create_tables() in dev)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing_tables = set(inspector.get_table_names())
+
+    if "users" in existing_tables:
+        # Tables already exist via create_tables() — stamp as current
+        return
+
     # --- users ---
     op.create_table(
         "users",
