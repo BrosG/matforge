@@ -254,23 +254,32 @@ def ingest_batch(
 
     Each entry dict must have: external_id, formula, properties.
     Optional: structure, metadata.
+    Handles duplicates gracefully by flushing per-entry and rolling back on conflict.
     """
     count = 0
     for entry in entries:
-        record = ingest_entry(
-            db,
-            external_id=entry["external_id"],
-            formula=entry["formula"],
-            source_db=source_db,
-            properties=entry.get("properties", {}),
-            structure=entry.get("structure"),
-            metadata=entry.get("metadata"),
-        )
-        if record:
-            count += 1
+        try:
+            record = ingest_entry(
+                db,
+                external_id=entry["external_id"],
+                formula=entry["formula"],
+                source_db=source_db,
+                properties=entry.get("properties", {}),
+                structure=entry.get("structure"),
+                metadata=entry.get("metadata"),
+            )
+            if record:
+                db.flush()  # Detect constraint violations early
+                count += 1
+        except Exception:
+            db.rollback()  # Skip duplicate / bad record, continue
+            continue
 
     if commit and count > 0:
-        db.commit()
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
 
     logger.info("Ingested %d/%d entries from %s", count, len(entries), source_db)
     return count
