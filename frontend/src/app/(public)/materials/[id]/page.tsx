@@ -31,7 +31,7 @@ import {
 
 const SITE_URL = "https://matcraft.ai";
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 // ── Metadata ────────────────────────────────────────────────────────────────
 

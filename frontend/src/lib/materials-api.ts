@@ -146,7 +146,7 @@ export async function fetchMaterials(
 }
 
 export async function fetchMaterial(id: string): Promise<MaterialDetail> {
-  return apiFetch<MaterialDetail>(`/materials/${encodeURIComponent(id)}`, 3600);
+  return apiFetch<MaterialDetail>(`/materials/${encodeURIComponent(id)}`, 60);
 }
 
 export async function fetchRelatedMaterials(

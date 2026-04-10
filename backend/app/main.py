@@ -55,6 +55,18 @@ async def lifespan(app: FastAPI):
     create_tables()
     logger.info("Database tables created/verified")
 
+    # Normalize all existing material data (lattice, magnetization, tags, warnings)
+    try:
+        from app.services.data_quality import normalize_all_materials
+        from app.db.base import get_db_context
+
+        with get_db_context() as db:
+            count = normalize_all_materials(db)
+            if count > 0:
+                logger.info("Normalized %d indexed materials on startup", count)
+    except Exception as e:
+        logger.warning("Material normalization skipped: %s", e)
+
     yield
 
     # Shutdown

@@ -495,7 +495,8 @@ def seed_materials(db: Session, count: int = 1000) -> int:
             tags.append("elemental")
         if "Li" in elements:
             tags.append("battery")
-        if any(el in elements for el in ["Pb", "Cd", "Bi", "Te"]):
+        # Only tag thermoelectric if we actually have thermoelectric data
+        if seebeck_coefficient is not None:
             tags.append("thermoelectric")
 
         record = IndexedMaterial(
