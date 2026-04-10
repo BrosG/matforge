@@ -35,6 +35,16 @@ export interface MaterialDetail extends MaterialSummary {
     alpha: number;
     beta: number;
     gamma: number;
+    cell_type?: string;
+    converted?: boolean;
+    primitive?: {
+      a: number;
+      b: number;
+      c: number;
+      alpha: number;
+      beta: number;
+      gamma: number;
+    };
   } | null;
   structure_data: {
     atoms: { element: string; x: number; y: number; z: number }[];

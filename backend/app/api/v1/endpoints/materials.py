@@ -192,9 +192,18 @@ def search_materials(
 @router.get("/{material_id}", response_model=IndexedMaterialDetail)
 def get_material(material_id: str, db: Session = Depends(get_db)):
     """Get full details for a single indexed material."""
+    from app.services.lattice_utils import normalize_lattice_for_display
+
     mat = material_service.get_by_id(db, material_id)
     if not mat:
         raise HTTPException(status_code=404, detail="Material not found")
+
+    # Fix primitive vs conventional cell mismatch before returning
+    mat.lattice_params = normalize_lattice_for_display(
+        mat.lattice_params,
+        crystal_system=mat.crystal_system,
+        space_group=mat.space_group,
+    )
     return mat
 
 

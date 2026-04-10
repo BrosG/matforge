@@ -75,5 +75,46 @@ def check_connection() -> bool:
 
 
 def create_tables() -> None:
-    """Create all tables (for development/testing)."""
+    """Create all tables and add any missing columns.
+
+    SQLAlchemy's create_all() only creates missing tables — it does NOT
+    add columns to existing tables. This function inspects the live schema
+    and issues ALTER TABLE ADD COLUMN for any column defined in the ORM
+    model but absent from the database.
+    """
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
+
+
+def _add_missing_columns() -> None:
+    """Compare ORM models against live DB schema and add missing columns."""
+    from sqlalchemy import inspect as sa_inspect, text
+
+    inspector = sa_inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+
+    with engine.begin() as conn:
+        for table_name, table in Base.metadata.tables.items():
+            if table_name not in existing_tables:
+                continue
+
+            existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
+
+            for col in table.columns:
+                if col.name in existing_cols:
+                    continue
+
+                # Build column type string for ALTER TABLE
+                col_type = col.type.compile(dialect=engine.dialect)
+                nullable = "NULL" if col.nullable else "NOT NULL"
+                default = ""
+                if col.server_default is not None:
+                    default = f" DEFAULT {col.server_default.arg}"
+
+                sql = f'ALTER TABLE "{table_name}" ADD COLUMN "{col.name}" {col_type} {nullable}{default}'
+                logger.info("Adding missing column: %s.%s (%s)", table_name, col.name, col_type)
+                try:
+                    conn.execute(text(sql))
+                except Exception as e:
+                    # Column might already exist in a concurrent startup
+                    logger.warning("Could not add column %s.%s: %s", table_name, col.name, e)

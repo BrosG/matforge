@@ -461,16 +461,21 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 <div className="mb-6">
                   <h2 className="text-sm font-semibold text-gray-700 mb-2">
                     Lattice Parameters
+                    {material.lattice_params.cell_type && (
+                      <span className="ml-2 text-xs font-normal text-gray-400">
+                        ({material.lattice_params.cell_type} cell)
+                      </span>
+                    )}
                   </h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                     {(
                       [
-                        ["a", material.lattice_params.a, "A"],
-                        ["b", material.lattice_params.b, "A"],
-                        ["c", material.lattice_params.c, "A"],
-                        ["alpha", material.lattice_params.alpha, "deg"],
-                        ["beta", material.lattice_params.beta, "deg"],
-                        ["gamma", material.lattice_params.gamma, "deg"],
+                        ["a", material.lattice_params.a, "\u00C5"],
+                        ["b", material.lattice_params.b, "\u00C5"],
+                        ["c", material.lattice_params.c, "\u00C5"],
+                        ["\u03B1", material.lattice_params.alpha, "\u00B0"],
+                        ["\u03B2", material.lattice_params.beta, "\u00B0"],
+                        ["\u03B3", material.lattice_params.gamma, "\u00B0"],
                       ] as const
                     ).map(([label, value, unit]) => (
                       <div
@@ -487,6 +492,39 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                       </div>
                     ))}
                   </div>
+                  {/* Show primitive cell if conversion was performed */}
+                  {material.lattice_params.converted && material.lattice_params.primitive && (
+                    <details className="mt-3">
+                      <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                        Show primitive cell parameters
+                      </summary>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mt-2">
+                        {(
+                          [
+                            ["a", material.lattice_params.primitive.a, "\u00C5"],
+                            ["b", material.lattice_params.primitive.b, "\u00C5"],
+                            ["c", material.lattice_params.primitive.c, "\u00C5"],
+                            ["\u03B1", material.lattice_params.primitive.alpha, "\u00B0"],
+                            ["\u03B2", material.lattice_params.primitive.beta, "\u00B0"],
+                            ["\u03B3", material.lattice_params.primitive.gamma, "\u00B0"],
+                          ] as const
+                        ).map(([label, value, unit]) => (
+                          <div
+                            key={`prim-${label}`}
+                            className="text-center p-2.5 bg-gray-100/50 rounded-lg border border-dashed"
+                          >
+                            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
+                              {label}
+                            </div>
+                            <div className="text-sm text-gray-600 font-mono">
+                              {formatProp(value)}
+                            </div>
+                            <div className="text-[10px] text-gray-400">{unit}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               )}
 
