@@ -79,7 +79,11 @@ def _matrix_to_params(matrix: list[list[float]]) -> dict[str, float]:
 
 
 def extract_atoms_from_structure(structure: dict) -> list[dict] | None:
-    """Extract atom list [{element, x, y, z}] from pymatgen structure dict."""
+    """Extract atom list [{element, x, y, z, fx, fy, fz}] from pymatgen structure dict.
+
+    Returns atoms with BOTH Cartesian (x,y,z in Angstrom) and fractional (fx,fy,fz)
+    coordinates. The frontend viewer uses Cartesian directly (no re-conversion needed).
+    """
     if not structure or not isinstance(structure, dict):
         return None
 
@@ -97,13 +101,30 @@ def extract_atoms_from_structure(structure: dict) -> list[dict] | None:
         elif site.get("label"):
             element = site["label"]
 
-        xyz = site.get("xyz") or site.get("abc", [0, 0, 0])
-        if element and len(xyz) >= 3:
-            atoms.append({
+        # Prefer xyz (Cartesian Angstrom) — no conversion needed by frontend
+        xyz = site.get("xyz")
+        abc = site.get("abc")
+
+        if element and xyz and len(xyz) >= 3:
+            atom: dict = {
                 "element": element,
                 "x": round(float(xyz[0]), 4),
                 "y": round(float(xyz[1]), 4),
                 "z": round(float(xyz[2]), 4),
+                "cartesian": True,  # Flag: these are already Cartesian Angstrom
+            }
+            if abc and len(abc) >= 3:
+                atom["fx"] = round(float(abc[0]), 4)
+                atom["fy"] = round(float(abc[1]), 4)
+                atom["fz"] = round(float(abc[2]), 4)
+            atoms.append(atom)
+        elif element and abc and len(abc) >= 3:
+            atoms.append({
+                "element": element,
+                "x": round(float(abc[0]), 4),
+                "y": round(float(abc[1]), 4),
+                "z": round(float(abc[2]), 4),
+                "cartesian": False,  # These are fractional
             })
 
     return atoms if atoms else None

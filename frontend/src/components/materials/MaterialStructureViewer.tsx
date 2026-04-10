@@ -96,6 +96,7 @@ interface AtomData {
   x: number;
   y: number;
   z: number;
+  cartesian?: boolean; // true = x,y,z are Angstrom; false/undefined = fractional
 }
 
 interface LatticeParams {
@@ -194,23 +195,17 @@ export function MaterialStructureViewer({
       return { positions: [], colors: [], radii: [], bonds: [], cellEdges: [] };
     }
 
-    // Detect if coordinates are fractional (all between 0-1) or Cartesian
-    const allFractional = atoms.every(
-      (a) => a.x >= -0.01 && a.x <= 1.01 && a.y >= -0.01 && a.y <= 1.01 && a.z >= -0.01 && a.z <= 1.01
-    );
     const hasLattice = lattice && lattice.a > 0;
 
-    // Convert to Cartesian if fractional + have lattice
+    // Check if coordinates are already Cartesian (from API flag) or fractional
+    const isCartesian = atoms.length > 0 && atoms[0].cartesian === true;
+
     let cartAtoms: { element: string; x: number; y: number; z: number }[];
 
-    if (allFractional && hasLattice) {
-      // Replicate atoms in nearby cells for better visualization (2x2x2)
+    if (!isCartesian && hasLattice) {
+      // Fractional coordinates — convert to Cartesian using lattice
       cartAtoms = [];
-      const offsets = [0]; // Just the original cell
-      // Add nearby images if few atoms
-      const cellOffsets = atoms.length < 8
-        ? [0, 1] // 2x2x2 for small cells
-        : [0];   // Just 1x1x1 for large cells
+      const cellOffsets = atoms.length < 8 ? [0, 1] : [0];
 
       for (const dx of cellOffsets) {
         for (const dy of cellOffsets) {
@@ -223,6 +218,7 @@ export function MaterialStructureViewer({
         }
       }
     } else {
+      // Already Cartesian Angstrom — use directly
       cartAtoms = atoms;
     }
 
