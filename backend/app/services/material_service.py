@@ -27,6 +27,14 @@ def search(
     formation_energy_min: float | None = None,
     formation_energy_max: float | None = None,
     energy_above_hull_max: float | None = None,
+    bulk_modulus_min: float | None = None,
+    bulk_modulus_max: float | None = None,
+    shear_modulus_min: float | None = None,
+    shear_modulus_max: float | None = None,
+    thermal_conductivity_min: float | None = None,
+    thermal_conductivity_max: float | None = None,
+    magnetic_ordering: str | None = None,
+    has_elastic_data: bool | None = None,
     source_db: str | None = None,
     is_stable: bool | None = None,
     sort_by: str = "formula",
@@ -45,10 +53,7 @@ def search(
             )
         )
 
-    # Element containment: every requested element must appear in the
-    # material's formula.  This is a pragmatic approach that works across
-    # database backends; for PostgreSQL you could use JSON containment
-    # operators for better performance.
+    # Element containment
     if elements:
         for el in elements:
             query = query.filter(IndexedMaterial.formula.ilike(f"%{el}%"))
@@ -62,6 +67,7 @@ def search(
     if space_group:
         query = query.filter(IndexedMaterial.space_group == space_group)
 
+    # Thermodynamic ranges
     if band_gap_min is not None:
         query = query.filter(IndexedMaterial.band_gap >= band_gap_min)
     if band_gap_max is not None:
@@ -74,6 +80,31 @@ def search(
 
     if energy_above_hull_max is not None:
         query = query.filter(IndexedMaterial.energy_above_hull <= energy_above_hull_max)
+
+    # Mechanical ranges
+    if bulk_modulus_min is not None:
+        query = query.filter(IndexedMaterial.bulk_modulus >= bulk_modulus_min)
+    if bulk_modulus_max is not None:
+        query = query.filter(IndexedMaterial.bulk_modulus <= bulk_modulus_max)
+
+    if shear_modulus_min is not None:
+        query = query.filter(IndexedMaterial.shear_modulus >= shear_modulus_min)
+    if shear_modulus_max is not None:
+        query = query.filter(IndexedMaterial.shear_modulus <= shear_modulus_max)
+
+    # Thermal ranges
+    if thermal_conductivity_min is not None:
+        query = query.filter(IndexedMaterial.thermal_conductivity >= thermal_conductivity_min)
+    if thermal_conductivity_max is not None:
+        query = query.filter(IndexedMaterial.thermal_conductivity <= thermal_conductivity_max)
+
+    # Magnetic
+    if magnetic_ordering:
+        query = query.filter(IndexedMaterial.magnetic_ordering == magnetic_ordering)
+
+    # Has elastic data filter
+    if has_elastic_data is True:
+        query = query.filter(IndexedMaterial.bulk_modulus.isnot(None))
 
     if source_db:
         query = query.filter(IndexedMaterial.source_db == source_db)
@@ -88,6 +119,9 @@ def search(
         "formula", "band_gap", "formation_energy", "energy_above_hull",
         "density", "n_elements", "crystal_system", "space_group",
         "source_db", "external_id", "fetched_at",
+        "bulk_modulus", "shear_modulus", "young_modulus",
+        "thermal_conductivity", "seebeck_coefficient",
+        "total_magnetization", "dielectric_constant",
     }
     if sort_by not in allowed_sort:
         sort_by = "formula"

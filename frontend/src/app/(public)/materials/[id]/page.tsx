@@ -490,6 +490,36 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 </div>
               )}
 
+              {/* Additional Properties (from properties_json catch-all) */}
+              {material.properties_json &&
+                (() => {
+                  // Show properties from JSON that aren't already displayed
+                  const displayed = new Set([
+                    "band_gap", "formation_energy", "energy_above_hull", "density", "volume",
+                    "bulk_modulus", "shear_modulus", "young_modulus", "poisson_ratio",
+                    "total_magnetization", "dielectric_constant", "refractive_index",
+                    "effective_mass_electron", "effective_mass_hole",
+                    "thermal_conductivity", "seebeck_coefficient",
+                    "formation_energy_per_atom",
+                  ]);
+                  const extra = Object.entries(material.properties_json).filter(
+                    ([k, v]) => !displayed.has(k) && typeof v === "number"
+                  );
+                  if (extra.length === 0) return null;
+                  const extraProps: Record<string, number | null> = {};
+                  for (const [k, v] of extra) {
+                    extraProps[k] = v as number;
+                  }
+                  return (
+                    <div className="mb-6">
+                      <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                        Additional Properties
+                      </h2>
+                      <PropertyTable properties={extraProps} />
+                    </div>
+                  );
+                })()}
+
               {/* Tags */}
               {material.tags && material.tags.length > 0 && (
                 <div className="mb-6">
