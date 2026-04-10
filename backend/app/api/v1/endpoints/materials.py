@@ -200,6 +200,13 @@ def get_material(material_id: str, db: Session = Depends(get_db)):
 
     # Apply all data quality normalizations before responding
     normalize_material(mat)
+
+    # Strip internal pipeline fields — never expose to frontend
+    if mat.properties_json and isinstance(mat.properties_json, dict):
+        mat.properties_json = {
+            k: v for k, v in mat.properties_json.items() if not k.startswith("_")
+        }
+
     return mat
 
 

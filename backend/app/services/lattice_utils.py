@@ -121,42 +121,32 @@ def _angles_approx(angles: tuple[float, float, float], target: float, tol: float
     return all(abs(a - target) < tol for a in angles)
 
 
-def detect_cell_type(
-    a: float, b: float, c: float,
-    alpha: float, beta: float, gamma: float,
-    crystal_system: str | None = None,
-) -> str:
-    """Detect whether lattice params represent a primitive or conventional cell.
-
-    Returns: "primitive", "conventional", or "unknown"
-    """
-    if crystal_system is None:
-        return "unknown"
-
+def _expected_angles(crystal_system: str) -> tuple[float, float, float] | None:
+    """Return expected conventional cell angles for a crystal system."""
     cs = crystal_system.lower()
+    if cs in ("cubic", "tetragonal", "orthorhombic"):
+        return (90.0, 90.0, 90.0)
+    if cs in ("hexagonal",):
+        return (90.0, 90.0, 120.0)
+    if cs in ("trigonal",):
+        return (90.0, 90.0, 120.0)  # hexagonal setting
+    if cs in ("monoclinic",):
+        return None  # beta can vary, alpha=gamma=90
+    if cs in ("triclinic",):
+        return None  # all angles can vary
+    return None
 
-    if cs == "cubic":
-        if _approx_eq(a, b) and _approx_eq(b, c):
-            if _angles_approx((alpha, beta, gamma), 90.0):
-                return "conventional"
-            if _angles_approx((alpha, beta, gamma), 60.0):
-                return "primitive"  # FCC primitive
-            if _angles_approx((alpha, beta, gamma), 109.47, tol=3.0):
-                return "primitive"  # BCC primitive
-        return "unknown"
 
-    if cs == "hexagonal" or cs == "trigonal":
-        if abs(gamma - 120.0) < 3.0 and _angles_approx((alpha, beta), 90.0, tol=3.0):
-            return "conventional"
-        if _approx_eq(a, b) and _approx_eq(b, c) and _angles_approx((alpha, beta, gamma), 60.0, tol=5.0):
-            return "primitive"  # rhombohedral primitive
-        return "conventional"
+def _angles_match_system(
+    alpha: float, beta: float, gamma: float, crystal_system: str
+) -> bool:
+    """Check if angles are consistent with the crystal system's conventional cell."""
+    expected = _expected_angles(crystal_system)
+    if expected is None:
+        return True  # monoclinic/triclinic — any angles are valid
 
-    # For tetragonal, orthorhombic, etc. — angles should be ~90°
-    if _angles_approx((alpha, beta, gamma), 90.0, tol=3.0):
-        return "conventional"
-
-    return "unknown"
+    tol = 2.0
+    return all(abs(a - e) < tol for a, e in zip((alpha, beta, gamma), expected))
 
 
 def primitive_to_conventional(
@@ -167,14 +157,15 @@ def primitive_to_conventional(
 ) -> dict[str, Any]:
     """Convert primitive cell to conventional cell parameters.
 
-    Returns a dict with:
-      - a, b, c, alpha, beta, gamma: conventional cell params
-      - cell_type: "conventional"
-      - primitive: original primitive params (if conversion was done)
-      - converted: True if conversion was performed
+    If angles are inconsistent with the crystal system, this is a primitive
+    cell from the API. We force angles to the correct conventional values
+    and note the conversion. The lattice lengths from the API are the
+    primitive cell lengths — for cubic FCC we scale by √2, etc.
+
+    For systems where we can't reliably convert (unknown Bravais lattice),
+    we still correct the angles and flag a warning.
     """
     cs = (crystal_system or "").lower()
-    sg = space_group or ""
 
     result: dict[str, Any] = {
         "a": round(a, 4),
@@ -187,12 +178,15 @@ def primitive_to_conventional(
         "converted": False,
     }
 
-    cell_type = detect_cell_type(a, b, c, alpha, beta, gamma, crystal_system)
-
-    if cell_type != "primitive":
+    # If no crystal system or monoclinic/triclinic, return as-is
+    if not cs or cs in ("monoclinic", "triclinic"):
         return result
 
-    # Store original primitive params
+    # Check if angles already match the conventional cell
+    if _angles_match_system(alpha, beta, gamma, cs):
+        return result
+
+    # Angles are wrong for this crystal system → primitive cell detected
     result["primitive"] = {
         "a": round(a, 4), "b": round(b, 4), "c": round(c, 4),
         "alpha": round(alpha, 2), "beta": round(beta, 2), "gamma": round(gamma, 2),
@@ -205,26 +199,52 @@ def primitive_to_conventional(
         if _angles_approx((alpha, beta, gamma), 60.0):
             # FCC primitive → conventional: a_conv = a_prim × √2
             a_conv = avg_a * math.sqrt(2)
-            result.update({"a": round(a_conv, 4), "b": round(a_conv, 4), "c": round(a_conv, 4)})
-            result.update({"alpha": 90.0, "beta": 90.0, "gamma": 90.0})
-
         elif _angles_approx((alpha, beta, gamma), 109.47, tol=3.0):
             # BCC primitive → conventional: a_conv = a_prim × 2/√3
             a_conv = avg_a * 2.0 / math.sqrt(3)
-            result.update({"a": round(a_conv, 4), "b": round(a_conv, 4), "c": round(a_conv, 4)})
-            result.update({"alpha": 90.0, "beta": 90.0, "gamma": 90.0})
+        else:
+            # Unknown cubic primitive — approximate
+            a_conv = avg_a * math.sqrt(2)
 
-    elif cs in ("trigonal", "hexagonal"):
-        if _approx_eq(a, b) and _approx_eq(b, c) and _angles_approx((alpha, beta, gamma), 60.0, tol=5.0):
+        result.update({
+            "a": round(a_conv, 4), "b": round(a_conv, 4), "c": round(a_conv, 4),
+            "alpha": 90.0, "beta": 90.0, "gamma": 90.0,
+        })
+
+    elif cs == "tetragonal":
+        # Tetragonal: a=b, c different, all angles 90°
+        # BCT primitive has a=b=c with non-90° angles
+        # Conventional: a_conv from primitive vectors
+        if _approx_eq(a, b):
+            # a≈b already, just fix angles and scale c
+            result.update({"a": round(a, 4), "b": round(a, 4), "c": round(c, 4)})
+        else:
+            # All similar lengths — BCT primitive
+            # a_conv ≈ a_prim × √2, c_conv from geometry
+            avg_ab = (a + b) / 2.0
+            a_conv = avg_ab * math.sqrt(2)
+            result.update({"a": round(a_conv, 4), "b": round(a_conv, 4), "c": round(c, 4)})
+        result.update({"alpha": 90.0, "beta": 90.0, "gamma": 90.0})
+
+    elif cs == "orthorhombic":
+        # Orthorhombic: a≠b≠c, all angles 90°
+        result.update({"alpha": 90.0, "beta": 90.0, "gamma": 90.0})
+
+    elif cs in ("hexagonal", "trigonal"):
+        if _approx_eq(a, b) and _approx_eq(b, c) and _angles_approx((alpha, beta, gamma), 60.0, tol=10.0):
             # Rhombohedral primitive → hexagonal conventional
             avg_a = (a + b + c) / 3.0
-            avg_alpha = (alpha + beta + gamma) / 3.0
-            alpha_rad = math.radians(avg_alpha)
+            avg_alpha_rad = math.radians((alpha + beta + gamma) / 3.0)
 
-            a_hex = avg_a * math.sqrt(2) * math.sqrt(1 - math.cos(alpha_rad))
-            c_hex = avg_a * math.sqrt(3) * math.sqrt(1 + 2 * math.cos(alpha_rad))
+            a_hex = avg_a * math.sqrt(2) * math.sqrt(1 - math.cos(avg_alpha_rad))
+            c_hex = avg_a * math.sqrt(3) * math.sqrt(1 + 2 * math.cos(avg_alpha_rad))
 
-            result.update({"a": round(a_hex, 4), "b": round(a_hex, 4), "c": round(c_hex, 4)})
+            result.update({
+                "a": round(a_hex, 4), "b": round(a_hex, 4), "c": round(c_hex, 4),
+                "alpha": 90.0, "beta": 90.0, "gamma": 120.0,
+            })
+        else:
+            # Force hexagonal angles
             result.update({"alpha": 90.0, "beta": 90.0, "gamma": 120.0})
 
     return result

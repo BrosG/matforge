@@ -541,7 +541,10 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                     "formation_energy_per_atom",
                   ]);
                   const extra = Object.entries(material.properties_json).filter(
-                    ([k, v]) => !displayed.has(k) && typeof v === "number"
+                    ([k, v]) =>
+                      !displayed.has(k) &&
+                      !k.startsWith("_") &&
+                      typeof v === "number"
                   );
                   if (extra.length === 0) return null;
                   const extraProps: Record<string, number | null> = {};
