@@ -26,14 +26,23 @@ _SEEDED_SOURCES = {"materials_project", "aflow", "oqmd"}
 _DEFAULT_BATCH_SIZE = int(os.environ.get("INGEST_BATCH_SIZE", "100"))
 
 
+_INGEST_MARKER_KEY = "_matcraft_api_ingested"
+
+
 def _has_real_data(db) -> bool:
-    """Check if the DB already has API-ingested data (not just seeded)."""
-    # Real data has non-null calculation_method or bulk_modulus
-    # Seeded data from the old seeder won't have these columns populated
-    # (they were added after the seeder was written)
+    """Check if the DB has real API-ingested data.
+
+    We stamp every API-ingested record with a marker in properties_json.
+    If no records have this marker, all data is seeded/fake.
+    """
+    from sqlalchemy import cast, String
+
     real_count = (
         db.query(IndexedMaterial)
-        .filter(IndexedMaterial.calculation_method.isnot(None))
+        .filter(IndexedMaterial.properties_json.isnot(None))
+        .filter(
+            cast(IndexedMaterial.properties_json, String).contains(_INGEST_MARKER_KEY)
+        )
         .limit(1)
         .count()
     )

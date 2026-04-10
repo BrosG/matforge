@@ -181,8 +181,10 @@ def ingest_entry(
     # Source URL
     record.source_url = _source_url(source_db, external_id)
 
-    # Store full properties dict as JSON catch-all
-    record.properties_json = properties
+    # Store full properties dict as JSON catch-all + API ingestion marker
+    props_json = dict(properties)
+    props_json["_matcraft_api_ingested"] = True
+    record.properties_json = props_json
 
     record.updated_at = datetime.now(timezone.utc)
 

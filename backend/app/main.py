@@ -71,9 +71,11 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown complete")
 
 
+_BUILD_VERSION = "0.3.0"  # Bump on every significant deploy
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version="0.1.0",
+    version=_BUILD_VERSION,
     description="Materials Discovery Platform - Surrogate Models + Active Learning + Pareto Optimization",
     lifespan=lifespan,
 )
@@ -119,6 +121,6 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 async def root():
     return {
         "name": settings.PROJECT_NAME,
-        "version": "0.1.0",
+        "version": _BUILD_VERSION,
         "docs": f"{settings.API_V1_PREFIX}/docs",
     }

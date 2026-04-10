@@ -115,9 +115,12 @@ export interface MaterialSearchParams {
 
 // ── Fetch helpers ───────────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, revalidate = 60): Promise<T> {
+async function apiFetch<T>(path: string, revalidate = 30): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     next: { revalidate },
+    headers: {
+      "Cache-Control": "no-cache",
+    },
   });
 
   if (!res.ok) {

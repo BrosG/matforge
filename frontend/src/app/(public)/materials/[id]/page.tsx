@@ -31,7 +31,7 @@ import {
 
 const SITE_URL = "https://matcraft.ai";
 
-export const revalidate = 60;
+export const revalidate = 0; // Always fetch fresh — data changes during ingestion
 
 // ── Metadata ────────────────────────────────────────────────────────────────
 
