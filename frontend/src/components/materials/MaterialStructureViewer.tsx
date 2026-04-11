@@ -250,32 +250,52 @@ export function MaterialStructureViewer({
 
     if (!isCartesian && hasLattice) {
       // Fractional coordinates — convert to Cartesian using lattice
-      cartAtoms = [];
-      const cellOffsets = atoms.length < 8 ? [0, 1] : [0];
-
-      for (const dx of cellOffsets) {
-        for (const dy of cellOffsets) {
-          for (const dz of cellOffsets) {
-            for (const a of atoms) {
-              const [cx, cy, cz] = fracToCart(a.x + dx, a.y + dy, a.z + dz, lattice!);
-              cartAtoms.push({ element: a.element, x: cx, y: cy, z: cz });
-            }
-          }
-        }
-      }
+      cartAtoms = atoms.map((a) => {
+        const [cx, cy, cz] = fracToCart(a.x, a.y, a.z, lattice!);
+        return { element: a.element, x: cx, y: cy, z: cz };
+      });
     } else {
       // Already Cartesian Angstrom — use directly
       cartAtoms = atoms;
     }
 
-    // Compute unit cell center for centering everything together
+    // Supercell expansion: for small primitive cells (<8 atoms),
+    // replicate across neighboring unit cells using the lattice matrix
+    // to show the full structure context
+    if (cartAtoms.length < 8 && hasMatrix) {
+      const m = latticeMatrix!;
+      const expanded: typeof cartAtoms = [];
+      // Generate 2x2x2 supercell
+      for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 2; j++) {
+          for (let k = 0; k < 2; k++) {
+            const tx = i * m[0][0] + j * m[1][0] + k * m[2][0];
+            const ty = i * m[0][1] + j * m[1][1] + k * m[2][1];
+            const tz = i * m[0][2] + j * m[1][2] + k * m[2][2];
+            for (const a of cartAtoms) {
+              expanded.push({
+                element: a.element,
+                x: a.x + tx,
+                y: a.y + ty,
+                z: a.z + tz,
+              });
+            }
+          }
+        }
+      }
+      cartAtoms = expanded;
+    }
+
+    // Compute supercell center for centering everything together
+    const isSupercell = cartAtoms.length >= 8 && atoms.length < 8 && hasMatrix;
     let originX = 0, originY = 0, originZ = 0;
     if (hasMatrix) {
-      // Center using the raw lattice matrix (sum of vectors × 0.5)
+      // Center using the raw lattice matrix (sum of vectors × 0.5 or 1.0 for supercell)
       const m = latticeMatrix!;
-      originX = 0.5 * (m[0][0] + m[1][0] + m[2][0]);
-      originY = 0.5 * (m[0][1] + m[1][1] + m[2][1]);
-      originZ = 0.5 * (m[0][2] + m[1][2] + m[2][2]);
+      const scale = isSupercell ? 1.0 : 0.5;
+      originX = scale * (m[0][0] + m[1][0] + m[2][0]);
+      originY = scale * (m[0][1] + m[1][1] + m[2][1]);
+      originZ = scale * (m[0][2] + m[1][2] + m[2][2]);
     } else if (hasLattice) {
       // Center of the unit cell (at fractional 0.5, 0.5, 0.5)
       const cellCenter = fracToCart(0.5, 0.5, 0.5, lattice!);

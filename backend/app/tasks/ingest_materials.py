@@ -228,82 +228,112 @@ def _ingest_aflow(db, max_total: int) -> int:
 
 
 def _ingest_jarvis(db, max_total: int) -> int:
-    """Ingest from JARVIS-DFT. Fetches in batches."""
+    """Ingest from JARVIS-DFT via Figshare dataset download.
+
+    JARVIS has no REST API — we download their full dataset (JSON)
+    from Figshare and iterate in memory.
+    """
     from app.services.ingest_service import ingest_batch
 
     import json
-    from urllib.parse import urlencode
+    import gzip
     from urllib.request import Request, urlopen
 
-    base_url = "https://jarvis.nist.gov/jarvisdft/entries"
-    page_size = 500
-    offset = 0
-    total = 0
+    # JARVIS-DFT 3D dataset on Figshare (official NIST download)
+    dataset_url = "https://figshare.com/ndownloader/files/26808917"
 
-    while True:
+    logger.info("Downloading JARVIS dataset from Figshare (~100MB)...")
+    try:
+        req = Request(dataset_url)
+        req.add_header("User-Agent", "MatCraft/1.0")
+        with urlopen(req, timeout=600) as response:
+            data_bytes = response.read()
+    except Exception as e:
+        logger.error("JARVIS download failed: %s", e)
+        return 0
+
+    # Dataset is a gzipped JSON
+    try:
+        if data_bytes[:2] == b"\x1f\x8b":
+            data_bytes = gzip.decompress(data_bytes)
+        items = json.loads(data_bytes.decode("utf-8"))
+    except Exception as e:
+        logger.error("JARVIS parse failed: %s", e)
+        return 0
+
+    if not isinstance(items, list):
+        logger.error("JARVIS dataset unexpected format: %s", type(items))
+        return 0
+
+    logger.info("JARVIS dataset: %d materials", len(items))
+
+    prop_keys = {
+        "formation_energy_peratom": "formation_energy",
+        "optb88vdw_bandgap": "band_gap",
+        "ehull": "energy_above_hull",
+        "bulk_modulus_kv": "bulk_modulus",
+        "shear_modulus_gv": "shear_modulus",
+        "density": "density",
+        "dfpt_piezo_max_dielectric": "dielectric_constant",
+        "magmom_oszicar": "total_magnetization",
+        "n_Seebeck": "seebeck_coefficient",
+    }
+
+    batch_size = 500
+    total = 0
+    batch: list[dict] = []
+
+    for item in items:
         if max_total > 0 and total >= max_total:
             break
 
-        params = {"limit": str(page_size), "offset": str(offset)}
-        url = f"{base_url}?{urlencode(params)}"
+        jid = item.get("jid", item.get("id", ""))
+        formula = item.get("formula", item.get("composition", ""))
+        if not jid or not formula:
+            continue
 
-        try:
-            req = Request(url)
-            req.add_header("Accept", "application/json")
-            req.add_header("User-Agent", "MatCraft/1.0")
-            with urlopen(req, timeout=120) as response:
-                data = json.loads(response.read().decode())
-        except Exception as e:
-            logger.error("JARVIS API error at offset %d: %s", offset, e)
-            break
+        properties: dict[str, float] = {}
+        for src_key, dst_key in prop_keys.items():
+            val = item.get(src_key)
+            if val is not None and isinstance(val, (int, float)):
+                properties[dst_key] = float(val)
 
-        items = data if isinstance(data, list) else data.get("entries", data.get("data", []))
-        if not items:
-            break
+        # JARVIS atoms format: {"elements": [...], "coords": [[x,y,z], ...], "lattice_mat": [[...]]}
+        atoms_data = item.get("atoms")
+        structure: dict | None = None
+        if atoms_data and isinstance(atoms_data, dict):
+            structure = {
+                "lattice": {"matrix": atoms_data.get("lattice_mat", [])},
+                "sites": [],
+            }
+            elements = atoms_data.get("elements", [])
+            coords = atoms_data.get("coords", [])
+            for el, coord in zip(elements, coords):
+                structure["sites"].append({
+                    "species": [{"element": el}],
+                    "abc": coord,
+                    "xyz": coord,
+                })
 
-        from materia.connectors.jarvis import JarvisConnector
+        batch.append({
+            "external_id": str(jid),
+            "formula": formula,
+            "properties": properties,
+            "structure": structure,
+            "metadata": {"calculation_method": "OptB88vdW (JARVIS)"},
+        })
 
-        # Reuse JARVIS connector's property mapping
-        prop_keys = {
-            "formation_energy_peratom": "formation_energy",
-            "optb88vdw_bandgap": "band_gap",
-            "ehull": "energy_above_hull",
-            "bulk_modulus_kv": "bulk_modulus",
-            "shear_modulus_gv": "shear_modulus",
-            "density": "density",
-            "dfpt_piezo_max_dielectric": "dielectric_constant",
-            "magmom_oszicar": "total_magnetization",
-        }
+        if len(batch) >= batch_size:
+            count = ingest_batch(db, batch, "jarvis")
+            total += count
+            batch = []
+            if total % 5000 == 0:
+                logger.info("JARVIS progress: %d ingested", total)
 
-        batch = []
-        for item in items:
-            jid = item.get("jid", item.get("id", ""))
-            formula = item.get("formula", item.get("composition", ""))
-            if not jid or not formula:
-                continue
-
-            properties: dict[str, float] = {}
-            for src_key, dst_key in prop_keys.items():
-                val = item.get(src_key)
-                if val is not None and isinstance(val, (int, float)):
-                    properties[dst_key] = float(val)
-
-            batch.append({
-                "external_id": str(jid),
-                "formula": formula,
-                "properties": properties,
-                "structure": item.get("atoms"),
-                "metadata": {},
-            })
-
+    # Final partial batch
+    if batch:
         count = ingest_batch(db, batch, "jarvis")
         total += count
-        offset += page_size
 
-        logger.info("JARVIS progress: %d ingested (offset %d)", total, offset)
-        time.sleep(1.0)
-
-        if len(items) < page_size:
-            break
-
+    logger.info("JARVIS complete: %d materials ingested", total)
     return total
