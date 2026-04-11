@@ -26,7 +26,7 @@ _SEEDED_SOURCES = {"materials_project", "aflow", "oqmd"}
 _DEFAULT_BATCH_SIZE = int(os.environ.get("INGEST_BATCH_SIZE", "100"))
 
 
-_INGEST_VERSION = "v6"  # Bump this to force re-ingestion with latest code
+_INGEST_VERSION = "v7"  # Bump this to force re-ingestion with latest code
 _INGEST_MARKER_KEY = f"_matcraft_ingest_{_INGEST_VERSION}"
 
 

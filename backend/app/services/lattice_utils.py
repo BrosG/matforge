@@ -78,6 +78,24 @@ def _matrix_to_params(matrix: list[list[float]]) -> dict[str, float]:
     }
 
 
+def extract_lattice_matrix(structure: dict) -> list[list[float]] | None:
+    """Extract the raw 3x3 lattice matrix from a pymatgen structure dict.
+
+    The matrix defines the actual orientation of the primitive cell in the
+    same Cartesian frame as the atom xyz coordinates. Essential for drawing
+    a correctly-oriented unit cell box around primitive atoms.
+    """
+    if not structure or not isinstance(structure, dict):
+        return None
+    lattice = structure.get("lattice")
+    if not lattice or not isinstance(lattice, dict):
+        return None
+    matrix = lattice.get("matrix")
+    if matrix and isinstance(matrix, list) and len(matrix) == 3:
+        return [[float(v) for v in row] for row in matrix]
+    return None
+
+
 def extract_atoms_from_structure(structure: dict) -> list[dict] | None:
     """Extract atom list [{element, x, y, z, fx, fy, fz}] from pymatgen structure dict.
 

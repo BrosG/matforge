@@ -211,22 +211,23 @@ def get_material(material_id: str, db: Session = Depends(get_db)):
     # Apply all data quality normalizations before responding
     normalize_material(mat)
 
-    # For 3D viewer: compute the correct lattice box for the atoms
-    # Atoms from MP are ALWAYS in primitive cell Cartesian coords
-    # We need to give the viewer the primitive lattice to draw the box
+    # For 3D viewer: the atoms are in Cartesian coords of the primitive cell
+    # The lattice_matrix (if stored) is the correct 3x3 matrix for those atoms
+    # If not stored, we compute a primitive lattice from space group (fallback)
     if mat.structure_data and mat.lattice_params:
-        prim = mat.lattice_params.get("primitive")
-        if prim:
-            mat.structure_data["viewer_lattice"] = prim
-        else:
-            # Lattice wasn't converted — but atoms might still be primitive
-            # For centered cells, derive primitive lattice from conventional
-            from app.services.lattice_utils import conventional_to_primitive_lattice
-            sg = mat.space_group or ""
-            viewer_lat = conventional_to_primitive_lattice(
-                mat.lattice_params, sg
-            )
-            mat.structure_data["viewer_lattice"] = viewer_lat
+        # Primary: use the raw matrix stored at ingestion
+        if not mat.structure_data.get("lattice_matrix"):
+            # Fallback for old data: derive primitive lattice params
+            prim = mat.lattice_params.get("primitive")
+            if prim:
+                mat.structure_data["viewer_lattice"] = prim
+            else:
+                from app.services.lattice_utils import conventional_to_primitive_lattice
+                sg = mat.space_group or ""
+                viewer_lat = conventional_to_primitive_lattice(
+                    mat.lattice_params, sg
+                )
+                mat.structure_data["viewer_lattice"] = viewer_lat
 
     # Strip internal pipeline fields — never expose to frontend
     if mat.properties_json and isinstance(mat.properties_json, dict):

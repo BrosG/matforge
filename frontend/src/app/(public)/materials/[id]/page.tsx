@@ -677,6 +677,8 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 {hasStructure ? (
                   <MaterialStructureViewer
                     atoms={material.structure_data!.atoms}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    latticeMatrix={(material.structure_data as any)?.lattice_matrix}
                     lattice={
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (material.structure_data as any)?.viewer_lattice ??

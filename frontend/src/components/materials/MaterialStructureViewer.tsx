@@ -109,9 +109,16 @@ interface LatticeParams {
   [key: string]: unknown; // Allow extra fields like cell_type, converted, primitive
 }
 
+type LatticeMatrix = [
+  [number, number, number],
+  [number, number, number],
+  [number, number, number]
+];
+
 interface MaterialStructureViewerProps {
   atoms: AtomData[];
   lattice?: LatticeParams;
+  latticeMatrix?: LatticeMatrix;
   className?: string;
 }
 
@@ -186,9 +193,43 @@ function unitCellEdges(lat: LatticeParams): [number, number, number, number, num
   ];
 }
 
+/** Build unit cell edges from a raw 3x3 lattice matrix.
+ *  The matrix rows are the lattice vectors in the same Cartesian frame
+ *  as the atom coordinates. This is the authoritative way to draw the box. */
+function unitCellEdgesFromMatrix(
+  m: LatticeMatrix
+): [number, number, number, number, number, number][] {
+  const mul = (fa: number, fb: number, fc: number): [number, number, number] => [
+    fa * m[0][0] + fb * m[1][0] + fc * m[2][0],
+    fa * m[0][1] + fb * m[1][1] + fc * m[2][1],
+    fa * m[0][2] + fb * m[1][2] + fc * m[2][2],
+  ];
+
+  const o = mul(0, 0, 0);
+  const a = mul(1, 0, 0);
+  const b = mul(0, 1, 0);
+  const c = mul(0, 0, 1);
+  const ab = mul(1, 1, 0);
+  const ac = mul(1, 0, 1);
+  const bc = mul(0, 1, 1);
+  const abc = mul(1, 1, 1);
+
+  const edge = (p1: [number, number, number], p2: [number, number, number]) =>
+    [...p1, ...p2] as [number, number, number, number, number, number];
+
+  return [
+    edge(o, a), edge(o, b), edge(o, c),
+    edge(a, ab), edge(a, ac),
+    edge(b, ab), edge(b, bc),
+    edge(c, ac), edge(c, bc),
+    edge(ab, abc), edge(ac, abc), edge(bc, abc),
+  ];
+}
+
 export function MaterialStructureViewer({
   atoms,
   lattice,
+  latticeMatrix,
   className,
 }: MaterialStructureViewerProps) {
   const { positions, colors, radii, bonds, cellEdges } = useMemo(() => {
@@ -196,7 +237,8 @@ export function MaterialStructureViewer({
       return { positions: [], colors: [], radii: [], bonds: [], cellEdges: [] };
     }
 
-    const hasLattice = lattice && lattice.a > 0;
+    const hasMatrix = latticeMatrix && latticeMatrix.length === 3;
+    const hasLattice = lattice && typeof lattice.a === "number" && lattice.a > 0;
 
     // Check if coordinates are already Cartesian (from API flag) or fractional
     // If no flag, detect: if max coordinate > 1.1, likely Cartesian Angstrom
@@ -228,8 +270,14 @@ export function MaterialStructureViewer({
 
     // Compute unit cell center for centering everything together
     let originX = 0, originY = 0, originZ = 0;
-    if (hasLattice) {
-      // Center of the conventional unit cell (at fractional 0.5, 0.5, 0.5)
+    if (hasMatrix) {
+      // Center using the raw lattice matrix (sum of vectors × 0.5)
+      const m = latticeMatrix!;
+      originX = 0.5 * (m[0][0] + m[1][0] + m[2][0]);
+      originY = 0.5 * (m[0][1] + m[1][1] + m[2][1]);
+      originZ = 0.5 * (m[0][2] + m[1][2] + m[2][2]);
+    } else if (hasLattice) {
+      // Center of the unit cell (at fractional 0.5, 0.5, 0.5)
       const cellCenter = fracToCart(0.5, 0.5, 0.5, lattice!);
       originX = cellCenter[0];
       originY = cellCenter[1];
@@ -263,7 +311,13 @@ export function MaterialStructureViewer({
 
     // Unit cell wireframe edges — centered with same origin as atoms
     let edges: [number, number, number, number, number, number][] = [];
-    if (hasLattice) {
+    if (hasMatrix) {
+      // Use the raw matrix — atoms and box share the same Cartesian frame
+      edges = unitCellEdgesFromMatrix(latticeMatrix!).map((e) => [
+        e[0] - originX, e[1] - originY, e[2] - originZ,
+        e[3] - originX, e[4] - originY, e[5] - originZ,
+      ] as [number, number, number, number, number, number]);
+    } else if (hasLattice) {
       edges = unitCellEdges(lattice!).map((e) => [
         e[0] - originX, e[1] - originY, e[2] - originZ,
         e[3] - originX, e[4] - originY, e[5] - originZ,
@@ -271,7 +325,7 @@ export function MaterialStructureViewer({
     }
 
     return { positions: pos, colors: cols, radii: rads, bonds: bondList, cellEdges: edges };
-  }, [atoms, lattice]);
+  }, [atoms, lattice, latticeMatrix]);
 
   return (
     <div className={cn("w-full h-80 rounded-xl overflow-hidden bg-gray-900", className)}>

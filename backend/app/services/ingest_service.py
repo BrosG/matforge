@@ -209,7 +209,14 @@ def ingest_entry(
         # Keep atoms in their original Cartesian coordinates from MP
         atoms = extract_atoms_from_structure(structure)
         if atoms:
-            record.structure_data = {"atoms": atoms}
+            from app.services.lattice_utils import extract_lattice_matrix
+
+            sd: dict = {"atoms": atoms}
+            # Store the raw 3x3 lattice matrix — atoms are in the same frame
+            matrix = extract_lattice_matrix(structure)
+            if matrix:
+                sd["lattice_matrix"] = matrix
+            record.structure_data = sd
     elif meta.get("lattice_params"):
         from app.services.lattice_utils import normalize_lattice_for_display
 
