@@ -145,12 +145,17 @@ def ensure_real_data() -> None:
     with get_db_context() as db:
         if _has_real_data(db):
             total = db.query(IndexedMaterial).count()
+            # Check how many sources we have
+            from sqlalchemy import func
+            source_count = db.query(func.count(func.distinct(IndexedMaterial.source_db))).scalar() or 0
+
             logger.info(
-                "Real API data already present (%d materials) — skipping seed phase",
-                total,
+                "Real API data present (%d materials, %d sources)",
+                total, source_count,
             )
-            # Still queue full ingestion if we have less than 10k
-            if total < 10000:
+            # Queue full ingestion if missing sources (e.g. only AFLOW, no MP)
+            if source_count < 3:
+                logger.info("Missing sources — queuing ingestion for remaining APIs")
                 _queue_full_ingestion()
             return
 
