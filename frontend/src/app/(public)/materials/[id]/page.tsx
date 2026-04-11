@@ -224,7 +224,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
 
       <Header />
 
-      <main className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50">
+      <main className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 pt-16">
         {/* Breadcrumb + back link */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-2">
           <nav className="flex items-center gap-2 text-sm text-gray-500">
