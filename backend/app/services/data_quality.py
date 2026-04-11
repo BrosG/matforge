@@ -20,7 +20,8 @@ from app.services.lattice_utils import normalize_lattice_for_display
 logger = logging.getLogger(__name__)
 
 # Below this threshold (in μB), magnetization is considered DFT noise
-MAGNETIZATION_NOISE_THRESHOLD = 0.01
+# 0.05 is the standard threshold used by Materials Project for non-magnetic classification
+MAGNETIZATION_NOISE_THRESHOLD = 0.05
 
 
 def normalize_material(mat: IndexedMaterial) -> IndexedMaterial:

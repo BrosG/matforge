@@ -293,17 +293,33 @@ export function MaterialStructureViewer({
     const cols = cartAtoms.map((a) => CPK_COLORS[a.element] ?? "#888888");
     const rads = cartAtoms.map((a) => ELEMENT_RADII[a.element] ?? DEFAULT_RADIUS);
 
-    // Auto-detect bonds with proper Cartesian distances
+    // Auto-detect bonds with adaptive threshold:
+    // Find the minimum pairwise distance, draw bonds within 1.3x of that.
+    // This works for covalent (~1.5 Å) and metallic (~4 Å) compounds.
     const bondList: [number, number][] = [];
-    const BOND_MAX = 3.5; // Angstrom — covers metallic bonds too
     const BOND_MIN = 0.5;
+
+    let minDist = Infinity;
     for (let i = 0; i < pos.length; i++) {
       for (let j = i + 1; j < pos.length; j++) {
         const dx = pos[i][0] - pos[j][0];
         const dy = pos[i][1] - pos[j][1];
         const dz = pos[i][2] - pos[j][2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < BOND_MAX && dist > BOND_MIN) {
+        if (dist > BOND_MIN && dist < minDist) {
+          minDist = dist;
+        }
+      }
+    }
+
+    const bondMax = Math.max(3.5, Math.min(5.5, minDist * 1.3));
+    for (let i = 0; i < pos.length; i++) {
+      for (let j = i + 1; j < pos.length; j++) {
+        const dx = pos[i][0] - pos[j][0];
+        const dy = pos[i][1] - pos[j][1];
+        const dz = pos[i][2] - pos[j][2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < bondMax && dist > BOND_MIN) {
           bondList.push([i, j]);
         }
       }

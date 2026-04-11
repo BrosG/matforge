@@ -211,6 +211,15 @@ def get_material(material_id: str, db: Session = Depends(get_db)):
     # Apply all data quality normalizations before responding
     normalize_material(mat)
 
+    # Fix old data with wrong lattice params (a=b=c for tetragonal, etc.)
+    if mat.lattice_params and mat.crystal_system:
+        from app.services.lattice_utils import normalize_lattice_for_display
+        mat.lattice_params = normalize_lattice_for_display(
+            mat.lattice_params,
+            crystal_system=mat.crystal_system,
+            space_group=mat.space_group,
+        )
+
     # For 3D viewer: the atoms are in Cartesian coords of the primitive cell
     # The lattice_matrix (if stored) is the correct 3x3 matrix for those atoms
     # If not stored, we compute a primitive lattice from space group (fallback)

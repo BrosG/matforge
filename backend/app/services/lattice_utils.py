@@ -386,8 +386,16 @@ def primitive_to_conventional(
     if not cs or cs in ("monoclinic", "triclinic"):
         return result
 
-    # Check if angles already match the conventional cell
-    if _angles_match_system(alpha, beta, gamma, cs):
+    # Detect primitive cell by lattice length inconsistency with crystal system
+    # Tetragonal conventional: a=b≠c. If a=b=c, it's likely BCT primitive.
+    tetragonal_as_cubic = (
+        cs == "tetragonal" and _approx_eq(a, b) and _approx_eq(b, c)
+    )
+    # Orthorhombic conventional: a≠b≠c. If any two are equal, could be primitive centered.
+    # (less reliable — skip for now)
+
+    # Check if angles already match AND lengths are valid for the system
+    if _angles_match_system(alpha, beta, gamma, cs) and not tetragonal_as_cubic:
         return result
 
     # Angles are wrong for this crystal system → primitive cell detected
