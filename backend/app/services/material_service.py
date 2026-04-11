@@ -173,8 +173,25 @@ def get_related(
     )
 
 
+_STATS_CACHE_KEY = "materials:stats:v1"
+_STATS_CACHE_TTL = 300  # 5 minutes
+
+
 def get_stats(db: Session) -> dict[str, Any]:
-    """Aggregate statistics across all indexed materials."""
+    """Aggregate statistics across all indexed materials (Redis cached)."""
+    # Try cache first
+    try:
+        from app.core.redis_connector import get_redis
+        import json as _json
+
+        redis_client = get_redis()
+        cached = redis_client.get(_STATS_CACHE_KEY)
+        if cached:
+            return _json.loads(cached)
+    except Exception as e:
+        logger.warning("Stats cache read failed: %s", e)
+
+    # Compute fresh stats
     total = db.query(func.count(IndexedMaterial.id)).scalar() or 0
     stable = (
         db.query(func.count(IndexedMaterial.id))
@@ -212,7 +229,7 @@ def get_stats(db: Session) -> dict[str, Any]:
         .scalar()
     )
 
-    return {
+    result = {
         "total_materials": total,
         "stable_materials": stable,
         "sources": sources,
@@ -220,6 +237,18 @@ def get_stats(db: Session) -> dict[str, Any]:
         "n_elements_distribution": n_elements_dist,
         "avg_band_gap": round(float(avg_band_gap), 3) if avg_band_gap else None,
     }
+
+    # Cache for 5 minutes
+    try:
+        from app.core.redis_connector import get_redis
+        import json as _json
+
+        redis_client = get_redis()
+        redis_client.setex(_STATS_CACHE_KEY, _STATS_CACHE_TTL, _json.dumps(result))
+    except Exception as e:
+        logger.warning("Stats cache write failed: %s", e)
+
+    return result
 
 
 def get_element_counts(db: Session) -> dict[str, int]:
