@@ -235,17 +235,46 @@ def _ingest_jarvis(db, max_total: int) -> int:
     """
     from app.services.ingest_service import ingest_batch
 
+    logger.info("Loading JARVIS-DFT 3D dataset...")
+    items = None
+
+    # Method 1: jarvis-tools package
     try:
         from jarvis.db.figshare import data as jarvis_data
-    except ImportError:
-        logger.error("jarvis-tools not installed — pip install jarvis-tools")
-        return 0
-
-    logger.info("Loading JARVIS-DFT 3D dataset via jarvis-tools...")
-    try:
         items = jarvis_data("dft_3d")
+        logger.info("Loaded JARVIS via jarvis-tools: %d items", len(items))
     except Exception as e:
-        logger.error("JARVIS dataset load failed: %s", e)
+        logger.warning("jarvis-tools failed: %s — trying direct download", e)
+
+    # Method 2: direct Figshare JSON download (multiple known URLs)
+    if not items:
+        import json
+        from urllib.request import Request, urlopen
+
+        urls = [
+            "https://figshare.com/ndownloader/files/40084921",  # dft_3d v2023
+            "https://figshare.com/ndownloader/files/36154813",  # dft_3d v2022
+            "https://figshare.com/ndownloader/files/26808917",  # dft_3d v2021
+        ]
+        for url in urls:
+            try:
+                req = Request(url)
+                req.add_header("User-Agent", "Mozilla/5.0 (compatible; MatCraft/1.0)")
+                req.add_header("Accept", "application/json, application/octet-stream, */*")
+                with urlopen(req, timeout=600) as resp:
+                    raw = resp.read()
+                # Try JSON parse
+                items = json.loads(raw.decode("utf-8"))
+                if isinstance(items, list) and len(items) > 1000:
+                    logger.info("Loaded JARVIS from %s: %d items", url, len(items))
+                    break
+                items = None
+            except Exception as e2:
+                logger.warning("JARVIS download from %s failed: %s", url, e2)
+                continue
+
+    if not items:
+        logger.error("All JARVIS download methods failed")
         return 0
 
     if not items:
