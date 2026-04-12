@@ -228,41 +228,28 @@ def _ingest_aflow(db, max_total: int) -> int:
 
 
 def _ingest_jarvis(db, max_total: int) -> int:
-    """Ingest from JARVIS-DFT via Figshare dataset download.
+    """Ingest from JARVIS-DFT via jarvis-tools Python package.
 
-    JARVIS has no REST API — we download their full dataset (JSON)
-    from Figshare and iterate in memory.
+    Uses the official NIST jarvis-tools library to download and
+    iterate over the JARVIS-DFT 3D dataset (~75k materials).
     """
     from app.services.ingest_service import ingest_batch
 
-    import json
-    import gzip
-    from urllib.request import Request, urlopen
-
-    # JARVIS-DFT 3D dataset on Figshare (official NIST download)
-    dataset_url = "https://figshare.com/ndownloader/files/26808917"
-
-    logger.info("Downloading JARVIS dataset from Figshare (~100MB)...")
     try:
-        req = Request(dataset_url)
-        req.add_header("User-Agent", "MatCraft/1.0")
-        with urlopen(req, timeout=600) as response:
-            data_bytes = response.read()
-    except Exception as e:
-        logger.error("JARVIS download failed: %s", e)
+        from jarvis.db.figshare import data as jarvis_data
+    except ImportError:
+        logger.error("jarvis-tools not installed — pip install jarvis-tools")
         return 0
 
-    # Dataset is a gzipped JSON
+    logger.info("Loading JARVIS-DFT 3D dataset via jarvis-tools...")
     try:
-        if data_bytes[:2] == b"\x1f\x8b":
-            data_bytes = gzip.decompress(data_bytes)
-        items = json.loads(data_bytes.decode("utf-8"))
+        items = jarvis_data("dft_3d")
     except Exception as e:
-        logger.error("JARVIS parse failed: %s", e)
+        logger.error("JARVIS dataset load failed: %s", e)
         return 0
 
-    if not isinstance(items, list):
-        logger.error("JARVIS dataset unexpected format: %s", type(items))
+    if not items:
+        logger.error("JARVIS returned empty dataset")
         return 0
 
     logger.info("JARVIS dataset: %d materials", len(items))
@@ -276,7 +263,11 @@ def _ingest_jarvis(db, max_total: int) -> int:
         "density": "density",
         "dfpt_piezo_max_dielectric": "dielectric_constant",
         "magmom_oszicar": "total_magnetization",
-        "n_Seebeck": "seebeck_coefficient",
+        "n-Seebeck": "seebeck_coefficient",
+        "n-powerfact": "power_factor",
+        "epsx": "dielectric_constant_x",
+        "mepsx": "dielectric_constant_electronic",
+        "kpoint_length_unit": "kpoint_density",
     }
 
     batch_size = 500
@@ -287,8 +278,8 @@ def _ingest_jarvis(db, max_total: int) -> int:
         if max_total > 0 and total >= max_total:
             break
 
-        jid = item.get("jid", item.get("id", ""))
-        formula = item.get("formula", item.get("composition", ""))
+        jid = item.get("jid", "")
+        formula = item.get("formula", "")
         if not jid or not formula:
             continue
 
@@ -298,29 +289,43 @@ def _ingest_jarvis(db, max_total: int) -> int:
             if val is not None and isinstance(val, (int, float)):
                 properties[dst_key] = float(val)
 
-        # JARVIS atoms format: {"elements": [...], "coords": [[x,y,z], ...], "lattice_mat": [[...]]}
+        # JARVIS atoms: {"elements": [...], "coords": [[x,y,z]...], "lattice_mat": [[...]]}
         atoms_data = item.get("atoms")
         structure: dict | None = None
         if atoms_data and isinstance(atoms_data, dict):
-            structure = {
-                "lattice": {"matrix": atoms_data.get("lattice_mat", [])},
-                "sites": [],
-            }
+            lattice_mat = atoms_data.get("lattice_mat", [])
             elements = atoms_data.get("elements", [])
-            coords = atoms_data.get("coords", [])
-            for el, coord in zip(elements, coords):
-                structure["sites"].append({
-                    "species": [{"element": el}],
-                    "abc": coord,
-                    "xyz": coord,
-                })
+            coords = atoms_data.get("coords", [])  # fractional
+            cart_coords = atoms_data.get("cart_coords", [])  # Cartesian
+
+            if lattice_mat and elements:
+                structure = {
+                    "lattice": {"matrix": lattice_mat},
+                    "sites": [],
+                }
+                for idx, el in enumerate(elements):
+                    site: dict = {"species": [{"element": el}]}
+                    if idx < len(coords):
+                        site["abc"] = coords[idx]
+                    if idx < len(cart_coords):
+                        site["xyz"] = cart_coords[idx]
+                    elif idx < len(coords) and lattice_mat:
+                        site["xyz"] = coords[idx]  # fallback
+                    structure["sites"].append(site)
+
+        # Metadata
+        metadata: dict = {
+            "calculation_method": "OptB88vdW",
+            "space_group": item.get("spg_symbol", ""),
+            "crystal_system": item.get("crys", ""),
+        }
 
         batch.append({
             "external_id": str(jid),
             "formula": formula,
             "properties": properties,
             "structure": structure,
-            "metadata": {"calculation_method": "OptB88vdW (JARVIS)"},
+            "metadata": metadata,
         })
 
         if len(batch) >= batch_size:
@@ -330,7 +335,6 @@ def _ingest_jarvis(db, max_total: int) -> int:
             if total % 5000 == 0:
                 logger.info("JARVIS progress: %d ingested", total)
 
-    # Final partial batch
     if batch:
         count = ingest_batch(db, batch, "jarvis")
         total += count
