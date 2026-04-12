@@ -13,7 +13,11 @@ const firebaseConfig = {
 };
 
 function getApp(): FirebaseApp | null {
-  if (!firebaseConfig.apiKey) return null;
+  // Firebase Installations service requires apiKey + projectId + appId
+  // Skip initialization entirely if any are missing — prevents crash on app load
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId) {
+    return null;
+  }
   return getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 }
 
