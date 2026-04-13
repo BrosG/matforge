@@ -56,6 +56,10 @@ async def lifespan(app: FastAPI):
         create_tables()
         logger.info("Database tables created/verified")
 
+    # Pre-warm connection pool to avoid cold-start latency
+    from app.db.base import warm_pool
+    warm_pool()
+
     yield
 
     # Shutdown

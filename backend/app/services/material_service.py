@@ -251,31 +251,119 @@ def get_stats(db: Session) -> dict[str, Any]:
     return result
 
 
+_ELEMENTS_CACHE_KEY = "materials:elements:v1"
+_ELEMENTS_CACHE_TTL = 600  # 10 minutes
+
+
 def get_element_counts(db: Session) -> dict[str, int]:
     """Return frequency map of elements across all indexed materials.
 
-    Since elements are stored as a JSON array, we iterate materials in
-    batches to build the count.  For large datasets a materialized view
-    or pre-computed table would be more efficient.
+    Uses a single SQL query with jsonb_array_elements_text instead of
+    iterating all rows in Python.  Results are cached in Redis for 10 min.
     """
-    counts: dict[str, int] = {}
-    batch_size = 2000
-    offset = 0
-    while True:
-        rows = (
-            db.query(IndexedMaterial.elements)
-            .order_by(IndexedMaterial.id)
-            .offset(offset)
-            .limit(batch_size)
-            .all()
-        )
-        if not rows:
-            break
-        for (elements,) in rows:
-            if elements:
-                for el in elements:
-                    counts[el] = counts.get(el, 0) + 1
-        offset += batch_size
+    # Try cache first
+    try:
+        from app.core.redis_connector import get_redis
+        import json as _json
 
-    # Sort by count descending
-    return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
+        redis_client = get_redis()
+        cached = redis_client.get(_ELEMENTS_CACHE_KEY)
+        if cached:
+            return _json.loads(cached)
+    except Exception as e:
+        logger.warning("Element counts cache read failed: %s", e)
+
+    # Single SQL query — orders of magnitude faster than Python iteration
+    result = db.execute(text(
+        "SELECT elem, COUNT(*) as cnt "
+        "FROM indexed_materials, jsonb_array_elements_text(elements) AS elem "
+        "GROUP BY elem ORDER BY cnt DESC"
+    ))
+    counts = {row[0]: row[1] for row in result}
+
+    # Cache for 10 minutes
+    try:
+        from app.core.redis_connector import get_redis
+        import json as _json
+
+        redis_client = get_redis()
+        redis_client.setex(_ELEMENTS_CACHE_KEY, _ELEMENTS_CACHE_TTL, _json.dumps(counts))
+    except Exception as e:
+        logger.warning("Element counts cache write failed: %s", e)
+
+    return counts
+
+
+_CATEGORIES_CACHE_KEY = "materials:categories:v1"
+_CATEGORIES_CACHE_TTL = 300  # 5 minutes
+
+
+def get_categories(db: Session) -> dict[str, Any]:
+    """Aggregate category counts in a single SQL query. Cached for 5 min."""
+    # Try cache first
+    try:
+        from app.core.redis_connector import get_redis
+        import json as _json
+
+        redis_client = get_redis()
+        cached = redis_client.get(_CATEGORIES_CACHE_KEY)
+        if cached:
+            return _json.loads(cached)
+    except Exception as e:
+        logger.warning("Categories cache read failed: %s", e)
+
+    # Single query with FILTER aggregation — replaces 10+ separate COUNT queries
+    row = db.execute(text("""
+        SELECT
+            COUNT(*) AS total,
+            COUNT(*) FILTER (WHERE band_gap = 0) AS metals,
+            COUNT(*) FILTER (WHERE band_gap > 0 AND band_gap < 4.0) AS semiconductors,
+            COUNT(*) FILTER (WHERE band_gap >= 4.0) AS insulators,
+            COUNT(*) FILTER (WHERE bulk_modulus IS NOT NULL) AS has_elastic,
+            COUNT(*) FILTER (WHERE thermal_conductivity IS NOT NULL) AS has_thermal,
+            COUNT(*) FILTER (WHERE total_magnetization IS NOT NULL) AS has_magnetic,
+            COUNT(*) FILTER (WHERE dielectric_constant IS NOT NULL) AS has_dielectric,
+            COUNT(*) FILTER (WHERE structure_data IS NOT NULL) AS has_structure
+        FROM indexed_materials
+    """)).fetchone()
+
+    # Crystal system counts
+    cs_rows = db.execute(text(
+        "SELECT crystal_system, COUNT(*) FROM indexed_materials "
+        "WHERE crystal_system IS NOT NULL GROUP BY crystal_system"
+    )).fetchall()
+
+    # Source DB counts
+    src_rows = db.execute(text(
+        "SELECT source_db, COUNT(*) FROM indexed_materials GROUP BY source_db"
+    )).fetchall()
+
+    result = {
+        "total_materials": row[0],
+        "crystal_systems": {r[0]: r[1] for r in cs_rows},
+        "sources": {r[0]: r[1] for r in src_rows},
+        "electronic_classification": {
+            "metals": row[1],
+            "semiconductors": row[2],
+            "insulators": row[3],
+        },
+        "property_coverage": {
+            "elastic_moduli": row[4],
+            "thermal_conductivity": row[5],
+            "magnetization": row[6],
+            "dielectric_constant": row[7],
+            "crystal_structure_3d": row[8],
+        },
+    }
+
+    # Cache for 5 minutes
+    try:
+        from app.core.redis_connector import get_redis
+        import json as _json
+
+        redis_client = get_redis()
+        redis_client.setex(_CATEGORIES_CACHE_KEY, _CATEGORIES_CACHE_TTL, _json.dumps(result))
+    except Exception as e:
+        logger.warning("Categories cache write failed: %s", e)
+
+    return result

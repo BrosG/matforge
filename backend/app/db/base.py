@@ -75,6 +75,43 @@ def check_connection() -> bool:
         return False
 
 
+def warm_pool() -> None:
+    """Pre-warm the connection pool on startup to eliminate cold-start latency.
+
+    Opens pool_size connections, executes a trivial query on each to ensure
+    they are fully established (TCP handshake + TLS + auth complete), then
+    returns them to the pool.  Also ensures the pg_trgm extension exists
+    for trigram indexes.
+    """
+    if "sqlite" in str(engine.url):
+        return
+
+    pool_size = getattr(settings, "DB_POOL_SIZE", 5)
+    connections = []
+    try:
+        for _ in range(pool_size):
+            conn = engine.connect()
+            conn.execute(text("SELECT 1"))
+            connections.append(conn)
+        logger.info("Connection pool warmed: %d connections ready", len(connections))
+    except Exception as e:
+        logger.warning("Pool warming partially failed: %s", e)
+    finally:
+        for conn in connections:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    # Ensure pg_trgm extension exists (needed for gin_trgm_ops indexes)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+            logger.info("pg_trgm extension ensured")
+    except Exception as e:
+        logger.warning("Could not create pg_trgm extension: %s", e)
+
+
 def create_tables() -> None:
     """Create all tables and add any missing columns.
 

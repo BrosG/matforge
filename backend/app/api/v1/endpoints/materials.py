@@ -249,56 +249,11 @@ def get_material(material_id: str, db: Session = Depends(get_db)):
 
 @router.get("/categories")
 def get_categories(db: Session = Depends(get_db)):
-    """Browse materials by category — crystal systems, element families, property classes."""
-    from sqlalchemy import func
+    """Browse materials by category — crystal systems, element families, property classes.
 
-    # Crystal system counts
-    cs_rows = (
-        db.query(IndexedMaterial.crystal_system, func.count(IndexedMaterial.id))
-        .filter(IndexedMaterial.crystal_system.isnot(None))
-        .group_by(IndexedMaterial.crystal_system)
-        .all()
-    )
-
-    # Source DB counts
-    src_rows = (
-        db.query(IndexedMaterial.source_db, func.count(IndexedMaterial.id))
-        .group_by(IndexedMaterial.source_db)
-        .all()
-    )
-
-    # Property availability
-    total = db.query(func.count(IndexedMaterial.id)).scalar() or 0
-    has_elastic = db.query(func.count(IndexedMaterial.id)).filter(IndexedMaterial.bulk_modulus.isnot(None)).scalar() or 0
-    has_thermal = db.query(func.count(IndexedMaterial.id)).filter(IndexedMaterial.thermal_conductivity.isnot(None)).scalar() or 0
-    has_magnetic = db.query(func.count(IndexedMaterial.id)).filter(IndexedMaterial.total_magnetization.isnot(None)).scalar() or 0
-    has_dielectric = db.query(func.count(IndexedMaterial.id)).filter(IndexedMaterial.dielectric_constant.isnot(None)).scalar() or 0
-    has_structure = db.query(func.count(IndexedMaterial.id)).filter(IndexedMaterial.structure_data.isnot(None)).scalar() or 0
-
-    # Band gap classification
-    metals = db.query(func.count(IndexedMaterial.id)).filter(IndexedMaterial.band_gap == 0).scalar() or 0
-    semiconductors = db.query(func.count(IndexedMaterial.id)).filter(
-        IndexedMaterial.band_gap > 0, IndexedMaterial.band_gap < 4.0
-    ).scalar() or 0
-    insulators = db.query(func.count(IndexedMaterial.id)).filter(IndexedMaterial.band_gap >= 4.0).scalar() or 0
-
-    return {
-        "total_materials": total,
-        "crystal_systems": {row[0]: row[1] for row in cs_rows},
-        "sources": {row[0]: row[1] for row in src_rows},
-        "electronic_classification": {
-            "metals": metals,
-            "semiconductors": semiconductors,
-            "insulators": insulators,
-        },
-        "property_coverage": {
-            "elastic_moduli": has_elastic,
-            "thermal_conductivity": has_thermal,
-            "magnetization": has_magnetic,
-            "dielectric_constant": has_dielectric,
-            "crystal_structure_3d": has_structure,
-        },
-    }
+    Uses a single aggregated SQL query + Redis caching (via material_service).
+    """
+    return material_service.get_categories(db)
 
 
 @router.get("/{material_id}/export/{fmt}")

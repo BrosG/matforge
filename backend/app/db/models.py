@@ -12,11 +12,12 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import JSON, JSONB
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -165,6 +166,22 @@ class TemplateLike(Base):
 
 class IndexedMaterial(Base):
     __tablename__ = "indexed_materials"
+
+    __table_args__ = (
+        # Composite indexes for common query patterns
+        Index('idx_mat_search_main', 'crystal_system', 'is_stable', 'band_gap'),
+        Index('idx_mat_band_gap_stable', 'band_gap', 'is_stable'),
+        Index('idx_mat_source_crystal', 'source_db', 'crystal_system'),
+        # GIN trigram index for fast ILIKE on formula (requires pg_trgm extension)
+        Index('idx_mat_formula_trgm', 'formula', postgresql_using='gin',
+              postgresql_ops={'formula': 'gin_trgm_ops'}),
+        # GIN index on elements JSON array for fast containment queries
+        Index('idx_mat_elements_gin', 'elements', postgresql_using='gin'),
+        # Individual indexes on filterable columns missing indexes
+        Index('idx_mat_total_magnetization', 'total_magnetization'),
+        Index('idx_mat_thermal_conductivity', 'thermal_conductivity'),
+        Index('idx_mat_seebeck_coefficient', 'seebeck_coefficient'),
+    )
 
     id = Column(String(36), primary_key=True, default=_uuid)
     external_id = Column(String(100), unique=True, nullable=False, index=True)

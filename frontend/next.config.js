@@ -2,6 +2,18 @@
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+
+  // Unique build ID per deploy — ensures no ISR cache survives across deployments
+  generateBuildId: async () => {
+    // Use git SHA if available, otherwise timestamp
+    const { execSync } = require("child_process");
+    try {
+      return execSync("git rev-parse --short=12 HEAD").toString().trim();
+    } catch {
+      return `build-${Date.now()}`;
+    }
+  },
+
   async rewrites() {
     return [
       {
@@ -10,6 +22,7 @@ const nextConfig = {
       },
     ];
   },
+
   async headers() {
     return [
       {
@@ -20,10 +33,10 @@ const nextConfig = {
         ],
       },
       {
-        // Public static files (favicon, robots, etc.)
-        source: "/favicon.ico",
+        // Next.js data routes (ISR JSON payloads) — never cache in browser
+        source: "/_next/data/:path*",
         headers: [
-          { key: "Cache-Control", value: "public, max-age=86400" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
         ],
       },
       {

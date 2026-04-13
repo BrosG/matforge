@@ -178,14 +178,16 @@ jobs:
 
       - name: Deploy Frontend to Cloud Run
         run: |
+          SHORT_SHA=$(echo "${{ needs.determine-env.outputs.image_tag }}" | tr '.' '-' | cut -c1-40)
           gcloud run deploy matforge-frontend${{ needs.determine-env.outputs.suffix }} \
             --image ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/frontend:${{ needs.determine-env.outputs.image_tag }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
+            --revision-suffix "${SHORT_SHA}" \
             --set-secrets "NEXTAUTH_SECRET=NEXTAUTH_SECRET:latest" \
             --set-env-vars "NEXTAUTH_URL=https://matcraft.ai,NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" \
             --service-account matforge-frontend@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
-            --min-instances 0 \
+            --min-instances 1 \
             --max-instances 5 \
             --memory 512Mi \
             --cpu 1 \
