@@ -203,13 +203,7 @@ def search(
         sort_by = "formula"
     sort_col = getattr(IndexedMaterial, sort_by)
     order = sort_col.desc() if sort_dir == "desc" else sort_col.asc()
-    # yield_per=100: stream rows in batches of 100 for memory efficiency
-    results = list(
-        query.order_by(order)
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .execution_options(yield_per=100)
-    )
+    results = query.order_by(order).offset((page - 1) * limit).limit(limit).all()
 
     # ---------------------------------------------------------- cache write
     if _cache_key and results:
