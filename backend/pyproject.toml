@@ -34,11 +34,9 @@ dependencies = [
     "materia",
     # Utilities
     "httpx>=0.25",
-    # JARVIS dataset access
-    "jarvis-tools>=2024.1",
-    # MP electronic structure + XRD + phase diagrams
-    "mp-api>=0.41",
-    "pymatgen>=2024.1",
+    # NOTE: jarvis-tools, mp-api, pymatgen are optional heavy deps.
+    # Installed separately in the Docker image if needed.
+    # They are imported lazily in the code (try/except ImportError).
     # Firebase Auth
     "firebase-admin>=6.2",
 ]
