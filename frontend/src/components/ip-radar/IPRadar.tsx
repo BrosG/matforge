@@ -494,15 +494,103 @@ export function IPRadar() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [showSettings, setShowSettings] = useState(false);
 
+  // Scoping agent state
+  const [scopeModal, setScopeModal] = useState(false);
+  const [scopeMessage, setScopeMessage] = useState("");
+  const [scopeFilters, setScopeFilters] = useState<string[]>([]);
+  const [scopeContext, setScopeContext] = useState("");
+  const [scopeLoading, setScopeLoading] = useState(false);
+
   // Auto-search from URL params
   useEffect(() => {
     const q = searchParams.get("q");
     if (q && !results && !loading) {
       setQuery(q);
-      handleSearch(q);
+      handleScopeAndSearch(q);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Run scoping check before full search
+  const handleScopeAndSearch = useCallback(
+    async (searchQuery?: string) => {
+      const q = (searchQuery || query).trim();
+      if (!q) return;
+
+      // Step 1: Call scoping endpoint
+      try {
+        setScopeLoading(true);
+        const scopeRes = await fetch(`${API_BASE}/ip-radar/scope-query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q, context: "" }),
+        });
+
+        if (scopeRes.ok) {
+          const scope = await scopeRes.json();
+          if (scope.status === "NEEDS_CLARIFICATION" && scope.suggested_filters?.length > 0) {
+            // Show scoping modal
+            setScopeMessage(scope.clarification_message || `"${q}" is a broad field. What is your specific focus?`);
+            setScopeFilters(scope.suggested_filters);
+            setScopeContext("");
+            setScopeModal(true);
+            setScopeLoading(false);
+            return;
+          }
+          // If READY_TO_SEARCH, use the refined query
+          if (scope.final_query) {
+            handleSearch(scope.final_query);
+            setScopeLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // Scoping failed — proceed with original query
+      }
+      setScopeLoading(false);
+      handleSearch(q);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [query]
+  );
+
+  // Handle scope modal confirmation
+  const handleScopeConfirm = useCallback(
+    async (filter?: string) => {
+      const context = filter || scopeContext;
+      const q = query.trim();
+
+      if (context) {
+        // Refine: call scope again with context to get final query
+        try {
+          const res = await fetch(`${API_BASE}/ip-radar/scope-query`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: q, context }),
+          });
+          if (res.ok) {
+            const scope = await res.json();
+            if (scope.final_query) {
+              setScopeModal(false);
+              handleSearch(scope.final_query);
+              return;
+            }
+          }
+        } catch {
+          // Fallback
+        }
+        // If AI refinement failed, just combine
+        setScopeModal(false);
+        handleSearch(`${q} ${context}`);
+      } else {
+        // No context — search with original broad query
+        setScopeModal(false);
+        handleSearch(q);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [query, scopeContext]
+  );
 
   const handleSearch = useCallback(
     async (searchQuery?: string) => {
@@ -689,7 +777,7 @@ export function IPRadar() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleSearch();
+                handleScopeAndSearch();
               }}
               className="relative"
             >
@@ -771,7 +859,7 @@ export function IPRadar() {
                   key={ex}
                   onClick={() => {
                     setQuery(ex);
-                    handleSearch(ex);
+                    handleScopeAndSearch(ex);
                   }}
                   disabled={loading}
                   className="px-3 py-1.5 text-xs text-blue-200/80 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors disabled:opacity-40"
@@ -783,6 +871,85 @@ export function IPRadar() {
           </motion.div>
         </div>
       </section>
+
+      {/* ================================================================= */}
+      {/* AI SCOPING MODAL                                                  */}
+      {/* ================================================================= */}
+      <AnimatePresence>
+        {scopeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setScopeModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card border border-border rounded-2xl shadow-2xl max-w-lg w-full p-6"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Brain className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">AI Query Scoping</h3>
+                  <p className="text-xs text-muted-foreground">Narrowing your search for precise results</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                {scopeMessage}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                {scopeFilters.map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => handleScopeConfirm(filter)}
+                    className="text-left px-3 py-2.5 rounded-xl border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary/30 text-sm text-foreground transition-all"
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                  Or describe your specific approach:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={scopeContext}
+                    onChange={(e) => setScopeContext(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleScopeConfirm()}
+                    placeholder="e.g., using graphene oxide coatings under 200°C"
+                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <button
+                    onClick={() => handleScopeConfirm()}
+                    disabled={!scopeContext.trim()}
+                    className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
+                  >
+                    Search
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={() => { setScopeModal(false); handleSearch(query); }}
+                className="w-full mt-3 text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors"
+              >
+                Skip scoping — search all {query} patents
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ================================================================= */}
       {/* LOADING STATE                                                     */}

@@ -164,6 +164,19 @@ Respond ONLY with valid JSON matching this schema:
 # ---------------------------------------------------------------------------
 
 
+class ScopeRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500, description="Raw user query")
+    context: str = Field("", max_length=500, description="Additional context from user")
+
+
+class ScopeResponse(BaseModel):
+    status: str  # "NEEDS_CLARIFICATION" or "READY_TO_SEARCH"
+    clarification_message: str = ""
+    suggested_filters: list[str] = []
+    final_query: str = ""
+    cpc_codes: list[str] = []
+
+
 class IPRadarRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500, description="Material query")
     max_patents: int = Field(50, ge=1, le=200, description="Max patents to retrieve")
@@ -824,6 +837,192 @@ def _set_cached(key: str, response: IPRadarResponse) -> None:
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
+
+
+SCOPING_PROMPT = """\
+You are an expert Patent Attorney at a technology transfer office (SATT).
+A researcher comes to you with a material they want to search for patent landscape/FTO analysis.
+
+Your goal is to evaluate if their query is "BROAD" (an entire field) or "PRECISE" (a specific invention).
+- If BROAD: Generate 3-4 specific technical categories/questions to help them narrow it down.
+- If PRECISE: Generate the final, highly restrictive search string.
+
+Respond ONLY in JSON format:
+{
+  "status": "NEEDS_CLARIFICATION" | "READY_TO_SEARCH",
+  "clarification_message": "String (Only if NEEDS_CLARIFICATION. Ask the user to narrow down.)",
+  "suggested_filters": ["Array of 3-4 clickable options to narrow scope"],
+  "final_query": "String (Only if READY_TO_SEARCH. The refined search query.)",
+  "cpc_codes": ["Array of CPC codes if known (Only if READY_TO_SEARCH)"]
+}
+
+IMPORTANT: If the user provides additional context narrowing their focus, mark as READY_TO_SEARCH
+and build a precise query combining the original material + the narrowing context.
+"""
+
+# Broad material keywords that trigger scoping
+_BROAD_MATERIALS = {
+    "LiFePO4", "perovskite", "graphene", "SiC", "GaN", "MoS2", "TiO2",
+    "ZnO", "silicon", "carbon nanotube", "MOF", "solid-state electrolyte",
+    "high-entropy alloy", "thermoelectric", "superconductor", "piezoelectric",
+    "lithium", "cobalt", "nickel", "iron oxide", "alumina", "zirconia",
+}
+
+
+def _is_broad_query(query: str) -> bool:
+    """Heuristic: if the query is just a material name with <3 words, it's broad."""
+    words = query.strip().split()
+    if len(words) <= 2:
+        return True
+    q_lower = query.lower()
+    for mat in _BROAD_MATERIALS:
+        if mat.lower() in q_lower and len(words) <= 3:
+            return True
+    return False
+
+
+def _rule_based_scope(query: str) -> ScopeResponse:
+    """Fast rule-based scoping when Gemini is unavailable."""
+    if not _is_broad_query(query):
+        return ScopeResponse(
+            status="READY_TO_SEARCH",
+            final_query=query,
+        )
+
+    # Generate category suggestions based on the material
+    q_lower = query.lower()
+    suggestions = []
+
+    if any(k in q_lower for k in ["battery", "lifepo4", "cathode", "anode", "lithium", "electrolyte"]):
+        suggestions = [
+            "Synthesis & Manufacturing methods",
+            "Doping & Compositional modifications",
+            "Coatings (Carbon, Polymer, Oxide)",
+            "Recycling & End-of-life processing",
+        ]
+    elif any(k in q_lower for k in ["perovskite", "solar", "photovoltaic"]):
+        suggestions = [
+            "Improving Moisture/Thermal Stability",
+            "Lead-free (Pb-free) compositions",
+            "Hole/Electron Transport Layer interfaces",
+            "Tandem Silicon-Perovskite architectures",
+        ]
+    elif any(k in q_lower for k in ["graphene", "carbon nanotube", "cnt"]):
+        suggestions = [
+            "Large-scale production methods",
+            "Composite materials (polymer/metal/ceramic)",
+            "Electronic device applications",
+            "Energy storage (supercapacitors, batteries)",
+        ]
+    elif any(k in q_lower for k in ["sic", "silicon carbide", "gan", "gallium nitride"]):
+        suggestions = [
+            "Power semiconductor devices",
+            "Crystal growth & Wafer fabrication",
+            "Epitaxial layer processing",
+            "High-temperature/harsh-environment applications",
+        ]
+    elif any(k in q_lower for k in ["mof", "metal-organic framework"]):
+        suggestions = [
+            "Gas separation & Storage (H2, CO2, CH4)",
+            "Catalysis applications",
+            "Drug delivery & Biomedical",
+            "Water treatment & Purification",
+        ]
+    elif any(k in q_lower for k in ["thermoelectric", "seebeck"]):
+        suggestions = [
+            "Material compositions (Bi2Te3, PbTe, SnSe)",
+            "Nanostructured thermoelectrics",
+            "Module design & Fabrication",
+            "Waste heat recovery applications",
+        ]
+    else:
+        suggestions = [
+            "Synthesis & Processing methods",
+            "Composition & Doping modifications",
+            "Device & Application patents",
+            "Characterization & Testing methods",
+        ]
+
+    return ScopeResponse(
+        status="NEEDS_CLARIFICATION",
+        clarification_message=f'"{query}" is a broad field with tens of thousands of patents. To find precise white spaces for your research, what is your specific focus?',
+        suggested_filters=suggestions,
+    )
+
+
+async def _ai_scope(query: str, context: str) -> ScopeResponse | None:
+    """Use Gemini to evaluate if the query needs narrowing."""
+    api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        import google.generativeai as genai
+    except ImportError:
+        return None
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+
+        user_msg = f"Material query: {query}"
+        if context:
+            user_msg += f"\nAdditional context from researcher: {context}"
+
+        response = model.generate_content(
+            [{"role": "user", "parts": [SCOPING_PROMPT + "\n\n" + user_msg]}],
+            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=2048),
+        )
+
+        raw = response.text.strip()
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+        data = json.loads(raw)
+
+        return ScopeResponse(
+            status=data.get("status", "READY_TO_SEARCH"),
+            clarification_message=data.get("clarification_message", ""),
+            suggested_filters=data.get("suggested_filters", []),
+            final_query=data.get("final_query", data.get("final_boolean_query", query)),
+            cpc_codes=data.get("cpc_codes", []),
+        )
+    except Exception as exc:
+        logger.warning("Gemini scoping failed: %s", exc)
+        return None
+
+
+@router.post("/scope-query", response_model=ScopeResponse)
+async def scope_query(body: ScopeRequest) -> ScopeResponse:
+    """AI Query Scoping Agent — evaluates if a query is too broad and suggests
+    narrowing filters before running the full patent search.
+
+    If the query is precise enough, returns READY_TO_SEARCH with the refined query.
+    If too broad, returns NEEDS_CLARIFICATION with suggested focus areas.
+    """
+    query = body.query.strip()
+    context = body.context.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query is required")
+
+    # If user provided additional context, combine and mark as ready
+    if context:
+        # AI refines the combined query
+        result = await _ai_scope(query, context)
+        if result:
+            return result
+        # Fallback: just combine them
+        return ScopeResponse(
+            status="READY_TO_SEARCH",
+            final_query=f"{query} {context}",
+        )
+
+    # First pass: check if broad
+    result = await _ai_scope(query, "")
+    if result:
+        return result
+
+    # Fallback: rule-based scoping
+    return _rule_based_scope(query)
 
 
 @router.post("/search", response_model=IPRadarResponse)
