@@ -30,14 +30,21 @@ const API_BASE =
 
 interface PhaseEntry {
   composition: Record<string, number>;
-  energy: number;
+  energy_per_atom: number;
+  energy?: number;          // alias
+  energy_above_hull?: number;
   formula: string;
   stable: boolean;
 }
 
 interface PhaseDiagramData {
-  entries: PhaseEntry[];
-  hull_energies: number[];
+  // Actual API fields
+  stable_phases?: PhaseEntry[];
+  unstable_phases?: PhaseEntry[];
+  elements?: string[];
+  n_entries?: number;
+  // Legacy/fallback
+  entries?: PhaseEntry[];
 }
 
 interface PhaseDiagramChartProps {
@@ -162,9 +169,20 @@ export function PhaseDiagramChart({
 
   const isBinary = sortedElements.length === 2;
 
+  // Normalise API response: supports both {stable_phases, unstable_phases} and {entries}
+  const allEntries = useMemo((): PhaseEntry[] => {
+    if (!data) return [];
+    if (data.stable_phases || data.unstable_phases) {
+      const s = (data.stable_phases ?? []).map((e) => ({ ...e, stable: true, energy: e.energy_per_atom }));
+      const u = (data.unstable_phases ?? []).map((e) => ({ ...e, stable: false, energy: e.energy_per_atom }));
+      return [...s, ...u];
+    }
+    return (data.entries ?? []);
+  }, [data]);
+
   // Transform data for binary scatter plot
   const { stablePoints, unstablePoints, hullLine } = useMemo(() => {
-    if (!data || !isBinary) {
+    if (!allEntries.length || !isBinary) {
       return { stablePoints: [], unstablePoints: [], hullLine: [] };
     }
 
@@ -174,39 +192,32 @@ export function PhaseDiagramChart({
     const stable: { x: number; energy: number; formula: string; stable: boolean }[] = [];
     const unstable: { x: number; energy: number; formula: string; stable: boolean }[] = [];
 
-    data.entries.forEach((entry) => {
-      const total =
-        (entry.composition[el0] ?? 0) + (entry.composition[el1] ?? 0);
-      const fraction = total > 0 ? (entry.composition[el1] ?? 0) / total : 0;
-
+    allEntries.forEach((entry) => {
+      const comp = entry.composition ?? {};
+      const total = (comp[el0] ?? 0) + (comp[el1] ?? 0);
+      const fraction = total > 0 ? (comp[el1] ?? 0) / total : 0;
       const point = {
         x: fraction,
-        energy: entry.energy,
+        energy: entry.energy_per_atom ?? entry.energy ?? 0,
         formula: entry.formula,
         stable: entry.stable,
       };
-
-      if (entry.stable) {
-        stable.push(point);
-      } else {
-        unstable.push(point);
-      }
+      if (entry.stable) stable.push(point);
+      else unstable.push(point);
     });
 
-    // Sort stable points by x for the hull line
     const hull = [...stable].sort((a, b) => a.x - b.x);
-
     return { stablePoints: stable, unstablePoints: unstable, hullLine: hull };
-  }, [data, isBinary, sortedElements]);
+  }, [allEntries, isBinary, sortedElements]);
 
   // For ternary/multi-element: simplified view
   const multiPoints = useMemo(() => {
-    if (!data || isBinary) return { stable: [] as PhaseEntry[], unstable: [] as PhaseEntry[] };
-
-    const stable = data.entries.filter((e) => e.stable);
-    const unstable = data.entries.filter((e) => !e.stable);
-    return { stable, unstable };
-  }, [data, isBinary]);
+    if (!allEntries.length || isBinary) return { stable: [] as PhaseEntry[], unstable: [] as PhaseEntry[] };
+    return {
+      stable: allEntries.filter((e) => e.stable),
+      unstable: allEntries.filter((e) => !e.stable),
+    };
+  }, [allEntries, isBinary]);
 
   // ── Loading state ──────────────────────────────────────────────────────
 

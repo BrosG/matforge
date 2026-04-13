@@ -41,9 +41,11 @@ class Settings(BaseSettings):
     # Features
     ENABLE_REAL_TIME_UPDATES: bool = True
 
-    # DB Pool
-    DB_POOL_SIZE: int = 20
-    DB_MAX_OVERFLOW: int = 10
+    # DB Pool — keep small to avoid exhausting Cloud SQL max_connections
+    # Cloud SQL shared-core has ~100 max connections; with 3 gunicorn workers
+    # × up to 10 Cloud Run instances = need per-instance pool ≤ 3-4 connections
+    DB_POOL_SIZE: int = 3
+    DB_MAX_OVERFLOW: int = 2
 
     model_config = {"env_file": ".env", "case_sensitive": True}
 

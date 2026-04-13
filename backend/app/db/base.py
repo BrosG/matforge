@@ -76,32 +76,21 @@ def check_connection() -> bool:
 
 
 def warm_pool() -> None:
-    """Pre-warm the connection pool on startup to eliminate cold-start latency.
+    """Verify DB connectivity on startup with a single connection.
 
-    Opens pool_size connections, executes a trivial query on each to ensure
-    they are fully established (TCP handshake + TLS + auth complete), then
-    returns them to the pool.  Also ensures the pg_trgm extension exists
-    for trigram indexes.
+    Opens ONE connection to confirm the DB is reachable and the pool
+    works. Does not pre-open all pool_size connections — that would
+    exhaust Cloud SQL's max_connections limit across multiple containers.
     """
     if "sqlite" in str(engine.url):
         return
 
-    pool_size = getattr(settings, "DB_POOL_SIZE", 5)
-    connections = []
     try:
-        for _ in range(pool_size):
-            conn = engine.connect()
+        with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-            connections.append(conn)
-        logger.info("Connection pool warmed: %d connections ready", len(connections))
+        logger.info("Database connection verified")
     except Exception as e:
-        logger.warning("Pool warming partially failed: %s", e)
-    finally:
-        for conn in connections:
-            try:
-                conn.close()
-            except Exception:
-                pass
+        logger.warning("Database connection check failed: %s", e)
 
     # Ensure pg_trgm extension exists (needed for gin_trgm_ops indexes)
     try:
