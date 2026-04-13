@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: "/material-builder", label: "3D Builder" },
   { href: "/builder", label: "Tools" },
   { href: "/compare", label: "Compare" },
+  { href: "/ip-radar", label: "IP Radar" },
   { href: "/docs", label: "Docs" },
   { href: "/faq", label: "FAQ" },
 ];

@@ -10,6 +10,7 @@ const FOOTER_LINKS = {
     { href: "/material-builder", label: "3D Material Builder" },
     { href: "/builder", label: "Structure Tools" },
     { href: "/compare", label: "Compare Materials" },
+    { href: "/ip-radar", label: "IP Radar" },
   ],
   Resources: [
     { href: "/docs", label: "Documentation" },
