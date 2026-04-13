@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SessionProvider } from "next-auth/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/core/ThemeProvider";
 import { ApiStatusProvider } from "@/lib/api-status";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -31,9 +32,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={200}>
-          <ApiStatusProvider>{children}</ApiStatusProvider>
-        </TooltipProvider>
+        <ThemeProvider>
+          <TooltipProvider delayDuration={200}>
+            <ApiStatusProvider>{children}</ApiStatusProvider>
+          </TooltipProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </SessionProvider>
   );

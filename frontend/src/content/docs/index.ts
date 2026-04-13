@@ -25,7 +25,10 @@ export type DocCategory =
   | "optimization"
   | "domains"
   | "api-reference"
-  | "cli-reference";
+  | "cli-reference"
+  | "features"
+  | "materials-api"
+  | "tutorials";
 
 export const DOC_CATEGORIES: DocCategoryMeta[] = [
   { slug: "getting-started", title: "Getting Started", description: "Set up MatCraft and run your first campaign", icon: "Sparkles", gradient: "from-blue-500 to-cyan-500", order: 0 },
@@ -34,6 +37,9 @@ export const DOC_CATEGORIES: DocCategoryMeta[] = [
   { slug: "domains", title: "Material Domains", description: "Built-in domains and custom plugin development", icon: "Layers", gradient: "from-emerald-500 to-green-500", order: 3 },
   { slug: "api-reference", title: "API Reference", description: "REST API, WebSocket, and Python SDK documentation", icon: "Code2", gradient: "from-rose-500 to-pink-500", order: 4 },
   { slug: "cli-reference", title: "CLI Reference", description: "Command-line interface for MatCraft operations", icon: "Terminal", gradient: "from-slate-500 to-gray-500", order: 5 },
+  { slug: "features", title: "Platform Features", description: "Detailed guides for each MatCraft feature", icon: "Star", gradient: "from-indigo-500 to-blue-500", order: 6 },
+  { slug: "materials-api", title: "Materials API", description: "Complete REST API docs for materials endpoints", icon: "Database", gradient: "from-teal-500 to-emerald-500", order: 7 },
+  { slug: "tutorials", title: "Tutorials", description: "Step-by-step guides for common workflows", icon: "BookOpen", gradient: "from-violet-500 to-purple-500", order: 8 },
 ];
 
 // Import all pages
@@ -74,6 +80,7 @@ import domainsThermoelectric from "./domains/thermoelectric";
 import domainsPolymer from "./domains/polymer";
 import domainsCeramic from "./domains/ceramic";
 import domainsCustomPlugin from "./domains/custom-plugin";
+import domainsStructural from "./domains/structural";
 
 import apiOverview from "./api-reference/overview";
 import apiCampaigns from "./api-reference/campaigns";
@@ -95,13 +102,65 @@ import cliConfig from "./cli-reference/config";
 import cliValidate from "./cli-reference/validate";
 import cliExport from "./cli-reference/export";
 
+// Features
+import featuresMaterialsSearch from "./features/materials-search";
+import featuresCrystalViewer from "./features/crystal-viewer";
+import featuresStructureBuilder from "./features/structure-builder";
+import featuresInverseDesign from "./features/inverse-design";
+import featuresScatterPlot from "./features/scatter-plot";
+import featuresBandStructure from "./features/band-structure";
+import featuresDensityOfStates from "./features/density-of-states";
+import featuresPhaseDiagrams from "./features/phase-diagrams";
+import featuresXrdSimulation from "./features/xrd-simulation";
+import featuresJupyterExport from "./features/jupyter-export";
+import featuresStructureExport from "./features/structure-export";
+import featuresApplicationScores from "./features/application-scores";
+import featuresComparator from "./features/comparator";
+import featuresDarkMode from "./features/dark-mode";
+import featuresNaturalLanguage from "./features/natural-language";
+
+// Materials API
+import matApiOverview from "./materials-api/overview";
+import matApiAuthentication from "./materials-api/authentication";
+import matApiMaterialsList from "./materials-api/materials-list";
+import matApiMaterialsDetail from "./materials-api/materials-detail";
+import matApiMaterialsExport from "./materials-api/materials-export";
+import matApiMaterialsSimilar from "./materials-api/materials-similar";
+import matApiMaterialsScatter from "./materials-api/materials-scatter";
+import matApiElectronicBand from "./materials-api/electronic-band";
+import matApiElectronicDos from "./materials-api/electronic-dos";
+import matApiElectronicXrd from "./materials-api/electronic-xrd";
+import matApiElectronicPhase from "./materials-api/electronic-phase";
+import matApiBuilderSupercell from "./materials-api/builder-supercell";
+import matApiBuilderSurface from "./materials-api/builder-surface";
+import matApiBuilderNanoparticle from "./materials-api/builder-nanoparticle";
+import matApiBuilderSubstitute from "./materials-api/builder-substitute";
+
+// Tutorials
+import tutorialsGettingStarted from "./tutorials/getting-started";
+import tutorialsFirstSearch from "./tutorials/first-search";
+import tutorialsFirstCampaign from "./tutorials/first-campaign";
+import tutorialsUnderstandingProperties from "./tutorials/understanding-properties";
+import tutorialsReadingBandStructures from "./tutorials/reading-band-structures";
+import tutorialsReadingDos from "./tutorials/reading-dos";
+import tutorialsUsingBuilder from "./tutorials/using-builder";
+import tutorialsExportingData from "./tutorials/exporting-data";
+import tutorialsApiQuickstart from "./tutorials/api-quickstart";
+import tutorialsCampaignAdvanced from "./tutorials/campaign-advanced";
+
 export const ALL_DOC_PAGES: DocPage[] = [
   quickStart, installation, coreConcepts, configuration, firstCampaign, architecture, glossary, troubleshooting,
   mdlSpecification, mdlParameters, mdlObjectives, mdlConstraints, mdlTemplates, mdlYamlReference, mdlValidation, mdlExamples,
   cmaEs, mlpSurrogate, activeLearning, paretoAnalysis, convergence, multiObjective, hyperparameters, benchmarks,
-  domainsOverview, domainsWater, domainsBattery, domainsSolar, domainsCatalyst, domainsHydrogen, domainsThermoelectric, domainsPolymer, domainsCeramic, domainsCustomPlugin,
+  domainsOverview, domainsWater, domainsBattery, domainsSolar, domainsCatalyst, domainsHydrogen, domainsThermoelectric, domainsPolymer, domainsCeramic, domainsCustomPlugin, domainsStructural,
   apiOverview, apiCampaigns, apiJobs, apiDatasets, apiTemplates, apiWebsocket, apiAuthentication, apiErrors, apiRateLimits, apiPythonSdk,
   cliOverview, cliInit, cliRun, cliResults, cliDashboard, cliConfig, cliValidate, cliExport,
+  // Features
+  featuresMaterialsSearch, featuresCrystalViewer, featuresStructureBuilder, featuresInverseDesign, featuresScatterPlot, featuresBandStructure, featuresDensityOfStates, featuresPhaseDiagrams, featuresXrdSimulation, featuresJupyterExport, featuresStructureExport, featuresApplicationScores, featuresComparator, featuresDarkMode, featuresNaturalLanguage,
+  // Materials API
+  matApiOverview, matApiAuthentication, matApiMaterialsList, matApiMaterialsDetail, matApiMaterialsExport, matApiMaterialsSimilar, matApiMaterialsScatter, matApiElectronicBand, matApiElectronicDos, matApiElectronicXrd, matApiElectronicPhase, matApiBuilderSupercell, matApiBuilderSurface, matApiBuilderNanoparticle, matApiBuilderSubstitute,
+  // Tutorials
+  tutorialsGettingStarted, tutorialsFirstSearch, tutorialsFirstCampaign, tutorialsUnderstandingProperties, tutorialsReadingBandStructures, tutorialsReadingDos, tutorialsUsingBuilder, tutorialsExportingData, tutorialsApiQuickstart, tutorialsCampaignAdvanced,
 ];
 
 export function getDocPage(category: string, slug: string): DocPage | undefined {

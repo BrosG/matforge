@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 interface PropertyTableProps {
   properties: Record<string, number | null>;
   units?: Record<string, string>;
+  sourceDb?: string;
 }
 
 /** Property definitions: human-readable name, tooltip explanation, typical range. */
@@ -94,6 +95,19 @@ const PROPERTY_INFO: Record<string, { label: string; tooltip: string; range?: st
   },
 };
 
+/** Properties that AFLOW does not provide — shown with explanatory tooltip */
+const AFLOW_UNAVAILABLE: Set<string> = new Set([
+  "formation_energy",
+  "energy_above_hull",
+  "volume",
+  "efermi",
+  "dielectric_constant",
+  "refractive_index",
+  "effective_mass_electron",
+  "effective_mass_hole",
+  "seebeck_coefficient",
+]);
+
 /** Get human-readable label for a property key. */
 function getLabel(key: string): string {
   return PROPERTY_INFO[key]?.label ?? key
@@ -108,29 +122,36 @@ function formatValue(value: number): string {
   return Number(value.toPrecision(4)).toString();
 }
 
-export function PropertyTable({ properties, units }: PropertyTableProps) {
-  // Only show rows that have actual values — never show dashes for missing data
+export function PropertyTable({ properties, units, sourceDb }: PropertyTableProps) {
+  const isAflow = sourceDb === "aflow";
+
+  // Show rows that have values, plus AFLOW null rows that deserve a tooltip
   const entries = Object.entries(properties).filter(
-    ([, v]) => v !== null && v !== undefined
+    ([key, v]) => {
+      if (v !== null && v !== undefined) return true;
+      // For AFLOW, show certain null rows with explanation
+      if (isAflow && AFLOW_UNAVAILABLE.has(key)) return true;
+      return false;
+    }
   );
 
   if (entries.length === 0) {
-    return null; // Don't render empty tables
+    return null;
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-gray-50">
-            <th className="px-4 py-2.5 text-left font-semibold text-gray-700">
+          <tr className="border-b bg-muted/50">
+            <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground">
               Property
             </th>
-            <th className="px-4 py-2.5 text-right font-semibold text-gray-700">
+            <th className="px-4 py-2.5 text-right font-semibold text-muted-foreground">
               Value
             </th>
             {units && (
-              <th className="px-4 py-2.5 text-left font-semibold text-gray-700">
+              <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground">
                 Unit
               </th>
             )}
@@ -139,35 +160,47 @@ export function PropertyTable({ properties, units }: PropertyTableProps) {
         <tbody>
           {entries.map(([key, value], idx) => {
             const info = PROPERTY_INFO[key];
+            const isUnavailable = value === null || value === undefined;
+            const isAflowNull = isAflow && isUnavailable && AFLOW_UNAVAILABLE.has(key);
+
             return (
               <tr
                 key={key}
                 className={cn(
                   "border-b last:border-b-0 transition-colors",
-                  idx % 2 === 1 ? "bg-gray-50/50" : "bg-white"
+                  idx % 2 === 1 ? "bg-muted/30" : "bg-card"
                 )}
               >
-                <td className="px-4 py-2.5 text-gray-600">
+                <td className="px-4 py-2.5 text-muted-foreground">
                   <span className="group relative cursor-help">
                     {getLabel(key)}
                     {info?.tooltip && (
-                      <span className="invisible group-hover:visible absolute left-0 top-full mt-1 z-50 w-72 p-3 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg">
+                      <span className="invisible group-hover:visible absolute left-0 top-full mt-1 z-50 w-72 p-3 text-xs text-foreground bg-card border border-border rounded-lg shadow-lg">
                         <span className="font-semibold block mb-1">{info.label}</span>
                         {info.tooltip}
                         {info.range && (
-                          <span className="block mt-1 text-gray-400">Typical range: {info.range}</span>
+                          <span className="block mt-1 text-muted-foreground">Typical range: {info.range}</span>
                         )}
                       </span>
                     )}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-right font-mono text-gray-900">
-                  {value === null || value === undefined
-                    ? <span className="text-gray-400">&mdash;</span>
-                    : formatValue(value)}
+                <td className="px-4 py-2.5 text-right font-mono">
+                  {isAflowNull ? (
+                    <span className="group/na relative cursor-help text-muted-foreground/60">
+                      N/A
+                      <span className="invisible group-hover/na:visible absolute right-0 top-full mt-1 z-50 w-64 p-2.5 text-xs text-foreground bg-card border border-border rounded-lg shadow-lg text-left font-sans">
+                        Not available &mdash; AFLOW does not provide this property for this material.
+                      </span>
+                    </span>
+                  ) : isUnavailable ? (
+                    <span className="text-muted-foreground/50">&mdash;</span>
+                  ) : (
+                    <span className="text-foreground">{formatValue(value!)}</span>
+                  )}
                 </td>
                 {units && (
-                  <td className="px-4 py-2.5 text-gray-500 text-xs">
+                  <td className="px-4 py-2.5 text-muted-foreground text-xs">
                     {units[key] ?? ""}
                   </td>
                 )}

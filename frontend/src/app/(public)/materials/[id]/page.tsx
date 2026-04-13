@@ -20,6 +20,9 @@ import { PropertyTable } from "@/components/materials/PropertyTable";
 import { MaterialStructureViewer } from "@/components/materials/MaterialStructureViewer";
 import { MaterialCard } from "@/components/materials/MaterialCard";
 import { CopyCitation } from "@/components/materials/CopyCitation";
+import { LatticeToggle } from "@/components/materials/LatticeToggle";
+import { ElectronicStructureSection } from "@/components/materials/ElectronicStructureSection";
+import { CopilotChat } from "@/components/materials/CopilotChat";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import JsonLd from "@/components/seo/JsonLd";
@@ -299,19 +302,19 @@ export default async function MaterialDetailPage({ params }: PageProps) {
 
       <Header />
 
-      <main className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 pt-16">
+      <main className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pt-16">
         {/* Breadcrumb + back link */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-          <nav className="flex items-center gap-2 text-sm text-gray-500">
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link
               href="/materials"
-              className="inline-flex items-center gap-1 hover:text-blue-600 transition-colors"
+              className="inline-flex items-center gap-1 hover:text-primary transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Materials
             </Link>
             <span>/</span>
-            <span className="text-gray-900 font-medium">
+            <span className="text-foreground font-medium">
               {material.formula}
             </span>
           </nav>
@@ -365,7 +368,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
               </div>
 
               {/* External ID + source link */}
-              <div className="flex flex-wrap items-center gap-3 mb-6 text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-3 mb-6 text-sm text-muted-foreground">
                 <span>
                   ID:{" "}
                   <code className="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono">
@@ -424,7 +427,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
 
               {/* Elements */}
               <div className="mb-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                <h2 className="text-sm font-semibold text-foreground/80 mb-2">
                   Elements
                 </h2>
                 <div className="flex flex-wrap gap-2">
@@ -438,7 +441,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
               {material.composition &&
                 Object.keys(material.composition).length > 0 && (
                   <div className="mb-6">
-                    <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                    <h2 className="text-sm font-semibold text-foreground/80 mb-2">
                       Composition
                     </h2>
                     <div className="flex flex-wrap gap-2">
@@ -526,7 +529,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
               {/* Decomposition Pathway */}
               {material.decomposes_to && material.decomposes_to.length > 0 && (
                 <div className="mb-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                  <h2 className="text-sm font-semibold text-foreground/80 mb-2">
                     Decomposition Pathway
                   </h2>
                   <div className="flex flex-wrap gap-2">
@@ -549,47 +552,56 @@ export default async function MaterialDetailPage({ params }: PageProps) {
 
               {/* Thermodynamic Properties */}
               <div className="mb-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Thermodynamic Properties
                 </h2>
-                <PropertyTable properties={thermodynamicProps} units={thermodynamicUnits} />
+                <PropertyTable properties={thermodynamicProps} units={thermodynamicUnits} sourceDb={material.source_db} />
               </div>
 
               {/* Mechanical Properties */}
-              {hasValues(mechanicalProps) && (
+              {(hasValues(mechanicalProps) || material.source_db === "aflow") && (
                 <div className="mb-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                  <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Mechanical Properties
                   </h2>
-                  <PropertyTable properties={mechanicalProps} units={mechanicalUnits} />
+                  <PropertyTable properties={mechanicalProps} units={mechanicalUnits} sourceDb={material.source_db} />
                 </div>
               )}
 
               {/* Electronic & Magnetic Properties */}
-              {hasValues(electronicProps) && (
+              {(hasValues(electronicProps) || material.source_db === "aflow") && (
                 <div className="mb-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                  <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Electronic &amp; Magnetic Properties
                   </h2>
-                  <PropertyTable properties={electronicProps} units={electronicUnits} />
+                  <PropertyTable properties={electronicProps} units={electronicUnits} sourceDb={material.source_db} />
                 </div>
               )}
 
               {/* Thermal Properties */}
-              {hasValues(thermalProps) && (
+              {(hasValues(thermalProps) || material.source_db === "aflow") && (
                 <div className="mb-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                  <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Thermal Properties
                   </h2>
-                  <PropertyTable properties={thermalProps} units={thermalUnits} />
+                  <PropertyTable properties={thermalProps} units={thermalUnits} sourceDb={material.source_db} />
                 </div>
+              )}
+
+              {/* Electronic Structure Charts (Band Structure, DOS, Phase Diagram) */}
+              {material.external_id?.startsWith("mp-") && (
+                <ElectronicStructureSection
+                  mpId={material.external_id}
+                  elements={material.elements}
+                  isMpMaterial={true}
+                />
               )}
 
               {/* Oxidation States */}
               {material.oxidation_states &&
                 Object.keys(material.oxidation_states).length > 0 && (
                   <div className="mb-6">
-                    <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                    <h2 className="text-sm font-semibold text-foreground/80 mb-2">
                       Oxidation States
                     </h2>
                     <div className="flex flex-wrap gap-2">
@@ -610,76 +622,9 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
-              {/* Lattice Parameters */}
+              {/* Lattice Parameters with Primitive/Conventional Toggle */}
               {material.lattice_params && (
-                <div className="mb-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
-                    Lattice Parameters
-                    {material.lattice_params.cell_type && (
-                      <span className="ml-2 text-xs font-normal text-gray-400">
-                        ({material.lattice_params.cell_type} cell)
-                      </span>
-                    )}
-                  </h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                    {(
-                      [
-                        ["a", material.lattice_params.a, "\u00C5"],
-                        ["b", material.lattice_params.b, "\u00C5"],
-                        ["c", material.lattice_params.c, "\u00C5"],
-                        ["\u03B1", material.lattice_params.alpha, "\u00B0"],
-                        ["\u03B2", material.lattice_params.beta, "\u00B0"],
-                        ["\u03B3", material.lattice_params.gamma, "\u00B0"],
-                      ] as const
-                    ).map(([label, value, unit]) => (
-                      <div
-                        key={label}
-                        className="text-center p-3 bg-gray-50 rounded-xl border"
-                      >
-                        <div className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
-                          {label}
-                        </div>
-                        <div className="text-sm font-semibold text-gray-800 font-mono">
-                          {formatProp(value)}
-                        </div>
-                        <div className="text-[10px] text-gray-400">{unit}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Show primitive cell if conversion was performed */}
-                  {material.lattice_params.converted && material.lattice_params.primitive && (
-                    <details className="mt-3">
-                      <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
-                        Show primitive cell parameters
-                      </summary>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mt-2">
-                        {(
-                          [
-                            ["a", material.lattice_params.primitive.a, "\u00C5"],
-                            ["b", material.lattice_params.primitive.b, "\u00C5"],
-                            ["c", material.lattice_params.primitive.c, "\u00C5"],
-                            ["\u03B1", material.lattice_params.primitive.alpha, "\u00B0"],
-                            ["\u03B2", material.lattice_params.primitive.beta, "\u00B0"],
-                            ["\u03B3", material.lattice_params.primitive.gamma, "\u00B0"],
-                          ] as const
-                        ).map(([label, value, unit]) => (
-                          <div
-                            key={`prim-${label}`}
-                            className="text-center p-2.5 bg-gray-100/50 rounded-lg border border-dashed"
-                          >
-                            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
-                              {label}
-                            </div>
-                            <div className="text-sm text-gray-600 font-mono">
-                              {formatProp(value)}
-                            </div>
-                            <div className="text-[10px] text-gray-400">{unit}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  )}
-                </div>
+                <LatticeToggle lattice={material.lattice_params} />
               )}
 
               {/* Additional Properties (from properties_json catch-all) */}
@@ -707,7 +652,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                   }
                   return (
                     <div className="mb-6">
-                      <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                      <h2 className="text-sm font-semibold text-foreground/80 mb-2">
                         Additional Properties
                       </h2>
                       <PropertyTable properties={extraProps} />
@@ -718,7 +663,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
               {/* Tags */}
               {material.tags && material.tags.length > 0 && (
                 <div className="mb-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                  <h2 className="text-sm font-semibold text-foreground/80 mb-2">
                     Tags
                   </h2>
                   <div className="flex flex-wrap gap-1.5">
@@ -734,12 +679,12 @@ export default async function MaterialDetailPage({ params }: PageProps) {
               {/* Application Suitability Scores */}
               {appScores.length > 0 && (
                 <div className="mb-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                  <h2 className="text-sm font-semibold text-foreground/80 mb-2">
                     Application Suitability
                   </h2>
                   <div className="space-y-2">
                     {appScores.sort((a, b) => b.score - a.score).map((app) => (
-                      <div key={app.name} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border">
+                      <div key={app.name} className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg border border-border">
                         <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
                           style={{
                             backgroundColor: app.score >= 8 ? "#dcfce7" : app.score >= 6 ? "#fef9c3" : "#fef2f2",
@@ -749,13 +694,13 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                           {app.score}/10
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900">{app.name}</div>
-                          <div className="text-xs text-gray-500 truncate">{app.reason}</div>
+                          <div className="text-sm font-medium text-foreground">{app.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{app.reason}</div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     AI-estimated scores based on computed properties. Not a substitute for experimental validation.
                   </p>
                 </div>
@@ -838,32 +783,32 @@ export default async function MaterialDetailPage({ params }: PageProps) {
 
                 {/* Quick stats below viewer */}
                 <div className="grid grid-cols-3 gap-2 mt-3">
-                  <div className="text-center p-3 bg-white rounded-xl border shadow-sm">
+                  <div className="text-center p-3 bg-card rounded-xl border border-border shadow-sm">
                     <div className="text-[10px] text-gray-400 uppercase tracking-wide">
                       Band Gap
                     </div>
-                    <div className="text-base font-bold text-gray-900">
+                    <div className="text-base font-bold text-foreground">
                       {formatProp(material.band_gap)}
                     </div>
-                    <div className="text-[10px] text-gray-400">eV</div>
+                    <div className="text-[10px] text-muted-foreground">eV</div>
                   </div>
-                  <div className="text-center p-3 bg-white rounded-xl border shadow-sm">
+                  <div className="text-center p-3 bg-card rounded-xl border border-border shadow-sm">
                     <div className="text-[10px] text-gray-400 uppercase tracking-wide">
                       E<sub>form</sub>
                     </div>
-                    <div className="text-base font-bold text-gray-900">
+                    <div className="text-base font-bold text-foreground">
                       {formatProp(material.formation_energy)}
                     </div>
-                    <div className="text-[10px] text-gray-400">eV/atom</div>
+                    <div className="text-[10px] text-muted-foreground">eV/atom</div>
                   </div>
-                  <div className="text-center p-3 bg-white rounded-xl border shadow-sm">
+                  <div className="text-center p-3 bg-card rounded-xl border border-border shadow-sm">
                     <div className="text-[10px] text-gray-400 uppercase tracking-wide">
                       E<sub>hull</sub>
                     </div>
-                    <div className="text-base font-bold text-gray-900">
+                    <div className="text-base font-bold text-foreground">
                       {formatProp(material.energy_above_hull)}
                     </div>
-                    <div className="text-[10px] text-gray-400">eV/atom</div>
+                    <div className="text-[10px] text-muted-foreground">eV/atom</div>
                   </div>
                 </div>
               </div>
@@ -873,9 +818,9 @@ export default async function MaterialDetailPage({ params }: PageProps) {
 
         {/* Related Materials */}
         {relatedMaterials.length > 0 && (
-          <section className="border-t bg-gray-50/50">
+          <section className="border-t border-border bg-muted/30">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">
+              <h2 className="text-xl font-bold text-foreground mb-6">
                 Related Materials
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -894,6 +839,12 @@ export default async function MaterialDetailPage({ params }: PageProps) {
       </main>
 
       <Footer />
+
+      {/* Materials Co-pilot Chat */}
+      <CopilotChat
+        materialId={material.external_id}
+        materialFormula={material.formula}
+      />
     </>
   );
 }

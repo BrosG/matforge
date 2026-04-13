@@ -228,32 +228,69 @@ def _ingest_aflow(db, max_total: int) -> int:
 
 
 def _ingest_jarvis(db, max_total: int) -> int:
-    """Ingest from JARVIS-DFT via jarvis-tools Python package.
+    """Ingest from JARVIS-DFT 3D dataset (~76k materials).
 
-    Uses the official NIST jarvis-tools library to download and
-    iterate over the JARVIS-DFT 3D dataset (~75k materials).
+    Tries multiple sources in order:
+    1. Local file (jarvis_dft_3d.json in repo root or /tmp)
+    2. GCS bucket via google-cloud-storage SDK
+    3. GCS public URL (no SDK needed)
+    4. jarvis-tools Python package (Figshare download)
     """
     from app.services.ingest_service import ingest_batch
+    import json
+    from pathlib import Path
 
-    logger.info("Loading JARVIS-DFT 3D dataset from GCS...")
+    logger.info("Loading JARVIS-DFT 3D dataset...")
     items = None
 
-    # Primary: read from GCS (pre-downloaded, always available)
-    import json
+    # Method 1: Local file (fastest — pre-downloaded)
+    local_paths = [
+        Path("jarvis_dft_3d.json"),
+        Path("/tmp/jarvis_dft_3d.json"),
+        Path(os.environ.get("JARVIS_DATA_PATH", "/data/jarvis_dft_3d.json")),
+    ]
+    for lp in local_paths:
+        if lp.exists():
+            try:
+                items = json.loads(lp.read_bytes().decode("utf-8"))
+                logger.info("Loaded JARVIS from local file %s: %d items", lp, len(items))
+                break
+            except Exception as e:
+                logger.warning("Local file %s failed: %s", lp, e)
 
-    try:
-        from google.cloud import storage as gcs
+    # Method 2: GCS SDK
+    if not items:
+        try:
+            from google.cloud import storage as gcs
+            client = gcs.Client()
+            bucket = client.bucket("matforge-data")
+            blob = bucket.blob("datasets/jarvis_dft_3d.json")
+            raw = blob.download_as_bytes()
+            items = json.loads(raw.decode("utf-8"))
+            logger.info("Loaded JARVIS from GCS SDK: %d items", len(items))
+        except Exception as e:
+            logger.warning("GCS SDK load failed: %s", e)
 
-        client = gcs.Client()
-        bucket = client.bucket("matforge-data")
-        blob = bucket.blob("datasets/jarvis_dft_3d.json")
-        raw = blob.download_as_bytes()
-        items = json.loads(raw.decode("utf-8"))
-        logger.info("Loaded JARVIS from GCS: %d items", len(items))
-    except Exception as e:
-        logger.warning("GCS load failed: %s — trying jarvis-tools", e)
+    # Method 3: GCS public URL (no SDK needed)
+    if not items:
+        try:
+            import urllib.request
+            gcs_url = "https://storage.googleapis.com/matforge-data/datasets/jarvis_dft_3d.json"
+            logger.info("Downloading JARVIS from GCS public URL...")
+            req = urllib.request.Request(gcs_url, headers={"User-Agent": "MatCraft/1.0"})
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                raw = resp.read()
+            items = json.loads(raw.decode("utf-8"))
+            # Cache locally for next time
+            try:
+                Path("/tmp/jarvis_dft_3d.json").write_bytes(raw)
+            except Exception:
+                pass
+            logger.info("Loaded JARVIS from GCS URL: %d items", len(items))
+        except Exception as e:
+            logger.warning("GCS URL download failed: %s", e)
 
-    # Fallback: jarvis-tools package
+    # Method 4: jarvis-tools package (Figshare)
     if not items:
         try:
             from jarvis.db.figshare import data as jarvis_data

@@ -1,9 +1,20 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768 || "ontouchstart" in window);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+}
 
 // ── Internal sub-components (Three.js) ──────────────────────────────────────
 
@@ -11,14 +22,17 @@ function Atom({
   position,
   color,
   radius,
+  isMobile,
 }: {
   position: [number, number, number];
   color: string;
   radius: number;
+  isMobile?: boolean;
 }) {
+  const segments = isMobile ? 16 : 32;
   return (
     <mesh position={position}>
-      <sphereGeometry args={[radius, 32, 32]} />
+      <sphereGeometry args={[radius, segments, segments]} />
       <meshStandardMaterial
         color={color}
         metalness={0.3}
@@ -113,6 +127,8 @@ export default function MaterialStructureScene({
   bonds,
   cellEdges = [],
 }: SceneProps) {
+  const isMobile = useIsMobile();
+
   if (positions.length === 0) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
@@ -121,8 +137,18 @@ export default function MaterialStructureScene({
     );
   }
 
+  // On mobile with many atoms, limit rendering for performance
+  const maxAtoms = isMobile ? 200 : 1000;
+  const displayPositions = positions.slice(0, maxAtoms);
+  const displayColors = colors.slice(0, maxAtoms);
+  const displayRadii = radii.slice(0, maxAtoms);
+  const displayBonds = bonds.filter(([a, b]) => a < maxAtoms && b < maxAtoms);
+
+  // Scale down atom/bond sizes on mobile for better visibility
+  const radiusScale = isMobile ? 0.8 : 1.0;
+
   // Compute reasonable camera distance
-  const maxR = positions.reduce(
+  const maxR = displayPositions.reduce(
     (m, p) => Math.max(m, Math.sqrt(p[0] ** 2 + p[1] ** 2 + p[2] ** 2)),
     1
   );
@@ -132,10 +158,12 @@ export default function MaterialStructureScene({
     <Canvas
       camera={{ position: [camDist * 0.7, camDist * 0.5, camDist * 0.7], fov: 45 }}
       style={{ background: "#111827" }}
+      dpr={isMobile ? [1, 1.5] : [1, 2]}
+      performance={{ min: 0.5 }}
     >
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
-      <directionalLight position={[-5, -5, -8]} intensity={0.3} />
+      {!isMobile && <directionalLight position={[-5, -5, -8]} intensity={0.3} />}
 
       <group>
         {/* Unit cell wireframe */}
@@ -148,13 +176,19 @@ export default function MaterialStructureScene({
         ))}
 
         {/* Atoms */}
-        {positions.map((pos, i) => (
-          <Atom key={`a-${i}`} position={pos} color={colors[i]} radius={radii[i]} />
+        {displayPositions.map((pos, i) => (
+          <Atom
+            key={`a-${i}`}
+            position={pos}
+            color={displayColors[i]}
+            radius={displayRadii[i] * radiusScale}
+            isMobile={isMobile}
+          />
         ))}
 
         {/* Bonds */}
-        {bonds.map(([a, b], i) => (
-          <Bond key={`b-${i}`} start={positions[a]} end={positions[b]} />
+        {displayBonds.map(([a, b], i) => (
+          <Bond key={`b-${i}`} start={displayPositions[a]} end={displayPositions[b]} />
         ))}
       </group>
 
@@ -162,9 +196,18 @@ export default function MaterialStructureScene({
         enablePan={true}
         enableZoom={true}
         autoRotate={true}
-        autoRotateSpeed={2}
+        autoRotateSpeed={isMobile ? 1.5 : 2}
         maxDistance={camDist * 3}
         minDistance={1}
+        // Mobile touch optimizations
+        touches={{
+          ONE: THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY_PAN,
+        }}
+        enableDamping={true}
+        dampingFactor={0.1}
+        rotateSpeed={isMobile ? 0.8 : 1}
+        zoomSpeed={isMobile ? 0.8 : 1}
       />
     </Canvas>
   );

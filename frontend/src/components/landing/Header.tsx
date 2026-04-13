@@ -6,15 +6,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Atom, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggleButton } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { href: "/explore", label: "Explore" },
   { href: "/materials", label: "Materials" },
-  { href: "/domains", label: "Domains" },
+  { href: "/builder", label: "Builder" },
+  { href: "/compare", label: "Compare" },
+  { href: "/explore", label: "Campaigns" },
   { href: "/docs", label: "Docs" },
   { href: "/faq", label: "FAQ" },
-  { href: "/pricing", label: "Pricing" },
 ];
 
 export function Header() {
@@ -32,7 +33,7 @@ export function Header() {
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        "bg-white/90 backdrop-blur-lg border-b",
+        "bg-white/90 dark:bg-gray-950/90 backdrop-blur-lg border-b border-border",
         scrolled ? "shadow-sm" : ""
       )}
     >
@@ -45,7 +46,7 @@ export function Header() {
               <div className="absolute -inset-1 bg-blue-600/20 rounded-full blur-sm -z-10" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              <span className="text-gray-900">Mat</span>
+              <span className="text-foreground">Mat</span>
               <span className="gradient-text">Craft</span>
             </span>
           </Link>
@@ -56,15 +57,16 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100/80 transition-colors"
+                className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          {/* Desktop Auth */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Desktop Auth + Theme */}
+          <div className="hidden md:flex items-center gap-2">
+            <ThemeToggleButton />
             {isAuthenticated ? (
               <Button asChild variant="gradient" size="sm">
                 <Link href="/dashboard">
@@ -87,7 +89,7 @@ export function Header() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            className="md:hidden p-2 rounded-lg hover:bg-muted text-foreground"
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -102,14 +104,14 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white/95 backdrop-blur-lg border-b"
+            className="md:hidden bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-border"
           >
             <div className="px-4 py-4 space-y-2">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                  className="block px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg"
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
