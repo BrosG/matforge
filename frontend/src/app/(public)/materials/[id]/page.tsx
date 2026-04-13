@@ -148,6 +148,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
   };
 
   const electronicProps: Record<string, number | null> = {
+    efermi: material.efermi,
     total_magnetization: material.total_magnetization,
     dielectric_constant: material.dielectric_constant,
     refractive_index: material.refractive_index,
@@ -156,6 +157,7 @@ export default async function MaterialDetailPage({ params }: PageProps) {
   };
 
   const electronicUnits: Record<string, string> = {
+    efermi: "eV",
     total_magnetization: "\u00B5B",
     dielectric_constant: "",
     refractive_index: "",
@@ -176,6 +178,51 @@ export default async function MaterialDetailPage({ params }: PageProps) {
   // Check if sections have any non-null values
   const hasValues = (props: Record<string, number | null>) =>
     Object.values(props).some((v) => v !== null && v !== undefined);
+
+  // Application suitability scores (rule-based)
+  const appScores: { name: string; score: number; reason: string }[] = [];
+
+  if (material.band_gap !== null) {
+    const bg = material.band_gap;
+    // Solar cell
+    if (bg >= 0.8 && bg <= 2.0) {
+      const solarScore = bg >= 1.1 && bg <= 1.5 ? 9 : bg >= 0.8 && bg <= 2.0 ? 6 : 3;
+      appScores.push({ name: "Solar Absorber", score: solarScore, reason: `Band gap ${bg.toFixed(2)} eV ${bg >= 1.1 && bg <= 1.5 ? "(optimal Shockley-Queisser range)" : "(viable range)"}` });
+    }
+    // LED/display
+    if (material.is_gap_direct && bg >= 1.5 && bg <= 3.5) {
+      appScores.push({ name: "LED / Display", score: 7, reason: `Direct gap ${bg.toFixed(2)} eV in visible range` });
+    }
+    // Thermoelectric
+    if (bg > 0 && bg < 1.0 && material.seebeck_coefficient !== null) {
+      appScores.push({ name: "Thermoelectric", score: 7, reason: `Narrow gap + Seebeck data available` });
+    }
+    // Semiconductor
+    if (bg >= 0.5 && bg <= 4.0) {
+      appScores.push({ name: "Semiconductor", score: Math.round(8 - Math.abs(bg - 1.5)), reason: `Band gap ${bg.toFixed(2)} eV` });
+    }
+    // Insulator / dielectric
+    if (bg > 4.0) {
+      appScores.push({ name: "Dielectric / Insulator", score: 8, reason: `Wide gap ${bg.toFixed(2)} eV` });
+    }
+  }
+
+  // Structural / mechanical
+  if (material.bulk_modulus !== null && material.bulk_modulus > 200) {
+    appScores.push({ name: "Hard Coating", score: Math.min(9, Math.round(material.bulk_modulus / 50)), reason: `Bulk modulus ${material.bulk_modulus.toFixed(0)} GPa` });
+  }
+
+  // Battery cathode (contains Li + transition metal + O)
+  const els = new Set(material.elements);
+  if (els.has("Li") && els.has("O") && material.is_stable) {
+    appScores.push({ name: "Battery Cathode", score: 7, reason: "Li-containing oxide, stable" });
+  }
+
+  // Catalyst (transition metal compound, stable)
+  const catalystEls = ["Fe", "Co", "Ni", "Pt", "Pd", "Ru", "Ir", "Rh"];
+  if (catalystEls.some((e) => els.has(e)) && material.is_stable) {
+    appScores.push({ name: "Catalyst Candidate", score: 6, reason: `Contains ${catalystEls.filter(e => els.has(e)).join(", ")}` });
+  }
 
   // Legacy combined view for backward compat
   const properties = { ...thermodynamicProps };
@@ -314,6 +361,11 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                     Fetched {formatDate(material.fetched_at)}
                   </span>
                 )}
+                <span className="inline-flex items-center gap-1">
+                  {material.n_elements != null && (
+                    <span className="text-gray-400">{material.structure_data?.atoms?.length ?? "?"} atoms</span>
+                  )}
+                </span>
               </div>
 
               {/* Elements */}
@@ -622,6 +674,36 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                       </Badge>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Application Suitability Scores */}
+              {appScores.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                    Application Suitability
+                  </h2>
+                  <div className="space-y-2">
+                    {appScores.sort((a, b) => b.score - a.score).map((app) => (
+                      <div key={app.name} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                          style={{
+                            backgroundColor: app.score >= 8 ? "#dcfce7" : app.score >= 6 ? "#fef9c3" : "#fef2f2",
+                            color: app.score >= 8 ? "#166534" : app.score >= 6 ? "#854d0e" : "#991b1b",
+                          }}
+                        >
+                          {app.score}/10
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900">{app.name}</div>
+                          <div className="text-xs text-gray-500 truncate">{app.reason}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    AI-estimated scores based on computed properties. Not a substitute for experimental validation.
+                  </p>
                 </div>
               )}
 
