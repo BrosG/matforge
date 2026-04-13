@@ -124,17 +124,22 @@ def extract_atoms_from_structure(structure: dict) -> list[dict] | None:
         abc = site.get("abc")
 
         if element and xyz and len(xyz) >= 3:
+            # Use abs(0.0) to avoid -0.0 serialization bug in JSON/React
+            def _clean(v: float) -> float:
+                r = round(float(v), 4)
+                return 0.0 if r == 0.0 else r
+
             atom: dict = {
                 "element": element,
-                "x": round(float(xyz[0]), 4),
-                "y": round(float(xyz[1]), 4),
-                "z": round(float(xyz[2]), 4),
-                "cartesian": True,  # Flag: these are already Cartesian Angstrom
+                "x": _clean(xyz[0]),
+                "y": _clean(xyz[1]),
+                "z": _clean(xyz[2]),
+                "cartesian": True,
             }
             if abc and len(abc) >= 3:
-                atom["fx"] = round(float(abc[0]), 4)
-                atom["fy"] = round(float(abc[1]), 4)
-                atom["fz"] = round(float(abc[2]), 4)
+                atom["fx"] = _clean(abc[0])
+                atom["fy"] = _clean(abc[1])
+                atom["fz"] = _clean(abc[2])
             atoms.append(atom)
         elif element and abc and len(abc) >= 3:
             atoms.append({

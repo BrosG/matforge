@@ -46,7 +46,7 @@ export function Header() {
             </div>
             <span className="text-xl font-bold tracking-tight">
               <span className="text-gray-900">Mat</span>
-              <span className="gradient-text">Forge</span>
+              <span className="gradient-text">Craft</span>
             </span>
           </Link>
 

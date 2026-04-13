@@ -19,6 +19,7 @@ import { ElementBadge } from "@/components/materials/ElementBadge";
 import { PropertyTable } from "@/components/materials/PropertyTable";
 import { MaterialStructureViewer } from "@/components/materials/MaterialStructureViewer";
 import { MaterialCard } from "@/components/materials/MaterialCard";
+import { CopyCitation } from "@/components/materials/CopyCitation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import JsonLd from "@/components/seo/JsonLd";
@@ -63,11 +64,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const description = `${material.formula} — ${props.join(", ")}. View crystal structure, electronic properties, and related materials on MatCraft.`;
 
+  // Material-specific keywords for SEO
+  const keywords = [
+    material.formula,
+    ...material.elements,
+    material.crystal_system,
+    material.space_group,
+    material.source_db === "materials_project" ? "Materials Project" : material.source_db,
+    "crystal structure",
+    "DFT",
+    material.band_gap !== null && material.band_gap > 0 ? "semiconductor" : material.band_gap === 0 ? "metal" : null,
+    material.is_stable ? "stable" : "unstable",
+    "band gap",
+    "formation energy",
+    "materials science",
+  ].filter(Boolean).join(", ");
+
   return {
-    title: material.formula,
+    title: `${material.formula} — ${material.crystal_system || ""} ${material.space_group || ""} | MatCraft`,
     description,
+    keywords,
     openGraph: {
-      title: `${material.formula} | MatCraft Materials`,
+      title: `${material.formula} | MatCraft Materials Database`,
       description,
       url: `${SITE_URL}/materials/${id}`,
       siteName: "MatCraft",
@@ -260,6 +278,15 @@ export default async function MaterialDetailPage({ params }: PageProps) {
           molecularFormula: material.formula,
           identifier: material.external_id,
           url: `${SITE_URL}/materials/${id}`,
+          ...(material.band_gap !== null && {
+            additionalProperty: [
+              { "@type": "PropertyValue", name: "Band Gap", value: material.band_gap, unitCode: "eV" },
+              ...(material.formation_energy !== null ? [{ "@type": "PropertyValue", name: "Formation Energy", value: material.formation_energy, unitCode: "eV/atom" }] : []),
+              ...(material.density !== null ? [{ "@type": "PropertyValue", name: "Density", value: material.density, unitCode: "g/cm3" }] : []),
+              ...(material.crystal_system ? [{ "@type": "PropertyValue", name: "Crystal System", value: material.crystal_system }] : []),
+              ...(material.space_group ? [{ "@type": "PropertyValue", name: "Space Group", value: material.space_group }] : []),
+            ],
+          }),
         }}
       />
       <BreadcrumbJsonLd
@@ -757,14 +784,16 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                   </a>
                 )}
                 {material.source_db === "materials_project" && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    Cite: A. Jain et al., APL Materials 1, 011002 (2013). DOI: 10.1063/1.4812323
-                  </p>
+                  <CopyCitation
+                    text="Cite: A. Jain et al., APL Materials 1, 011002 (2013). DOI: 10.1063/1.4812323"
+                    citation={`A. Jain et al., "Commentary: The Materials Project: A materials genome approach to accelerating materials innovation." APL Materials 1, 011002 (2013). DOI: 10.1063/1.4812323. Material: ${material.formula} (${material.external_id}). Data accessed via MatCraft (matcraft.ai).`}
+                  />
                 )}
                 {material.source_db === "aflow" && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    Cite: S. Curtarolo et al., Comp. Mat. Sci. 58, 218 (2012). DOI: 10.1016/j.commatsci.2012.02.005
-                  </p>
+                  <CopyCitation
+                    text="Cite: S. Curtarolo et al., Comp. Mat. Sci. 58, 218 (2012). DOI: 10.1016/j.commatsci.2012.02.005"
+                    citation={`S. Curtarolo et al., "AFLOW: An automatic framework for high-throughput materials discovery." Computational Materials Science 58, 218-226 (2012). DOI: 10.1016/j.commatsci.2012.02.005. Material: ${material.formula} (${material.external_id}). Data accessed via MatCraft (matcraft.ai).`}
+                  />
                 )}
                 {material.database_ids && Object.keys(material.database_ids).length > 0 && (
                   <p className="text-xs text-blue-600 mt-1">

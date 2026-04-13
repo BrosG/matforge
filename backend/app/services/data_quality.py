@@ -54,8 +54,7 @@ def _normalize_magnetization(mat: IndexedMaterial) -> None:
     # Sub-threshold = numerical noise, not real magnetism
     if mag < MAGNETIZATION_NOISE_THRESHOLD:
         mat.total_magnetization = 0.0
-        if not mat.magnetic_ordering or mat.magnetic_ordering == "non-magnetic":
-            mat.magnetic_ordering = "non-magnetic"
+        mat.magnetic_ordering = "non-magnetic"
         return
 
     # Classify if not already set
