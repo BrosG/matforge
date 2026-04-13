@@ -5,6 +5,11 @@ import { Providers } from "@/components/core/Providers";
 import { AnalyticsProvider } from "@/components/core/AnalyticsProvider";
 import { VersionGuard } from "@/components/core/VersionGuard";
 
+// Force ALL pages to render dynamically on every request.
+// Without this, Next.js sets s-maxage=31536000 on SSG pages, causing
+// Google Frontend CDN to cache HTML for 1 year after each deploy.
+export const dynamic = "force-dynamic";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",

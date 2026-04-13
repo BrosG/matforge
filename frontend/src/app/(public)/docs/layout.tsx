@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 
+// Force dynamic rendering — prevents Next.js from setting s-maxage=31536000
+// which causes Google Frontend CDN to cache pages for 1 year
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Documentation",
   description:
