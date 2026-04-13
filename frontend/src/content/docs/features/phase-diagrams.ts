@@ -56,7 +56,7 @@ MatCraft queries the Materials Project for all known phases in the system and co
 ### API Access
 
 \`\`\`bash
-curl "https://matcraft.io/api/electronic/phase_diagram?system=Li-Fe-O"
+curl "https://api.matcraft.ai/api/v1/electronic/phase_diagram?system=Li-Fe-O"
 \`\`\`
 
 Returns the convex hull data including all phases, their formation energies, hull distances, and the vertices of the stable hull.

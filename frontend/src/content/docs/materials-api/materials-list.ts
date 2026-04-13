@@ -45,7 +45,7 @@ GET /api/materials
 ### Example Request
 
 \`\`\`bash
-curl "https://matcraft.io/api/materials?elements=Li,O&band_gap_min=1.0&band_gap_max=3.0&e_above_hull_max=0.05&sort=band_gap&order=asc&per_page=5"
+curl "https://api.matcraft.ai/api/v1/materials?elements=Li,O&band_gap_min=1.0&band_gap_max=3.0&e_above_hull_max=0.05&sort=band_gap&order=asc&per_page=5"
 \`\`\`
 
 ### Example Response

@@ -37,7 +37,7 @@ GET /api/electronic/xrd/{mp_id}
 ### Example Request
 
 \`\`\`bash
-curl "https://matcraft.io/api/electronic/xrd/mp-149?radiation=CuKa&two_theta_min=10&two_theta_max=80"
+curl "https://api.matcraft.ai/api/v1/electronic/xrd/mp-149?radiation=CuKa&two_theta_min=10&two_theta_max=80"
 \`\`\`
 
 ### Example Response

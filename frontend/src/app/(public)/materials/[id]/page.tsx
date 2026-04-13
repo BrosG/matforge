@@ -740,6 +740,12 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                     citation={`S. Curtarolo et al., "AFLOW: An automatic framework for high-throughput materials discovery." Computational Materials Science 58, 218-226 (2012). DOI: 10.1016/j.commatsci.2012.02.005. Material: ${material.formula} (${material.external_id}). Data accessed via MatCraft (matcraft.ai).`}
                   />
                 )}
+                {material.source_db === "jarvis" && (
+                  <CopyCitation
+                    text="Cite: K. Choudhary et al., npj Comput. Mater. 6, 173 (2020). DOI: 10.1038/s41524-020-00440-1"
+                    citation={`K. Choudhary et al., "The Joint Automated Repository for Various Integrated Simulations (JARVIS) for Data-Driven Materials Design." npj Computational Materials 6, 173 (2020). DOI: 10.1038/s41524-020-00440-1. Material: ${material.formula} (${material.external_id}). Data accessed via MatCraft (matcraft.ai).`}
+                  />
+                )}
                 {material.database_ids && Object.keys(material.database_ids).length > 0 && (
                   <p className="text-xs text-blue-600 mt-1">
                     Cross-references: {Object.entries(material.database_ids).map(([db, ids]) =>

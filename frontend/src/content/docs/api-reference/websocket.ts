@@ -17,7 +17,7 @@ The WebSocket API provides real-time progress updates for running campaigns. Ins
 ### Connecting
 
 \`\`\`
-wss://api.matcraft.io/v1/ws/campaigns/{campaign_id}?token={api_key}
+wss://api.matcraft.ai/api/v1/ws/campaigns/{campaign_id}?token={api_key}
 \`\`\`
 
 For self-hosted deployments:
@@ -30,7 +30,7 @@ ws://localhost:8000/v1/ws/campaigns/{campaign_id}?token={api_key}
 
 \`\`\`javascript
 const ws = new WebSocket(
-  "wss://api.matcraft.io/v1/ws/campaigns/camp_abc123?token=mc_live_abc123"
+  "wss://api.matcraft.ai/api/v1/ws/campaigns/camp_abc123?token=mc_live_abc123"
 );
 
 ws.onopen = () => {
@@ -67,7 +67,7 @@ import websockets
 import json
 
 async def monitor_campaign(campaign_id, api_key):
-    uri = f"wss://api.matcraft.io/v1/ws/campaigns/{campaign_id}?token={api_key}"
+    uri = f"wss://api.matcraft.ai/api/v1/ws/campaigns/{campaign_id}?token={api_key}"
 
     async with websockets.connect(uri) as ws:
         async for message in ws:

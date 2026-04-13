@@ -29,7 +29,7 @@ GET /api/electronic/bandstructure/{mp_id}
 ### Example Request
 
 \`\`\`bash
-curl "https://matcraft.io/api/electronic/bandstructure/mp-149"
+curl "https://api.matcraft.ai/api/v1/electronic/bandstructure/mp-149"
 \`\`\`
 
 ### Example Response

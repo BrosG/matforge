@@ -177,7 +177,7 @@ def get_xrd_pattern(
         raise
     except Exception as e:
         logger.error("XRD simulation failed for %s: %s", mp_id, e)
-        raise HTTPException(status_code=500, detail=f"XRD simulation failed: {e}")
+        raise HTTPException(status_code=500, detail="XRD simulation failed. Please try again.")
 
 
 @router.get("/phase_diagram")
@@ -234,7 +234,7 @@ def get_phase_diagram(
         raise
     except Exception as e:
         logger.error("Phase diagram failed for %s: %s", elements, e)
-        raise HTTPException(status_code=500, detail=f"Phase diagram computation failed: {e}")
+        raise HTTPException(status_code=500, detail="Phase diagram computation failed. Please try again.")
 
 
 def _bandstructure_metadata(mp_id: str) -> dict:

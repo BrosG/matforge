@@ -57,7 +57,7 @@ Download the band structure as:
 ### API Access
 
 \`\`\`bash
-curl "https://matcraft.io/api/electronic/bandstructure/mp-149"
+curl "https://api.matcraft.ai/api/v1/electronic/bandstructure/mp-149"
 \`\`\`
 
 Returns the full band structure data including k-point coordinates, energy eigenvalues per band, and metadata about the calculation.

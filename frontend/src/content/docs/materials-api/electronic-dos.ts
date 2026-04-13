@@ -29,7 +29,7 @@ GET /api/electronic/dos/{mp_id}
 ### Example Request
 
 \`\`\`bash
-curl "https://matcraft.io/api/electronic/dos/mp-149"
+curl "https://api.matcraft.ai/api/v1/electronic/dos/mp-149"
 \`\`\`
 
 ### Example Response
@@ -74,7 +74,7 @@ curl "https://matcraft.io/api/electronic/dos/mp-149"
 import requests
 import matplotlib.pyplot as plt
 
-resp = requests.get("https://matcraft.io/api/electronic/dos/mp-149")
+resp = requests.get("https://api.matcraft.ai/api/v1/electronic/dos/mp-149")
 data = resp.json()["data"]
 
 energies = [e - data["efermi"] for e in data["energies"]]

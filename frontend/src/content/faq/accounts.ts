@@ -83,7 +83,7 @@ No password is needed -- authentication is handled entirely by the OAuth provide
 ## Using Your Token
 
 \`\`\`bash
-curl -H "Authorization: Bearer YOUR_TOKEN" "https://matcraft.io/api/materials"
+curl -H "Authorization: Bearer YOUR_TOKEN" "https://api.matcraft.ai/api/v1/materials"
 \`\`\`
 
 ## Managing Tokens
@@ -205,7 +205,7 @@ You can export all your account data from Settings > Account > Export Data. This
 
 ## GDPR Compliance
 
-For EU users, we comply with GDPR requirements including right to access, right to erasure, and data portability. Contact privacy@matcraft.io for data requests.`,
+For EU users, we comply with GDPR requirements including right to access, right to erasure, and data portability. Contact privacy@matcraft.ai for data requests.`,
     category: "accounts",
     order: 6,
     relatedSlugs: ["delete-account", "do-i-need-account"],
@@ -223,7 +223,7 @@ For EU users, we comply with GDPR requirements including right to access, right 
 
 ## Setup
 
-1. Contact sales@matcraft.io to enable enterprise features
+1. Contact sales@matcraft.ai to enable enterprise features
 2. Provide your IdP metadata URL or SAML certificate
 3. We configure the SSO connection on our end
 4. Your team can sign in using your organization's identity provider

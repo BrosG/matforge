@@ -20,7 +20,7 @@ Most read-only endpoints are accessible without authentication. Guest requests a
 
 \`\`\`bash
 # No auth header needed for basic queries
-curl "https://matcraft.io/api/materials?formula=Si"
+curl "https://api.matcraft.ai/api/v1/materials?formula=Si"
 \`\`\`
 
 ### JWT Bearer Tokens
@@ -28,7 +28,7 @@ curl "https://matcraft.io/api/materials?formula=Si"
 For higher rate limits and full API access, authenticate with a JWT token:
 
 \`\`\`bash
-curl "https://matcraft.io/api/materials" \\
+curl "https://api.matcraft.ai/api/v1/materials" \\
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 \`\`\`
 
@@ -46,7 +46,7 @@ Tokens expire after 30 days by default. You can set a custom expiration when gen
 If your token is about to expire, exchange it for a new one:
 
 \`\`\`bash
-curl -X POST "https://matcraft.io/api/auth/refresh" \\
+curl -X POST "https://api.matcraft.ai/api/v1/auth/refresh" \\
   -H "Authorization: Bearer YOUR_CURRENT_TOKEN"
 \`\`\`
 
@@ -67,12 +67,12 @@ MatCraft supports sign-in via Google, GitHub, and ORCID. The OAuth flow is handl
 
 #### OAuth Flow (for custom integrations)
 
-1. Redirect users to \`https://matcraft.io/auth/{provider}\` where provider is \`google\`, \`github\`, or \`orcid\`
+1. Redirect users to \`https://matcraft.ai/auth/{provider}\` where provider is \`google\`, \`github\`, or \`orcid\`
 2. After authentication, the user is redirected to your callback URL with a \`code\` parameter
 3. Exchange the code for a JWT token:
 
 \`\`\`bash
-curl -X POST "https://matcraft.io/api/auth/token" \\
+curl -X POST "https://api.matcraft.ai/api/v1/auth/token" \\
   -H "Content-Type: application/json" \\
   -d '{"provider": "github", "code": "abc123", "redirect_uri": "https://yourapp.com/callback"}'
 \`\`\`

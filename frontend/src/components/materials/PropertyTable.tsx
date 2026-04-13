@@ -55,7 +55,7 @@ const PROPERTY_INFO: Record<string, { label: string; tooltip: string; range?: st
   },
   total_magnetization: {
     label: "Magnetization",
-    tooltip: "Net magnetic moment per unit cell. 0 = non-magnetic. >0.5 \u00B5B typically indicates magnetic ordering (ferro/antiferro).",
+    tooltip: "Net magnetic moment per unit cell. 0 = non-magnetic. >0.5 \u00B5B typically indicates ferromagnetic or ferrimagnetic ordering. Antiferromagnets have near-zero net moment.",
     range: "0\u201310 \u00B5B",
   },
   dielectric_constant: {

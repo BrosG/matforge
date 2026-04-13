@@ -32,9 +32,7 @@ class RegisterRequest(BaseModel):
 
 
 class OAuthGoogleRequest(BaseModel):
-    email: str
-    name: str | None = None
-    google_id: str
+    id_token: str  # Google ID token — verified server-side
 
 
 class TokenResponse(BaseModel):
@@ -111,23 +109,50 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/oauth/google", response_model=TokenResponse)
 def oauth_google(body: OAuthGoogleRequest, db: Session = Depends(get_db)):
-    """Handle Google OAuth sign-in."""
+    """Handle Google OAuth sign-in with server-side ID token verification."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Verify the Google ID token server-side
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+        from app.core.config import settings
+
+        idinfo = google_id_token.verify_oauth2_token(
+            body.id_token,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID,
+        )
+    except ImportError:
+        logger.error("google-auth package not installed — cannot verify Google OAuth tokens")
+        raise HTTPException(status_code=501, detail="Google OAuth not configured on this server")
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid Google ID token")
+
+    google_id = idinfo["sub"]
+    email = idinfo.get("email", "")
+    name = idinfo.get("name", "")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account has no email")
+
     user = (
         db.query(User)
-        .filter(User.oauth_provider == "google", User.oauth_id == body.google_id)
+        .filter(User.oauth_provider == "google", User.oauth_id == google_id)
         .first()
     )
     if not user:
-        user = db.query(User).filter(User.email == body.email).first()
+        user = db.query(User).filter(User.email == email).first()
         if user:
             user.oauth_provider = "google"
-            user.oauth_id = body.google_id
+            user.oauth_id = google_id
         else:
             user = User(
-                email=body.email,
-                full_name=body.name,
+                email=email,
+                full_name=name,
                 oauth_provider="google",
-                oauth_id=body.google_id,
+                oauth_id=google_id,
             )
             db.add(user)
     db.commit()

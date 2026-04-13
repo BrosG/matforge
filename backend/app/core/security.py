@@ -34,7 +34,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(user_id: str, expires_delta: Optional[timedelta] = None) -> str:
     expire = datetime.now(timezone.utc) + (
-        expires_delta or timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
+        expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     payload = {
         "sub": user_id,

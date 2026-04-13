@@ -45,7 +45,7 @@ POST /api/builder/surface
 ### Example Request
 
 \`\`\`bash
-curl -X POST "https://matcraft.io/api/builder/surface" \\
+curl -X POST "https://api.matcraft.ai/api/v1/builder/surface" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -d '{"material_id": "mp-149", "h": 1, "k": 1, "l": 0, "layers": 5, "vacuum": 15.0}'

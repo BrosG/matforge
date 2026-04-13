@@ -37,7 +37,7 @@ POST /api/builder/nanoparticle
 ### Example Request
 
 \`\`\`bash
-curl -X POST "https://matcraft.io/api/builder/nanoparticle" \\
+curl -X POST "https://api.matcraft.ai/api/v1/builder/nanoparticle" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -d '{"material_id": "mp-149", "radius": 10.0}'

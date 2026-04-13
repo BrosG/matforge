@@ -31,13 +31,13 @@ GET /api/materials/{material_id}/export/{format}
 
 \`\`\`bash
 # Download CIF file
-curl -O "https://matcraft.io/api/materials/mp-149/export/cif"
+curl -O "https://api.matcraft.ai/api/v1/materials/mp-149/export/cif"
 
 # Download POSCAR for VASP
-curl -O "https://matcraft.io/api/materials/mp-149/export/poscar"
+curl -O "https://api.matcraft.ai/api/v1/materials/mp-149/export/poscar"
 
 # Download XYZ coordinates
-curl -O "https://matcraft.io/api/materials/mp-149/export/xyz"
+curl -O "https://api.matcraft.ai/api/v1/materials/mp-149/export/xyz"
 \`\`\`
 
 ### Response

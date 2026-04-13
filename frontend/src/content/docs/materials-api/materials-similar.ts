@@ -44,7 +44,7 @@ GET /api/materials/{material_id}/similar
 ### Example Request
 
 \`\`\`bash
-curl "https://matcraft.io/api/materials/mp-149/similar?method=structure&limit=5"
+curl "https://api.matcraft.ai/api/v1/materials/mp-149/similar?method=structure&limit=5"
 \`\`\`
 
 ### Example Response

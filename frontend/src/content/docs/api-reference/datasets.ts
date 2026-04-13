@@ -23,7 +23,7 @@ POST /v1/datasets
 Upload a CSV file with parameter columns and objective columns:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/datasets \\
+curl -X POST https://api.matcraft.ai/api/v1/datasets \\
   -H "Authorization: Bearer mc_live_abc123" \\
   -F "file=@historical_data.csv" \\
   -F "name=lab-experiments-2025" \\
@@ -62,7 +62,7 @@ GET /v1/datasets
 \`\`\`
 
 \`\`\`bash
-curl https://api.matcraft.io/v1/datasets \\
+curl https://api.matcraft.ai/api/v1/datasets \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -95,7 +95,7 @@ Permanently removes the dataset. Campaigns that were warm-started with this data
 Use a dataset to warm-start a new campaign by referencing it at creation time:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/campaigns \\
+curl -X POST https://api.matcraft.ai/api/v1/campaigns \\
   -H "Authorization: Bearer mc_live_abc123" \\
   -H "Content-Type: application/json" \\
   -d '{

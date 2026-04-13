@@ -45,7 +45,7 @@ For \`color\` only: \`source\`, \`crystal_system\`
 ### Example Request
 
 \`\`\`bash
-curl "https://matcraft.io/api/materials/scatter?x=band_gap&y=formation_energy&color=source&e_above_hull_max=0.1&limit=2000"
+curl "https://api.matcraft.ai/api/v1/materials/scatter?x=band_gap&y=formation_energy&color=source&e_above_hull_max=0.1&limit=2000"
 \`\`\`
 
 ### Example Response
@@ -86,7 +86,7 @@ The response uses a columnar format for efficiency -- arrays of equal length for
 import requests
 import matplotlib.pyplot as plt
 
-resp = requests.get("https://matcraft.io/api/materials/scatter", params={
+resp = requests.get("https://api.matcraft.ai/api/v1/materials/scatter", params={
     "x": "band_gap", "y": "density", "limit": 3000
 })
 data = resp.json()["data"]

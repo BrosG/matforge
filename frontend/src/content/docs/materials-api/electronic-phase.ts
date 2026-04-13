@@ -29,7 +29,7 @@ GET /api/electronic/phase_diagram
 ### Example Request
 
 \`\`\`bash
-curl "https://matcraft.io/api/electronic/phase_diagram?system=Li-Fe-O"
+curl "https://api.matcraft.ai/api/v1/electronic/phase_diagram?system=Li-Fe-O"
 \`\`\`
 
 ### Example Response

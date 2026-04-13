@@ -54,7 +54,7 @@ Bookmark any search by copying the URL -- all filter state is encoded in query p
 All search functionality is available via the REST API:
 
 \`\`\`bash
-curl "https://matcraft.io/api/materials?band_gap_min=1.0&band_gap_max=2.0&sort=band_gap&limit=20"
+curl "https://api.matcraft.ai/api/v1/materials?band_gap_min=1.0&band_gap_max=2.0&sort=band_gap&limit=20"
 \`\`\`
 
 See the [Materials API](/docs/materials-api/materials-list) for complete parameter documentation.

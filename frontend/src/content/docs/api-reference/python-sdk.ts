@@ -48,7 +48,7 @@ for solution in results.pareto_front:
 \`\`\`python
 client = MatCraftClient(
     api_key="mc_live_sk_...",          # API key
-    base_url="https://api.matcraft.io", # API base URL
+    base_url="https://api.matcraft.ai/api/v1", # API base URL
     timeout=30,                         # Request timeout in seconds
     max_retries=3,                      # Auto-retry on transient errors
 )
@@ -58,7 +58,7 @@ Or use environment variables:
 
 \`\`\`bash
 export MATERIA_API_KEY="mc_live_sk_..."
-export MATERIA_API_URL="https://api.matcraft.io"
+export MATERIA_API_URL="https://api.matcraft.ai/api/v1"
 \`\`\`
 
 \`\`\`python

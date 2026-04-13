@@ -61,12 +61,12 @@ All builder tools are available via REST API:
 
 \`\`\`bash
 # Build a 2x2x2 supercell
-curl -X POST "https://matcraft.io/api/builder/supercell" \\
+curl -X POST "https://api.matcraft.ai/api/v1/builder/supercell" \\
   -H "Content-Type: application/json" \\
   -d '{"material_id": "mp-149", "nx": 2, "ny": 2, "nz": 2}'
 
 # Generate a (1,1,0) surface slab
-curl -X POST "https://matcraft.io/api/builder/surface" \\
+curl -X POST "https://api.matcraft.ai/api/v1/builder/surface" \\
   -H "Content-Type: application/json" \\
   -d '{"material_id": "mp-149", "h": 1, "k": 1, "l": 0, "layers": 5}'
 \`\`\`

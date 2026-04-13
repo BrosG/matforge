@@ -56,7 +56,7 @@ Download the simulated pattern data and overlay it with your experimental XRD da
 ### API Access
 
 \`\`\`bash
-curl "https://matcraft.io/api/electronic/xrd/mp-149?radiation=CuKa&two_theta_range=10,90"
+curl "https://api.matcraft.ai/api/v1/electronic/xrd/mp-149?radiation=CuKa&two_theta_range=10,90"
 \`\`\`
 
 Returns arrays of two-theta values, intensities, and annotated peak positions with Miller indices.

@@ -41,7 +41,7 @@ POST /api/builder/supercell
 ### Example Request
 
 \`\`\`bash
-curl -X POST "https://matcraft.io/api/builder/supercell" \\
+curl -X POST "https://api.matcraft.ai/api/v1/builder/supercell" \\
   -H "Content-Type: application/json" \\
   -d '{"material_id": "mp-149", "nx": 2, "ny": 2, "nz": 2}'
 \`\`\`

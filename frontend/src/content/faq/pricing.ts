@@ -39,7 +39,7 @@ When you approach your limits, the dashboard shows a usage indicator. You can up
 
 ## Self-Hosted
 
-If you self-host the open-source core, there are no limits on campaigns, evaluations, or team size. The free tier limits only apply to the managed cloud service at matcraft.io.
+If you self-host the open-source core, there are no limits on campaigns, evaluations, or team size. The free tier limits only apply to the managed cloud service at matcraft.ai.
 
 ## Academic Users
 
@@ -93,7 +93,7 @@ The biggest practical differences are:
 
 ## Volume Discounts
 
-For teams larger than 5 seats, annual billing includes a 15% volume discount. Contact sales@matcraft.io for custom quotes.
+For teams larger than 5 seats, annual billing includes a 15% volume discount. Contact sales@matcraft.ai for custom quotes.
 
 ## Trial
 
@@ -106,7 +106,7 @@ New users can start a 14-day free trial of Pro without entering payment informat
   {
     slug: "enterprise-features",
     question: "What does the Enterprise plan include?",
-    answer: `The Enterprise plan is designed for organizations that need advanced security, compliance, dedicated infrastructure, and custom integrations. Pricing is based on your organization's needs -- contact sales@matcraft.io for a quote.
+    answer: `The Enterprise plan is designed for organizations that need advanced security, compliance, dedicated infrastructure, and custom integrations. Pricing is based on your organization's needs -- contact sales@matcraft.ai for a quote.
 
 ## Enterprise Features
 
@@ -147,7 +147,7 @@ New users can start a 14-day free trial of Pro without entering payment informat
 
 ## Getting Started
 
-Contact sales@matcraft.io or fill out the form at matcraft.io/enterprise. Most enterprise deployments are live within 2-4 weeks.`,
+Contact sales@matcraft.ai or fill out the form at matcraft.ai/enterprise. Most enterprise deployments are live within 2-4 weeks.`,
     category: "pricing",
     order: 2,
     relatedSlugs: ["what-is-pro-plan", "data-privacy-policy"],
@@ -309,7 +309,7 @@ For annual plans:
 
 ## Enterprise Cancellation
 
-Enterprise plans have a 30-day notice period specified in your contract. Contact your account manager or email sales@matcraft.io to initiate cancellation. We will work with you on data export and transition planning.
+Enterprise plans have a 30-day notice period specified in your contract. Contact your account manager or email sales@matcraft.ai to initiate cancellation. We will work with you on data export and transition planning.
 
 ## Exporting Before Cancellation
 
@@ -438,7 +438,7 @@ The Python SDK automatically handles rate limiting with exponential backoff:
 from materia import Client
 
 client = Client(
-    base_url="https://api.matcraft.io",
+    base_url="https://api.matcraft.ai/api/v1",
     token="mc_live_abc123...",
     max_retries=3,           # Retry up to 3 times on 429
     retry_backoff_factor=2,  # Wait 2, 4, 8 seconds between retries
@@ -461,7 +461,7 @@ Some endpoints have additional limits to prevent abuse:
 For bulk operations, use the batch API endpoint which counts as a single request regardless of the number of items:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/batch \\
+curl -X POST https://api.matcraft.ai/api/v1/batch \\
   -H "Authorization: Bearer $MATCRAFT_TOKEN" \\
   -d '{
     "requests": [

@@ -79,10 +79,9 @@ class JarvisConnector(DatasetConnector):
                 "kpoint_length_unit": "kpoint_density",
                 "density": "density",
                 "total_energy": "total_energy",
-                "dfpt_piezo_max_dielectric": "dielectric_constant",
-                "max_efg": "effective_mass_electron",
-                "spillage": "refractive_index",
+                "dfpt_meV_dielectric_total": "dielectric_constant",
                 "magmom_oszicar": "total_magnetization",
+                "n-Seebeck": "seebeck_coefficient",
             }
             for src_key, dst_key in prop_keys.items():
                 val = item.get(src_key)

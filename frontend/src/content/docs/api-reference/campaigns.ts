@@ -23,7 +23,7 @@ POST /v1/campaigns
 Create a new campaign from an MDL definition:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/campaigns \\
+curl -X POST https://api.matcraft.ai/api/v1/campaigns \\
   -H "Authorization: Bearer mc_live_abc123" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -68,7 +68,7 @@ curl -X POST https://api.matcraft.io/v1/campaigns \\
 You can also upload an MDL file directly:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/campaigns \\
+curl -X POST https://api.matcraft.ai/api/v1/campaigns \\
   -H "Authorization: Bearer mc_live_abc123" \\
   -F "mdl_file=@material.yaml"
 \`\`\`
@@ -90,7 +90,7 @@ Query parameters:
 | \`per_page\` | integer | Items per page (default: 20, max: 100) |
 
 \`\`\`bash
-curl https://api.matcraft.io/v1/campaigns?status=running&sort=-created_at \\
+curl https://api.matcraft.ai/api/v1/campaigns?status=running&sort=-created_at \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -101,7 +101,7 @@ GET /v1/campaigns/{campaign_id}
 \`\`\`
 
 \`\`\`bash
-curl https://api.matcraft.io/v1/campaigns/camp_abc123 \\
+curl https://api.matcraft.ai/api/v1/campaigns/camp_abc123 \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -139,7 +139,7 @@ POST /v1/campaigns/{campaign_id}/start
 Starts the optimization loop. Returns \`202 Accepted\` because the campaign runs asynchronously:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/campaigns/camp_abc123/start \\
+curl -X POST https://api.matcraft.ai/api/v1/campaigns/camp_abc123/start \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -165,7 +165,7 @@ Query parameters:
 | \`format\` | string | Response format: \`json\` (default), \`csv\` |
 
 \`\`\`bash
-curl "https://api.matcraft.io/v1/campaigns/camp_abc123/results?pareto_only=true" \\
+curl "https://api.matcraft.ai/api/v1/campaigns/camp_abc123/results?pareto_only=true" \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 

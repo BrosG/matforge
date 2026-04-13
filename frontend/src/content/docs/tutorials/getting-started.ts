@@ -16,7 +16,7 @@ Welcome to MatCraft, an open materials science platform with access to over 205,
 
 ### Step 1: Open the Dashboard
 
-Navigate to [matcraft.io](https://matcraft.io) in your browser. No account is required for basic browsing. The landing page shows the main dashboard with:
+Navigate to [matcraft.io](https://matcraft.ai) in your browser. No account is required for basic browsing. The landing page shows the main dashboard with:
 
 - **Search bar**: The primary way to find materials
 - **Quick stats**: Total materials count, data sources, and recent additions

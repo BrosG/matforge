@@ -29,7 +29,7 @@ export default function NotFound() {
             <Atom className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold">
               <span className="text-gray-900">Mat</span>
-              <span className="gradient-text">Forge</span>
+              <span className="gradient-text">Craft</span>
             </span>
           </Link>
 

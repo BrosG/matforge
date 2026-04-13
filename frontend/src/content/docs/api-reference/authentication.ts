@@ -32,7 +32,7 @@ Pass the API key in the \`Authorization\` header using Bearer token format:
 
 \`\`\`bash
 curl -H "Authorization: Bearer mc_live_sk_a1b2c3..." \\
-  https://api.matcraft.io/v1/campaigns
+  https://api.matcraft.ai/api/v1/campaigns
 \`\`\`
 
 With the Python SDK:
@@ -73,7 +73,7 @@ API keys can be scoped to limit their permissions:
 Create a scoped key via the dashboard or API:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/api-keys \\
+curl -X POST https://api.matcraft.ai/api/v1/api-keys \\
   -H "Authorization: Bearer mc_live_sk_admin_key..." \\
   -d '{
     "name": "CI Pipeline Key",
@@ -93,7 +93,7 @@ For security, rotate API keys periodically:
 
 \`\`\`bash
 # Revoke an old key
-curl -X DELETE https://api.matcraft.io/v1/api-keys/key_abc123 \\
+curl -X DELETE https://api.matcraft.ai/api/v1/api-keys/key_abc123 \\
   -H "Authorization: Bearer mc_live_sk_admin_key..."
 \`\`\`
 
@@ -112,7 +112,7 @@ curl -X DELETE https://api.matcraft.io/v1/api-keys/key_abc123 \\
 6. **IP allowlisting** (Enterprise). Restrict API key usage to specific IP addresses or CIDR ranges:
 
 \`\`\`bash
-curl -X PATCH https://api.matcraft.io/v1/api-keys/key_abc123 \\
+curl -X PATCH https://api.matcraft.ai/api/v1/api-keys/key_abc123 \\
   -H "Authorization: Bearer mc_live_sk_admin_key..." \\
   -d '{"allowed_ips": ["203.0.113.0/24", "198.51.100.42"]}'
 \`\`\`

@@ -225,7 +225,7 @@ You can also stream events in the Python SDK:
 \`\`\`python
 from materia import Client
 
-client = Client(base_url="https://api.matcraft.io", token="mc_live_...")
+client = Client(base_url="https://api.matcraft.ai/api/v1", token="mc_live_...")
 
 for event in client.campaigns.stream("camp-123"):
     if event.type == "iteration_completed":

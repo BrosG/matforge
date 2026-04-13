@@ -64,7 +64,7 @@ Export the current plot as:
 ### API Endpoint
 
 \`\`\`bash
-curl "https://matcraft.io/api/materials/scatter?x=band_gap&y=formation_energy&color=source&limit=5000"
+curl "https://api.matcraft.ai/api/v1/materials/scatter?x=band_gap&y=formation_energy&color=source&limit=5000"
 \`\`\`
 
 The API returns JSON with arrays for x, y, color, formula, and material_id fields suitable for client-side rendering.

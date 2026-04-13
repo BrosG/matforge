@@ -39,7 +39,7 @@ POST /api/builder/substitute
 ### Example Request
 
 \`\`\`bash
-curl -X POST "https://matcraft.io/api/builder/substitute" \\
+curl -X POST "https://api.matcraft.ai/api/v1/builder/substitute" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -d '{"material_id": "mp-149", "source_element": "Si", "target_element": "Ge"}'

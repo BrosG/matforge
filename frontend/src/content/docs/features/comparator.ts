@@ -58,7 +58,7 @@ Not all properties are relevant for every comparison. Use the property filter to
 The comparator state is encoded in the URL. Copy the URL to share a specific comparison set with collaborators. The URL format is:
 
 \`\`\`
-https://matcraft.io/compare?ids=mp-149,mp-2534,mp-406
+https://matcraft.ai/compare?ids=mp-149,mp-2534,mp-406
 \`\`\`
 
 ### Export

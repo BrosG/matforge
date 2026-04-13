@@ -30,7 +30,7 @@ Query parameters:
 | \`page\` | integer | Page number |
 
 \`\`\`bash
-curl "https://api.matcraft.io/v1/jobs?status=running" \\
+curl "https://api.matcraft.ai/api/v1/jobs?status=running" \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -64,7 +64,7 @@ GET /v1/jobs/{job_id}
 \`\`\`
 
 \`\`\`bash
-curl https://api.matcraft.io/v1/jobs/job_xyz789 \\
+curl https://api.matcraft.ai/api/v1/jobs/job_xyz789 \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -115,7 +115,7 @@ Query parameters:
 | \`tail\` | integer | Return last N log entries (default: 100) |
 
 \`\`\`bash
-curl "https://api.matcraft.io/v1/jobs/job_xyz789/logs?level=info&tail=20" \\
+curl "https://api.matcraft.ai/api/v1/jobs/job_xyz789/logs?level=info&tail=20" \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -147,7 +147,7 @@ POST /v1/jobs/{job_id}/cancel
 Cancels a queued or running job. Running jobs are stopped after the current iteration completes. Results up to that point are preserved.
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/jobs/job_xyz789/cancel \\
+curl -X POST https://api.matcraft.ai/api/v1/jobs/job_xyz789/cancel \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -182,7 +182,7 @@ Jobs are assigned to workers using a first-available strategy. Worker concurrenc
 Jobs have a default timeout of 24 hours. For campaigns with very large budgets or slow evaluation functions, increase the timeout:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/campaigns/camp_abc123/start \\
+curl -X POST https://api.matcraft.ai/api/v1/campaigns/camp_abc123/start \\
   -H "Authorization: Bearer mc_live_abc123" \\
   -d '{"timeout_hours": 72}'
 \`\`\`

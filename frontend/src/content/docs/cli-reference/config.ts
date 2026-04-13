@@ -51,7 +51,7 @@ Configuration (effective values):
   optimizer.method      = cma-es       (default)
   optimizer.batch_size  = 15           (project config)
   optimizer.seed        = 42           (project config)
-  api.base_url          = https://api.matcraft.io  (default)
+  api.base_url          = https://api.matcraft.ai/api/v1  (default)
   api.api_key           = mc_live_sk_***  (environment)
 \`\`\`
 
@@ -64,7 +64,7 @@ materia config get optimizer.budget
 # 300
 
 materia config get api.base_url
-# https://api.matcraft.io
+# https://api.matcraft.ai/api/v1
 \`\`\`
 
 ### materia config set
@@ -152,7 +152,7 @@ All available configuration keys:
 | \`surrogate.learning_rate\` | float | \`0.001\` | Training learning rate |
 | \`surrogate.epochs\` | integer | \`200\` | Max training epochs |
 | \`surrogate.dropout\` | float | \`0.1\` | Dropout rate |
-| \`api.base_url\` | string | \`https://api.matcraft.io\` | API endpoint |
+| \`api.base_url\` | string | \`https://api.matcraft.ai/api/v1\` | API endpoint |
 | \`api.api_key\` | string | \`null\` | API authentication key |
 | \`dashboard.port\` | integer | \`3000\` | Dashboard server port |
 | \`dashboard.auto_open\` | boolean | \`true\` | Auto-open browser |

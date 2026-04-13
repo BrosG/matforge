@@ -47,7 +47,7 @@ Navigate to the Inverse Design tab from any materials page. The interface presen
 \`\`\`python
 import requests
 
-response = requests.post("https://matcraft.io/api/materials/inverse-design", json={
+response = requests.post("https://api.matcraft.ai/api/v1/materials/inverse-design", json={
     "targets": {
         "band_gap": {"value": 1.4, "weight": 1.0},
         "density": {"value": 3.0, "weight": 0.5},

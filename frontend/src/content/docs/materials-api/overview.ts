@@ -19,7 +19,7 @@ The MatCraft Materials API provides programmatic access to 205,000+ materials wi
 All API endpoints are served from:
 
 \`\`\`
-https://matcraft.io/api
+https://api.matcraft.ai/api/v1
 \`\`\`
 
 For self-hosted deployments, replace with your instance URL (e.g., \`http://localhost:8000/api\`).

@@ -97,7 +97,7 @@ No machine learning expertise is required for basic usage. The YAML-based config
 ## What Is Source-Available / Commercial
 
 - **Web Dashboard** (Next.js frontend): The browser-based UI with interactive visualizations, team collaboration features, and campaign management is available under a source-available license. It is free for individual and academic use; commercial teams require a paid license.
-- **Managed Cloud Service**: The hosted version at matcraft.io handles infrastructure, scaling, and backups for you. This is a paid service with a free tier.
+- **Managed Cloud Service**: The hosted version at matcraft.ai handles infrastructure, scaling, and backups for you. This is a paid service with a free tier.
 - **Enterprise Features**: SSO/SAML integration, audit logging, priority support, and custom SLAs require an enterprise license.
 
 ## Contributing
@@ -137,7 +137,7 @@ print(campaign.best_candidates(n=5))
 The FastAPI backend exposes a comprehensive REST API. Any language that can make HTTP requests can interact with MatCraft:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/campaigns \\
+curl -X POST https://api.matcraft.ai/api/v1/campaigns \\
   -H "Authorization: Bearer $MATCRAFT_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"material_id": "mem-001", "max_iterations": 20}'
@@ -179,7 +179,7 @@ The recommended approach for sensitive data is self-hosting. When you run MatCra
 
 ## Cloud Service Data Handling
 
-If you use the managed cloud service at matcraft.io:
+If you use the managed cloud service at matcraft.ai:
 
 - **Data Isolation**: Each organization's data is stored in a logically isolated database schema. There is no cross-tenant data access.
 - **Encryption**: All data is encrypted at rest (AES-256) and in transit (TLS 1.3). Database backups are encrypted with customer-specific keys on Enterprise plans.
@@ -193,7 +193,7 @@ MatCraft does **not** use your material data to train any shared models. Your su
 
 ## GDPR
 
-For EU users, we comply with GDPR requirements including data portability, right to erasure, and data processing transparency. Contact privacy@matcraft.io for details.`,
+For EU users, we comply with GDPR requirements including data portability, right to erasure, and data processing transparency. Contact privacy@matcraft.ai for details.`,
     category: "general",
     order: 5,
     relatedSlugs: ["enterprise-features", "cloud-deployment-guide"],
@@ -252,7 +252,7 @@ If you encounter a bug, please open an issue on the [GitHub issue tracker](https
 
 ## Documentation
 
-Comprehensive documentation is available at [docs.matcraft.io](https://docs.matcraft.io), including:
+Comprehensive documentation is available at [matcraft.ai/docs](https://matcraft.ai/docs), including:
 
 - Getting started tutorials
 - API reference (auto-generated from source)

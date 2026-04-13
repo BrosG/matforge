@@ -34,7 +34,7 @@ When you exceed the limit, the API returns HTTP 429 (Too Many Requests) with a \
 
 ## Getting a Token
 
-1. Create an account at matcraft.io (Google, GitHub, or ORCID sign-in)
+1. Create an account at matcraft.ai (Google, GitHub, or ORCID sign-in)
 2. Go to Settings > API Keys
 3. Click "Generate New Token"
 4. Copy the token immediately (shown only once)
@@ -44,7 +44,7 @@ When you exceed the limit, the API returns HTTP 429 (Too Many Requests) with a \
 Include it in the Authorization header:
 
 \`\`\`bash
-curl -H "Authorization: Bearer YOUR_TOKEN" "https://matcraft.io/api/materials"
+curl -H "Authorization: Bearer YOUR_TOKEN" "https://api.matcraft.ai/api/v1/materials"
 \`\`\`
 
 Or with the Python SDK:
@@ -93,7 +93,7 @@ bs.plot()  # matplotlib
 supercell = client.build_supercell("mp-149", nx=2, ny=2, nz=2)
 \`\`\`
 
-The SDK handles pagination, error handling, and rate limit retries automatically. Full documentation is at [docs.matcraft.io/sdk](https://docs.matcraft.io/sdk).`,
+The SDK handles pagination, error handling, and rate limit retries automatically. Full documentation is at [matcraft.ai/docs/sdk](https://matcraft.ai/docs/api-reference/python-sdk).`,
     category: "api",
     order: 2,
     relatedSlugs: ["api-authentication", "api-rate-limits"],
@@ -106,7 +106,7 @@ The SDK handles pagination, error handling, and rate limit retries automatically
 
 \`\`\`typescript
 const response = await fetch(
-  "https://matcraft.io/api/materials?search=Si&per_page=10"
+  "https://api.matcraft.ai/api/v1/materials?search=Si&per_page=10"
 );
 const { data, meta } = await response.json();
 
@@ -128,7 +128,7 @@ The API returns standard JSON responses, so any language with HTTP support can i
 
 \`\`\`javascript
 // Works from any website
-const resp = await fetch("https://matcraft.io/api/materials/mp-149");
+const resp = await fetch("https://api.matcraft.ai/api/v1/materials/mp-149");
 const data = await resp.json();
 \`\`\`
 
@@ -153,10 +153,10 @@ Note that browser-based requests are still subject to rate limits based on the c
 
 \`\`\`bash
 # Page 1 (default), 20 items
-curl "https://matcraft.io/api/materials?elements=O&per_page=20&page=1"
+curl "https://api.matcraft.ai/api/v1/materials?elements=O&per_page=20&page=1"
 
 # Page 2
-curl "https://matcraft.io/api/materials?elements=O&per_page=20&page=2"
+curl "https://api.matcraft.ai/api/v1/materials?elements=O&per_page=20&page=2"
 \`\`\`
 
 The response includes a \`meta\` object with pagination info:
@@ -243,8 +243,8 @@ For enterprise users with bulk data needs, contact us for custom data export arr
     question: "How does API versioning work?",
     answer: `The current API is version 1, which is implicit in the base URL (\`/api/...\`). When we introduce breaking changes, a new version will be created:
 
-- Current: \`https://matcraft.io/api/materials\`
-- Future v2: \`https://matcraft.io/api/v2/materials\`
+- Current: \`https://api.matcraft.ai/api/v1/materials\`
+- Future v2: \`https://api.matcraft.ai/api/v1/v2/materials\`
 
 ## Compatibility Promise
 

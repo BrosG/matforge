@@ -69,13 +69,13 @@ XYZ files contain Cartesian coordinates in Angstroms. They do not include period
 
 \`\`\`bash
 # Download CIF
-curl -O "https://matcraft.io/api/materials/mp-149/export/cif"
+curl -O "https://api.matcraft.ai/api/v1/materials/mp-149/export/cif"
 
 # Download POSCAR
-curl -O "https://matcraft.io/api/materials/mp-149/export/poscar"
+curl -O "https://api.matcraft.ai/api/v1/materials/mp-149/export/poscar"
 
 # Download XYZ
-curl -O "https://matcraft.io/api/materials/mp-149/export/xyz"
+curl -O "https://api.matcraft.ai/api/v1/materials/mp-149/export/xyz"
 \`\`\`
 
 ### Batch Export

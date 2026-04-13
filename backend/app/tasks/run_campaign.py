@@ -13,7 +13,14 @@ from app.tasks.base import MatCraftTask
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(bind=True, base=MatCraftTask, name="app.tasks.run_campaign.run_campaign_task")
+@celery_app.task(
+    bind=True,
+    base=MatCraftTask,
+    name="app.tasks.run_campaign.run_campaign_task",
+    soft_time_limit=3600,
+    time_limit=3660,
+    reject_on_worker_lost=True,
+)
 def run_campaign_task(self, campaign_id: str) -> dict:
     """Execute a campaign using the materia core engine.
 

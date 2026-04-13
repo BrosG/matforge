@@ -40,7 +40,7 @@ batch_size = 10
 seed = 42
 
 [api]
-base_url = "https://api.matcraft.io"
+base_url = "https://api.matcraft.ai/api/v1"
 api_key = "mc_live_..."
 
 [dashboard]

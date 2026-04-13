@@ -28,7 +28,7 @@ Query parameters:
 | \`search\` | string | Search in template name and description |
 
 \`\`\`bash
-curl "https://api.matcraft.io/v1/templates?domain=battery" \\
+curl "https://api.matcraft.ai/api/v1/templates?domain=battery" \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -72,7 +72,7 @@ GET /v1/templates/{template_id}
 Returns the full template including the complete MDL definition:
 
 \`\`\`bash
-curl https://api.matcraft.io/v1/templates/tmpl_bat_001 \\
+curl https://api.matcraft.ai/api/v1/templates/tmpl_bat_001 \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -115,7 +115,7 @@ curl https://api.matcraft.io/v1/templates/tmpl_bat_001 \\
 Use a template to create a campaign with optional parameter overrides:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/campaigns \\
+curl -X POST https://api.matcraft.ai/api/v1/campaigns \\
   -H "Authorization: Bearer mc_live_abc123" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -145,7 +145,7 @@ Returns the template as a downloadable \`material.yaml\` file:
 
 \`\`\`bash
 curl -o material.yaml \\
-  https://api.matcraft.io/v1/templates/tmpl_bat_001/download \\
+  https://api.matcraft.ai/api/v1/templates/tmpl_bat_001/download \\
   -H "Authorization: Bearer mc_live_abc123"
 \`\`\`
 
@@ -154,7 +154,7 @@ curl -o material.yaml \\
 Users can save their own MDL definitions as reusable templates:
 
 \`\`\`bash
-curl -X POST https://api.matcraft.io/v1/templates \\
+curl -X POST https://api.matcraft.ai/api/v1/templates \\
   -H "Authorization: Bearer mc_live_abc123" \\
   -H "Content-Type: application/json" \\
   -d '{

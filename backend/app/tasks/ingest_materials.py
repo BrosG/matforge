@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
     max_retries=2,
     default_retry_delay=60,
     queue="default",
+    soft_time_limit=7200,
+    time_limit=7260,
+    reject_on_worker_lost=True,
 )
 def ingest_all(self, sources: list[str] | None = None, max_per_source: int = 0):
     """Ingest materials from all public APIs.
@@ -317,14 +320,15 @@ def _ingest_jarvis(db, max_total: int) -> int:
         "bulk_modulus_kv": "bulk_modulus",
         "shear_modulus_gv": "shear_modulus",
         "density": "density",
-        "dfpt_piezo_max_dielectric": "dielectric_constant",
+        "dfpt_meV_dielectric_total": "dielectric_constant",
         "magmom_oszicar": "total_magnetization",
         "n-Seebeck": "seebeck_coefficient",
         "n-powerfact": "power_factor",
-        "epsx": "dielectric_constant_x",
         "mepsx": "dielectric_constant_electronic",
-        "kpoint_length_unit": "kpoint_density",
     }
+    # NOTE: Previously mapped max_efg→effective_mass_electron (wrong: EFG, not mass)
+    # and spillage→refractive_index (wrong: topological invariant, not optical).
+    # These incorrect mappings have been removed.
 
     batch_size = 500
     total = 0

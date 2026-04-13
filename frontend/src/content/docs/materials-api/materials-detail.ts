@@ -29,7 +29,7 @@ GET /api/materials/{material_id}
 ### Example Request
 
 \`\`\`bash
-curl "https://matcraft.io/api/materials/mp-149"
+curl "https://api.matcraft.ai/api/v1/materials/mp-149"
 \`\`\`
 
 ### Example Response

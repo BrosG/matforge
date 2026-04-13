@@ -181,7 +181,7 @@ For experimental properties, we recommend complementary databases like the NIST 
 
 Include the MatCraft URL and access date:
 
-> Materials data retrieved from MatCraft (https://matcraft.io), accessed [date].
+> Materials data retrieved from MatCraft (https://matcraft.ai), accessed [date].
 
 ## Citing Original Sources
 

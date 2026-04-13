@@ -61,7 +61,7 @@ The DOS and band structure are complementary views of the same electronic struct
 ### API Access
 
 \`\`\`bash
-curl "https://matcraft.io/api/electronic/dos/mp-149"
+curl "https://api.matcraft.ai/api/v1/electronic/dos/mp-149"
 \`\`\`
 
 Returns energy array, total DOS array, and per-element partial DOS arrays.

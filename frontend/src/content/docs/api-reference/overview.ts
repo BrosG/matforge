@@ -17,7 +17,7 @@ The MatCraft API is a RESTful service built with FastAPI that provides programma
 ### Base URL
 
 \`\`\`
-https://api.matcraft.io/v1
+https://api.matcraft.ai/api/v1/v1
 \`\`\`
 
 For self-hosted deployments:
@@ -32,7 +32,7 @@ All API requests require an API key passed in the \`Authorization\` header:
 
 \`\`\`bash
 curl -H "Authorization: Bearer mc_live_abc123..." \\
-  https://api.matcraft.io/v1/campaigns
+  https://api.matcraft.ai/api/v1/campaigns
 \`\`\`
 
 See [Authentication](/docs/api-reference/authentication) for details on key management and scopes.
@@ -135,13 +135,13 @@ GET /v1/campaigns?status=running&sort=-created_at
 The API provides interactive documentation via Swagger UI:
 
 \`\`\`
-https://api.matcraft.io/v1/docs
+https://api.matcraft.ai/api/v1/docs
 \`\`\`
 
 And ReDoc:
 
 \`\`\`
-https://api.matcraft.io/v1/redoc
+https://api.matcraft.ai/api/v1/redoc
 \`\`\`
 `,
 };

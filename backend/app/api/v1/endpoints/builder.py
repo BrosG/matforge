@@ -72,7 +72,8 @@ def _get_mp_structure(mp_id: str):
         with MPRester(api_key) as mpr:
             return mpr.get_structure_by_material_id(mp_id)
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Cannot fetch structure for {mp_id}: {e}")
+        logger.error("Cannot fetch structure for %s: %s", mp_id, e)
+        raise HTTPException(status_code=404, detail=f"Cannot fetch structure for {mp_id}. Verify the material ID is valid.")
 
 
 def _structure_to_response(structure, label: str = "") -> dict:

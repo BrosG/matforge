@@ -8,7 +8,7 @@ const faqs: FaqItem[] = [
 
 ## Cloud Service (matcraft.io)
 
-1. Visit [matcraft.io/signup](https://matcraft.io/signup).
+1. Visit [matcraft.ai/register](https://matcraft.ai/register).
 2. Sign up with your email address or use OAuth via GitHub or Google.
 3. Verify your email address by clicking the link sent to your inbox.
 4. Choose your plan -- the **Free** tier includes 3 active campaigns and 1,000 evaluations per month, which is enough for most individual researchers.
@@ -486,7 +486,7 @@ Uses Cloud Run, Cloud SQL, and Memorystore.
 For teams already running Kubernetes, we provide a Helm chart:
 
 \`\`\`bash
-helm repo add matcraft https://charts.matcraft.io
+helm repo add matcraft https://matcraft.ai/materials/scatter
 helm install matcraft matcraft/matcraft \\
   --namespace matcraft \\
   --set api.replicas=2 \\
@@ -583,7 +583,7 @@ results.plot_convergence()  # Renders in Jupyter or saves to file
 from materia import Client
 
 client = Client(
-    base_url="https://api.matcraft.io",
+    base_url="https://api.matcraft.ai/api/v1",
     token="mc_live_abc123...",
 )
 

@@ -20,13 +20,13 @@ The simplest way to test the API:
 
 \`\`\`bash
 # Search for silicon materials
-curl "https://matcraft.io/api/materials?search=Si&per_page=3"
+curl "https://api.matcraft.ai/api/v1/materials?search=Si&per_page=3"
 
 # Get a specific material
-curl "https://matcraft.io/api/materials/mp-149"
+curl "https://api.matcraft.ai/api/v1/materials/mp-149"
 
 # Download a CIF file
-curl -O "https://matcraft.io/api/materials/mp-149/export/cif"
+curl -O "https://api.matcraft.ai/api/v1/materials/mp-149/export/cif"
 \`\`\`
 
 ### With Python (requests)
@@ -35,7 +35,7 @@ curl -O "https://matcraft.io/api/materials/mp-149/export/cif"
 import requests
 
 # Search for stable oxides with band gap 1-2 eV
-response = requests.get("https://matcraft.io/api/materials", params={
+response = requests.get("https://api.matcraft.ai/api/v1/materials", params={
     "elements": "O",
     "band_gap_min": 1.0,
     "band_gap_max": 2.0,
@@ -86,7 +86,7 @@ bs.plot()  # matplotlib plot
 
 \`\`\`javascript
 const response = await fetch(
-  "https://matcraft.io/api/materials?search=GaAs&per_page=5"
+  "https://api.matcraft.ai/api/v1/materials?search=GaAs&per_page=5"
 );
 const { data, meta } = await response.json();
 
@@ -100,7 +100,7 @@ data.forEach(mat => {
 
 Guest access allows 100 requests/hour. For more:
 
-1. Create an account at matcraft.io
+1. Create an account at matcraft.ai
 2. Go to Settings > API Keys
 3. Generate a token
 
@@ -112,7 +112,7 @@ client = MatCraftClient(token="your-jwt-token-here")
 Or with curl:
 
 \`\`\`bash
-curl "https://matcraft.io/api/materials" \\
+curl "https://api.matcraft.ai/api/v1/materials" \\
   -H "Authorization: Bearer your-jwt-token-here"
 \`\`\`
 
