@@ -720,6 +720,11 @@ function CellEdge({
   );
 }
 
+/**
+ * 3D placement volume — three orthogonal invisible planes (XY, XZ, YZ)
+ * so clicks register in all three dimensions, not just a flat grid.
+ * Click positions are snapped to fractional coordinate increments (0.25).
+ */
 function ClickPlane({
   onPlace,
 }: {
@@ -730,26 +735,37 @@ function ClickPlane({
       if (e.object.userData.isPlacementPlane) {
         e.stopPropagation();
         const pt = e.point;
-        onPlace([
-          Math.round(pt.x * 20) / 20,
-          Math.round(pt.y * 20) / 20,
-          Math.round(pt.z * 20) / 20,
-        ]);
+        // Snap to 0.25 Angstrom grid for reasonable placement precision
+        const snap = (v: number) => Math.round(v * 4) / 4;
+        onPlace([snap(pt.x), snap(pt.y), snap(pt.z)]);
       }
     },
     [onPlace]
   );
 
+  const planeProps = {
+    onPointerDown: handleClick,
+    userData: { isPlacementPlane: true },
+  };
+
   return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, 0, 0]}
-      onPointerDown={handleClick}
-      userData={{ isPlacementPlane: true }}
-    >
-      <planeGeometry args={[50, 50]} />
-      <meshStandardMaterial visible={false} />
-    </mesh>
+    <group>
+      {/* XY plane (horizontal floor) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} {...planeProps}>
+        <planeGeometry args={[30, 30]} />
+        <meshStandardMaterial visible={false} side={2} />
+      </mesh>
+      {/* XZ plane (vertical wall facing Y) */}
+      <mesh rotation={[0, 0, 0]} position={[0, 0, 0]} {...planeProps}>
+        <planeGeometry args={[30, 30]} />
+        <meshStandardMaterial visible={false} side={2} />
+      </mesh>
+      {/* YZ plane (vertical wall facing X) */}
+      <mesh rotation={[0, Math.PI / 2, 0]} position={[0, 0, 0]} {...planeProps}>
+        <planeGeometry args={[30, 30]} />
+        <meshStandardMaterial visible={false} side={2} />
+      </mesh>
+    </group>
   );
 }
 
@@ -2073,12 +2089,12 @@ export default function MaterialBuilder() {
               <div className="text-center bg-black/40 backdrop-blur-sm rounded-xl px-6 py-4">
                 <Atom className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-300">
-                  Click on the grid to place{" "}
+                  Click in the viewport to place{" "}
                   <span className="font-semibold text-white">{activeElement}</span>{" "}
-                  atoms
+                  atoms, or use fractional coordinates in the right panel
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Right-click/middle-click to pan, scroll to zoom
+                  Right-click to pan, scroll to zoom. Use prototypes for quick start
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   Drop a .cif or .poscar file to import a structure
