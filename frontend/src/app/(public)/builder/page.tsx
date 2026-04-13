@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { motion } from "framer-motion";
 import { Hammer, Atom } from "lucide-react";
 import { Header } from "@/components/landing/Header";
@@ -59,7 +60,9 @@ export default function BuilderPage() {
 
         {/* Builder Form */}
         <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-          <BuilderForm />
+          <Suspense fallback={<div className="h-96 bg-muted/30 rounded-xl animate-pulse" />}>
+            <BuilderForm />
+          </Suspense>
         </section>
       </main>
 

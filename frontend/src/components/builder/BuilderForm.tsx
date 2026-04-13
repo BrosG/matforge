@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Box,
@@ -154,11 +155,18 @@ function parseCommaSeparated(value: string): string[] {
 /* ---------- Component ---------- */
 
 export function BuilderForm() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabId>("supercell");
   const [form, setForm] = useState<FormState>(defaultForm);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ApiResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Pre-fill material ID from URL query param (e.g., /builder?materialId=mp-149)
+  useEffect(() => {
+    const matId = searchParams.get("materialId");
+    if (matId) setForm((prev) => ({ ...prev, materialId: matId }));
+  }, [searchParams]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -331,6 +339,13 @@ export function BuilderForm() {
         value={form.materialId}
         onChange={(e) => set("materialId", e.target.value)}
       />
+      <p className="text-[11px] text-muted-foreground mt-1">
+        Don&apos;t know the ID?{" "}
+        <a href="/materials" className="text-primary hover:underline">
+          Search materials
+        </a>{" "}
+        to find it.
+      </p>
     </div>
   );
 

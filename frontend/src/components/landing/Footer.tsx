@@ -5,21 +5,21 @@ import { Atom, Github, Mail } from "lucide-react";
 
 const FOOTER_LINKS = {
   Platform: [
-    { href: "/explore", label: "Explore Campaigns" },
-    { href: "/domains", label: "Domains" },
-    { href: "/pricing", label: "Pricing" },
-    { href: "/#features", label: "Features" },
+    { href: "/materials", label: "Materials Database" },
+    { href: "/builder", label: "Structure Builder" },
+    { href: "/compare", label: "Compare Materials" },
+    { href: "/explore", label: "Campaigns" },
   ],
   Resources: [
-    { href: "/about", label: "About" },
     { href: "/docs", label: "Documentation" },
-    { href: "/docs#api", label: "API Reference" },
-    { href: "/docs#plugins", label: "Plugin Guide" },
+    { href: "/docs/tutorials/getting-started", label: "Getting Started" },
+    { href: "/docs/materials-api/overview", label: "API Reference" },
+    { href: "/faq", label: "FAQ" },
   ],
-  Legal: [
-    { href: "/privacy", label: "Privacy Policy" },
-    { href: "/terms", label: "Terms of Service" },
-    { href: "/cookies", label: "Cookie Policy" },
+  Company: [
+    { href: "/about", label: "About" },
+    { href: "/pricing", label: "Pricing" },
+    { href: "/domains", label: "Domains" },
   ],
 };
 

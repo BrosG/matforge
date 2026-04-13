@@ -417,11 +417,31 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 {material.external_id?.startsWith("mp-") && (
                   <a
                     href={`${process.env.NEXT_PUBLIC_API_URL || "https://api.matcraft.ai/api/v1"}/electronic/notebook/${material.external_id}`}
-                    className="text-xs px-1.5 py-0.5 rounded bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors"
+                    className="text-xs px-1.5 py-0.5 rounded bg-purple-100 hover:bg-purple-200 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 transition-colors"
                     download
                   >
                     Jupyter
                   </a>
+                )}
+              </div>
+
+              {/* Action links: Compare + Builder */}
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <Link
+                  href={`/compare?ids=${id}`}
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Layers className="h-3 w-3" />
+                  Compare with others
+                </Link>
+                {material.structure_data?.atoms && material.structure_data.atoms.length > 0 && (
+                  <Link
+                    href={`/builder?materialId=${material.external_id}`}
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Atom className="h-3 w-3" />
+                    Build supercell / surface
+                  </Link>
                 )}
               </div>
 
