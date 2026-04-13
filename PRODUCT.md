@@ -30,7 +30,9 @@
 17. [Security](#17-security)
 18. [Domain-Specific Applications](#18-domain-specific-applications)
 19. [SDK & Programmatic Access](#19-sdk--programmatic-access)
-20. [Roadmap](#20-roadmap)
+20. [Shipped Features (v0.3.0)](#20-shipped-features-v030)
+21. [Shipped Features (v0.4.0)](#21-shipped-features-v040)
+22. [Known Issues & Remaining Work](#22-known-issues--remaining-work)
 
 ---
 
@@ -964,61 +966,143 @@ Download auto-generated notebooks from any material page.
 
 ---
 
-## 21. Known Issues & Remaining Work
+## 21. Shipped Features (v0.4.0)
 
-### Bugs (confirmed, fixes in progress)
+### AFLOW Data Quality
+- [x] AFLOW null property tooltips — "N/A" badge with hover: "Not available — AFLOW does not provide this property"
+- [x] AFLOW formation energy fallback — clear N/A display instead of misleading `--` dashes
+- [x] Effective mass display (electron + hole) in Electronic & Magnetic properties table
+
+### JARVIS Ingestion Fix
+- [x] 4-method fallback chain: local file → GCS SDK → GCS public URL (no SDK needed) → jarvis-tools package
+- [x] Auto-caches downloaded JSON to `/tmp/jarvis_dft_3d.json` for faster restarts
+- [x] Configurable via `JARVIS_DATA_PATH` environment variable
+
+### Dark Mode
+- [x] ThemeProvider with light / dark / system modes
+- [x] localStorage persistence (`matcraft-theme` key)
+- [x] System preference listener (auto-switches on OS theme change)
+- [x] 3-button toggle (sun/monitor/moon) in header
+- [x] All material detail page classes updated to semantic tokens (`text-foreground`, `bg-card`, `bg-muted`)
+- [x] Header, PropertyTable, LatticeToggle, cards all dark-mode aware
+- [x] Tailwind `darkMode: "class"` with full HSL variable set in `.dark`
+
+### Primitive/Conventional Cell Toggle
+- [x] Interactive button above lattice parameters swapping between conventional and primitive cell
+- [x] Replaces collapsible `<details>` with one-click toggle
+- [x] Visual distinction: solid border for conventional, dashed border for primitive
+
+### Interactive Electronic Structure Charts
+- [x] **Band Structure Chart** — Recharts LineChart with k-point labels (Γ, X, M, etc.), Fermi level reference, spin-up (blue) / spin-down (red) channels, band gap annotation
+- [x] **Density of States Chart** — Recharts AreaChart with total DOS filled area, element-projected overlays, spin-down mirrored as negative, Fermi level line
+- [x] **Phase Diagram Chart** — binary: ScatterChart with convex hull line connecting stable phases (green circles) and unstable phases (red X marks); ternary+: simplified scatter
+- [x] Tabbed electronic structure section on material detail page (Band Structure / DOS / Phase Diagram)
+- [x] All charts lazy-loaded with dynamic imports, skeleton loading states
+- [x] Data fetched via `@tanstack/react-query` with caching
+
+### Mobile 3D Viewer Optimization
+- [x] Reduced polygon count: 16 segments (mobile) vs 32 segments (desktop)
+- [x] Device pixel ratio limiting: `dpr={[1, 1.5]}` on mobile vs `[1, 2]` on desktop
+- [x] Touch controls: `THREE.TOUCH.ROTATE` (one finger) + `THREE.TOUCH.DOLLY_PAN` (two fingers)
+- [x] Damping enabled with 0.1 factor for smoother touch interaction
+- [x] Atom count cap: 200 atoms on mobile, 1000 on desktop
+- [x] Atom radius scaled down 80% on mobile for better visibility
+- [x] Second directional light removed on mobile for performance
+- [x] Auto-rotate speed reduced (1.5 vs 2) for comfortable mobile viewing
+
+### 3D Structure Builder UI (`/builder`)
+- [x] 5-tab interface: Supercell, Surface, Nanoparticle, Substitution, Inverse Design
+- [x] Material ID input shared by first 4 tabs
+- [x] Supercell: Nx/Ny/Nz integer inputs (1-10)
+- [x] Surface: Miller indices (h,k,l), slab thickness, vacuum
+- [x] Nanoparticle: radius in Angstroms
+- [x] Substitution: original/substitute element, fraction slider (1-100%)
+- [x] Inverse Design: target band gap, formation energy, bulk modulus, required/excluded elements, crystal system
+- [x] Results display: formula, atom count, space group, volume, lattice parameters
+- [x] Copy JSON / Download JSON buttons
+- [x] Animated tab transitions via framer-motion
+- [x] Full dark mode support
+
+### Natural Language Search (`POST /nl/search`)
+- [x] Rule-based NLP parser (no external LLM dependency)
+- [x] Element recognition: full names ("silicon" → Si) + symbols, 90+ elements
+- [x] Element exclusions: "no lead", "without cadmium", "exclude Pb", "lead-free"
+- [x] Crystal system detection: cubic, hexagonal, tetragonal, etc.
+- [x] Band gap ranges: semiconductor (0.5-4.0), insulator (>4.0), metal (0), solar (1.1-1.5), narrow gap (<1.0)
+- [x] Mechanical properties: "hard" (K>200 GPa), "stiff" (E>200 GPa)
+- [x] Magnetic filtering: magnetic, ferromagnetic, antiferromagnetic, non-magnetic
+- [x] Application shortcuts: "battery" → Li+O+stable, "catalyst" → transition metals, "thermoelectric" → narrow gap
+- [x] Returns structured filters + human-readable interpretation + matching materials
+
+### Materials Co-pilot Chat
+- [x] Floating "Co-pilot" button in bottom-right corner on material detail pages
+- [x] Slide-out chat panel animated with framer-motion
+- [x] Sends queries to `POST /nl/search` endpoint
+- [x] Renders interpretation, material cards with links, property badges
+- [x] Context-aware: shows "Exploring {formula}" when on a material page
+- [x] Quick action buttons: "Find similar", "Compare alternatives", "Export data"
+- [x] Full dark mode support
+
+### Multi-Material Comparator (`/compare`)
+- [x] Add up to 5 materials by ID (e.g., "mp-149")
+- [x] Side-by-side comparison table with 17 property rows
+- [x] Color-coded best/worst values (green = best, red = worst, respecting higher/lower-is-better per property)
+- [x] Units column
+- [x] Radar chart (Recharts RadarChart): 8 numeric properties normalized to 0-1 range
+- [x] URL-shareable links via `?ids=mp-149,mp-2534` query params
+- [x] Remove button (X) per material
+- [x] Responsive: horizontal scroll on mobile
+- [x] Suspense boundary for SSR compatibility
+
+### Documentation & Content (50+ new pages)
+- [x] 15 feature guide pages (search, 3D viewer, builder, inverse design, scatter plot, band structure, DOS, phase diagrams, XRD, Jupyter export, structure export, application scores, comparator, dark mode, natural language search)
+- [x] 15 materials API documentation pages (overview, authentication, materials list/detail/export/similar/scatter, electronic band/DOS/XRD/phase, builder supercell/surface/nanoparticle/substitute)
+- [x] 10 tutorial pages (getting started, first search, first campaign, understanding properties, reading band structures, reading DOS, using builder, exporting data, API quickstart, advanced campaigns)
+- [x] 5 new FAQ categories with ~48 questions (data sources, material properties, API usage, accounts & access, scientific methodology)
+- [x] 1 new domain guide (structural materials: hard coatings, alloys, ceramics)
+- [x] Total: 93 doc pages + 110 FAQ questions across 11 categories
+
+### Navigation & UX
+- [x] Updated header navigation: Materials, Builder, Compare, Campaigns, Docs, FAQ
+- [x] Theme toggle button in header (sun/moon icon)
+- [x] Electronic structure section integrated into material detail page (for MP materials)
+- [x] Co-pilot chat available on all material detail pages
+
+---
+
+## 22. Known Issues & Remaining Work
+
+### Bugs (confirmed)
 
 | # | Issue | Severity | Status |
 |---|-------|----------|--------|
 | 1 | BCT tetragonal lattice shows a=b=c instead of a=b≠c for I4/mmm space groups | Critical | Fix deployed, needs re-ingestion to propagate |
-| 2 | AFLOW entries show `--` for formation energy and Ehull with no explanation | Medium | Needs tooltip: "Not available — AFLOW does not provide this property" |
-| 3 | Mechanical properties (bulk/shear/Young's modulus) inconsistently shown — present for some MP materials but absent for others with the data | Medium | PropertyTable hides null rows correctly; coverage is ~10% of MP |
-| 4 | 3D viewer bonds absent for some metallic compounds | Medium | Adaptive threshold deployed; re-ingestion needed for lattice_matrix |
-| 5 | Decomposition pathway not rendering for all unstable materials | Low | `decomposes_to` field populated by MP but frontend section only shows when non-empty |
+| 2 | Mechanical properties coverage is only ~10% of MP materials | Medium | PropertyTable hides null rows correctly; this is a data coverage limitation |
+| 3 | 3D viewer bonds absent for some metallic compounds | Medium | Adaptive threshold deployed; re-ingestion needed for lattice_matrix |
+| 4 | Decomposition pathway not rendering for all unstable materials | Low | `decomposes_to` field populated by MP but frontend section only shows when non-empty |
+| 5 | CI lint failures (pre-existing): ruff 334 errors in `src/materia/`, ESLint not configured in CI | Low | Does not affect functionality or deployment |
 
-### Features — Remaining (ordered by difficulty)
+### Features — Remaining
 
-#### Trivial (one-liners)
+#### Medium
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | AFLOW `--` tooltip | Show "Not available — AFLOW does not provide this property" on hover when values are null |
-| 2 | AFLOW formation energy fallback | Derive from total energy + elemental references when available, or show clear "N/A" badge |
+| 1 | OQMD integration | 1M+ entries from oqmd.org REST API. Deduplication against MP entries needed |
+| 2 | Ternary phase diagram | D3-based triangular composition plot for 3-element systems (currently simplified scatter) |
+| 3 | Band structure + DOS side-by-side | Combined view with aligned energy axes |
 
-#### Small (frontend, data already exists)
+#### Large (v1.0+)
 | # | Feature | Description |
 |---|---------|-------------|
-| 3 | Effective mass display | Add electron/hole effective mass rows to Electronic table (schema exists, data sparse) |
-| 4 | JARVIS flat file ingestion | Dataset downloaded to GCS; ingestion task coded but `jarvis-tools` fails in Docker. Alternative: read JSON directly from GCS (code exists, needs testing) |
-
-#### Medium (new UI components)
-| # | Feature | Description |
-|---|---------|-------------|
-| 5 | Dark mode | Tailwind `dark:` variants, root class toggle, theme persistence in localStorage |
-| 6 | Primitive/conventional cell toggle | Button above lattice params swapping between conventional and primitive (both stored) |
-| 7 | Interactive band structure chart | Frontend component using Recharts/D3 — API returns plottable JSON, zero backend work |
-| 8 | Interactive DOS chart | Horizontal bar chart alongside band structure — API ready |
-| 9 | Interactive phase diagram | Binary/ternary diagram from convex hull API — D3 for ternary geometry |
-| 10 | Mobile 3D viewer optimization | Touch event handlers for React Three Fiber OrbitControls, reduced atom/bond sizes on small screens |
-
-#### Large (significant new features)
-| # | Feature | Description |
-|---|---------|-------------|
-| 11 | 3D structure builder UI | Browser UI for supercell/surface/nanoparticle/substitution builders (APIs all working) |
-| 12 | Natural language search | LLM parses "stable semiconductor for solar cells with no lead" → API filter params |
-| 13 | Materials co-pilot chat | Chat sidebar with material context loaded, LLM answers using real property data |
-| 14 | Multi-material comparator | Select 2-5 materials, side-by-side comparison table + radar chart + 3D viewers |
-| 15 | OQMD integration | 1M+ entries from oqmd.org REST API. Deduplication against MP entries needed |
-
-#### Future (v1.0+)
-| # | Feature | Description |
-|---|---------|-------------|
-| 16 | 2D materials database | C2DB, JARVIS-2D: graphene, MoS₂, h-BN, 5000+ 2D materials |
-| 17 | Foundation model integration | GNoME (Google), MACE-MP, CHGNet for property prediction |
-| 18 | VR/AR crystal viewer | WebXR mode for immersive structure exploration |
-| 19 | Patent landscape connector | Link materials to patents mentioning them |
-| 20 | Community annotations | User notes, data quality flags, corrections |
-| 21 | Enterprise SSO/SAML | University/corporate single sign-on |
-| 22 | On-premise deployment | Docker + Kubernetes package for air-gapped environments |
+| 4 | 2D materials database | C2DB, JARVIS-2D: graphene, MoS₂, h-BN, 5000+ 2D materials |
+| 5 | Foundation model integration | GNoME (Google), MACE-MP, CHGNet for property prediction |
+| 6 | VR/AR crystal viewer | WebXR mode for immersive structure exploration |
+| 7 | Patent landscape connector | Link materials to patents mentioning them |
+| 8 | Community annotations | User notes, data quality flags, corrections |
+| 9 | Enterprise SSO/SAML | University/corporate single sign-on |
+| 10 | On-premise deployment | Docker + Kubernetes package for air-gapped environments |
+| 11 | LLM-powered co-pilot | Replace rule-based NLP with Claude API for richer conversational search |
+| 12 | Structure prediction | Generative models (CDVAE/DiffCSP) for novel structure generation |
 
 ---
 
