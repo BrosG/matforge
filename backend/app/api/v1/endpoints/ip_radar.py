@@ -324,6 +324,176 @@ def _rule_based_whitespaces(query: str, categories: list[str]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
+async def _search_epo_ops(
+    query: str, max_patents: int
+) -> tuple[list[dict[str, Any]], int]:
+    """Search EPO Open Patent Services (free, no auth required for basic search).
+
+    Coverage: 100M+ documents from 100+ patent offices.
+    """
+    expanded = _expand_query(query)
+    cql_query = f'ti="{expanded}" OR ab="{expanded}"'
+    patents: list[dict[str, Any]] = []
+    total_results = 0
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Search
+            resp = await client.get(
+                "https://ops.epo.org/3.2/rest-services/published-data/search",
+                params={"q": cql_query, "Range": f"1-{min(max_patents, 100)}"},
+                headers={"Accept": "application/json"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            # Parse response
+            search_result = data.get("ops:world-patent-data", {}).get("ops:biblio-search", {})
+            total_results = int(search_result.get("@total-result-count", 0))
+
+            results_list = search_result.get("ops:search-result", {}).get("ops:publication-reference", [])
+            if isinstance(results_list, dict):
+                results_list = [results_list]
+
+            for ref in results_list[:max_patents]:
+                doc_id = ref.get("document-id", {})
+                if isinstance(doc_id, list):
+                    doc_id = doc_id[0]
+                country = doc_id.get("country", {}).get("$", "")
+                doc_number = doc_id.get("doc-number", {}).get("$", "")
+                kind = doc_id.get("kind", {}).get("$", "")
+                patent_id = f"{country}{doc_number}{kind}"
+
+                patents.append({
+                    "patent_id": patent_id,
+                    "title": f"Patent {patent_id}",  # Basic search doesn't return titles
+                    "snippet": "",
+                    "assignee": "",
+                    "filing_date": "",
+                    "country_code": country,
+                })
+
+            # Batch fetch bibliographic data for richer results (title, abstract, assignee)
+            if patents:
+                ids_to_fetch = [p["patent_id"] for p in patents[:20]]
+                for pid in ids_to_fetch:
+                    try:
+                        biblio_resp = await client.get(
+                            f"https://ops.epo.org/3.2/rest-services/published-data/publication/docdb/{pid}/biblio",
+                            headers={"Accept": "application/json"},
+                        )
+                        if biblio_resp.status_code == 200:
+                            bdata = biblio_resp.json()
+                            exchange_doc = (
+                                bdata.get("ops:world-patent-data", {})
+                                .get("exchange-documents", {})
+                                .get("exchange-document", {})
+                            )
+                            if isinstance(exchange_doc, list):
+                                exchange_doc = exchange_doc[0]
+                            biblio_data = exchange_doc.get("bibliographic-data", {})
+
+                            # Title
+                            titles = biblio_data.get("invention-title", [])
+                            if isinstance(titles, dict):
+                                titles = [titles]
+                            for t in titles:
+                                if t.get("@lang", "") == "en":
+                                    for p in patents:
+                                        if p["patent_id"] == pid:
+                                            p["title"] = t.get("$", p["title"])
+                                            break
+
+                            # Applicant
+                            applicants = biblio_data.get("parties", {}).get("applicants", {}).get("applicant", [])
+                            if isinstance(applicants, dict):
+                                applicants = [applicants]
+                            if applicants:
+                                name = applicants[0].get("applicant-name", {}).get("name", {}).get("$", "")
+                                for p in patents:
+                                    if p["patent_id"] == pid:
+                                        p["assignee"] = name
+                                        break
+
+                            # Filing date
+                            app_ref = biblio_data.get("application-reference", {}).get("document-id", {})
+                            if isinstance(app_ref, list):
+                                app_ref = app_ref[0]
+                            fdate = app_ref.get("date", {}).get("$", "")
+                            if fdate:
+                                for p in patents:
+                                    if p["patent_id"] == pid:
+                                        p["filing_date"] = f"{fdate[:4]}-{fdate[4:6]}-{fdate[6:8]}" if len(fdate) >= 8 else fdate
+                                        break
+                    except Exception:
+                        pass  # Enrichment is best-effort
+
+        logger.info("EPO OPS returned %d results (total: %d)", len(patents), total_results)
+    except Exception as exc:
+        logger.warning("EPO OPS search failed: %s", exc)
+
+    return patents, total_results
+
+
+async def _search_lens_org(
+    query: str, max_patents: int
+) -> tuple[list[dict[str, Any]], int]:
+    """Search Lens.org patent database (free tier: 50 requests/day).
+
+    Lens.org aggregates USPTO, EPO, WIPO, and 100+ other offices.
+    """
+    expanded = _expand_query(query)
+    patents: list[dict[str, Any]] = []
+    total_results = 0
+
+    lens_token = os.environ.get("LENS_ORG_TOKEN", "")
+    if not lens_token:
+        logger.info("No LENS_ORG_TOKEN — skipping Lens.org search")
+        return patents, total_results
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.lens.org/patent/search",
+                headers={
+                    "Authorization": f"Bearer {lens_token}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "query": {
+                        "bool": {
+                            "should": [
+                                {"match": {"title": expanded}},
+                                {"match": {"abstract": expanded}},
+                            ]
+                        }
+                    },
+                    "size": min(max_patents, 100),
+                    "sort": [{"date_published": "desc"}],
+                    "include": ["lens_id", "title", "abstract", "applicant", "date_published", "jurisdiction"],
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            total_results = data.get("total", 0)
+            for hit in data.get("data", []):
+                patents.append({
+                    "patent_id": hit.get("lens_id", ""),
+                    "title": hit.get("title", ""),
+                    "snippet": (hit.get("abstract", "") or "")[:500],
+                    "assignee": (hit.get("applicant", [None])[0] or {}).get("name", "") if hit.get("applicant") else "",
+                    "filing_date": hit.get("date_published", ""),
+                    "country_code": hit.get("jurisdiction", ""),
+                })
+
+        logger.info("Lens.org returned %d results (total: %d)", len(patents), total_results)
+    except Exception as exc:
+        logger.warning("Lens.org search failed: %s", exc)
+
+    return patents, total_results
+
+
 async def _search_google_patents(
     query: str, max_patents: int
 ) -> tuple[list[dict[str, Any]], int]:
@@ -673,9 +843,21 @@ async def ip_radar_search(body: IPRadarRequest) -> IPRadarResponse:
     if cached is not None:
         return cached
 
-    # Search Google Patents
+    # Search patents — waterfall: Google Patents XHR → EPO OPS → Lens.org
     raw_patents, total_found = await _search_google_patents(query, body.max_patents)
-    logger.info("Retrieved %d patents for query '%s'", len(raw_patents), query)
+    data_source = "Google Patents"
+
+    # Fallback 1: EPO Open Patent Services (free, legitimate API)
+    if not raw_patents:
+        raw_patents, total_found = await _search_epo_ops(query, body.max_patents)
+        data_source = "EPO Open Patent Services"
+
+    # Fallback 2: Lens.org scholarly patents API (free tier)
+    if not raw_patents:
+        raw_patents, total_found = await _search_lens_org(query, body.max_patents)
+        data_source = "Lens.org"
+
+    logger.info("Retrieved %d patents for query '%s' via %s", len(raw_patents), query, data_source)
 
     # AI analysis (Gemini with rule-based fallback)
     ai_result: dict[str, Any] | None = None

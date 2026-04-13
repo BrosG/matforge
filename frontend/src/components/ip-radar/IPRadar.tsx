@@ -536,11 +536,68 @@ export function IPRadar() {
         });
 
         if (!res.ok) throw new Error(`API error: ${res.status}`);
-        const data: SearchResults = await res.json();
+        const raw = await res.json();
+
+        // Transform API response → frontend's SearchResults shape
+        const patents = raw.patents ?? [];
+        if (patents.length === 0) throw new Error("No patents found");
+
+        const catColors: Record<string, string> = {
+          "Composition/Alloy": "#6366f1", "Process/Synthesis": "#22c55e",
+          "Application": "#f59e0b", "Coating/Surface Treatment": "#06b6d4",
+          "Nanostructure/Morphology": "#ec4899", "Characterization Method": "#8b5cf6",
+          "Other": "#94a3b8",
+        };
+        const stats = raw.stats ?? {};
+        const byCat = stats.by_category ?? {};
+        const byAssignee = stats.by_assignee ?? {};
+        const byJurisdiction = stats.by_jurisdiction ?? {};
+        const dateRange = stats.filing_date_range ?? {};
+
+        const transformed: SearchResults = {
+          query: raw.query ?? q,
+          total_patents: raw.total_patents_found ?? patents.length,
+          analyzed_count: raw.analyzed_count ?? patents.length,
+          jurisdictions: Object.keys(byJurisdiction),
+          date_range: {
+            earliest: dateRange.earliest ?? patents[patents.length - 1]?.filing_date ?? "",
+            latest: dateRange.latest ?? patents[0]?.filing_date ?? "",
+          },
+          data_source: raw.data_source ?? "Unknown",
+          executive_summary: raw.executive_summary ?? "",
+          key_findings: [],
+          fto_assessment: raw.fto_assessment ?? "",
+          categories: Object.entries(byCat).map(([name, count]) => ({
+            name, count: count as number, color: catColors[name] ?? "#94a3b8",
+          })),
+          top_assignees: Object.entries(byAssignee).slice(0, 10).map(([name, count]) => ({
+            name: name.length > 30 ? name.slice(0, 27) + "..." : name,
+            count: count as number,
+          })),
+          white_spaces: (raw.white_spaces ?? []).map((ws: Record<string, unknown>) => ({
+            domain: ws.domain ?? "",
+            description: ws.description ?? "",
+            confidence: ws.confidence ?? 0.5,
+            rationale: ws.rationale ?? "",
+          })),
+          patents: patents.map((p: Record<string, unknown>) => ({
+            patent_id: p.patent_id ?? "",
+            title: p.title ?? "",
+            assignee: p.assignee ?? "Unknown",
+            filing_date: p.filing_date ?? "",
+            jurisdiction: p.jurisdiction ?? p.country_code ?? "",
+            category: p.category ?? "Other",
+            claim_summary: p.claim_summary ?? "",
+            relevance_score: p.relevance_score ?? 0.5,
+            status: p.status ?? "Active",
+            snippet: p.snippet ?? "",
+          })),
+        };
+
         stepTimers.forEach(clearTimeout);
         setLoadingStep(LOADING_STEPS.length - 1);
         await new Promise((r) => setTimeout(r, 600));
-        setResults(data);
+        setResults(transformed);
       } catch {
         // Fallback to mock data for demo
         stepTimers.forEach(clearTimeout);
