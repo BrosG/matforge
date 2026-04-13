@@ -40,6 +40,11 @@ RUN pip install --no-cache-dir .
 COPY backend/pyproject.toml ./backend/
 RUN cd backend && pip install --no-cache-dir .
 
+# Install heavy optional deps for electronic structure endpoints
+# mp-api + pymatgen enable band structure, DOS, XRD, phase diagrams
+RUN pip install --no-cache-dir "mp-api>=0.41" "pymatgen>=2024.2.8" || \
+    echo "WARNING: mp-api/pymatgen install failed — electronic structure endpoints degraded"
+
 COPY backend/ ./backend/
 WORKDIR /app/backend
 
