@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import contextmanager
 from typing import Generator
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-from sqlalchemy.pool import QueuePool, StaticPool
+from sqlalchemy.pool import NullPool, QueuePool, StaticPool
 
 from app.core.config import settings
 
@@ -27,6 +28,18 @@ def _create_engine():
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
+
+    # In Cloud Run: use NullPool — each request gets a fresh connection and
+    # returns it immediately after the request completes.  Cloud SQL Proxy
+    # handles connection multiplexing at the infrastructure level, so
+    # holding a per-instance pool across auto-scaled containers wastes
+    # Cloud SQL max_connections.  This is the Google-recommended pattern
+    # for Cloud Run + Cloud SQL (K_SERVICE is set by the Cloud Run runtime).
+    is_cloud_run = os.environ.get("K_SERVICE") is not None
+    if is_cloud_run:
+        return create_engine(url, poolclass=NullPool, pool_pre_ping=True)
+
+    # Local dev: use QueuePool for connection reuse
     return create_engine(
         url,
         poolclass=QueuePool,

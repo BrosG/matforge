@@ -103,7 +103,7 @@ async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSON
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RateLimitingMiddleware, requests_per_minute=120)
-app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,

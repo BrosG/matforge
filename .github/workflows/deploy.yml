@@ -146,12 +146,15 @@ jobs:
             --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,REDIS_URL=REDIS_URL:latest,CELERY_BROKER_URL=CELERY_BROKER_URL:latest,CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest,WEBSOCKET_REDIS_URL=WEBSOCKET_REDIS_URL:latest" \
             --update-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }},BACKEND_CORS_ORIGINS=https://matcraft.ai" \
             --service-account matforge-api@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
-            --min-instances 0 \
+            --min-instances 1 \
             --max-instances 10 \
             --memory 2Gi \
             --cpu 1 \
             --timeout 600 \
             --port 8000 \
+            --concurrency 80 \
+            --cpu-boost \
+            --execution-environment gen2 \
             --allow-unauthenticated
 
       - name: Deploy Worker to Cloud Run

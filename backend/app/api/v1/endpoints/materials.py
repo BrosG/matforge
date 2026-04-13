@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -199,14 +201,9 @@ def search_materials(
     )
 
 
-@router.get("/{material_id}", response_model=IndexedMaterialDetail)
-def get_material(material_id: str, db: Session = Depends(get_db)):
-    """Get full details for a single indexed material."""
+def _normalize_material_data(mat):
+    """Apply all data-quality normalizations and return the material object."""
     from app.services.data_quality import normalize_material
-
-    mat = material_service.get_by_id(db, material_id)
-    if not mat:
-        raise HTTPException(status_code=404, detail="Material not found")
 
     # Apply all data quality normalizations before responding
     normalize_material(mat)
@@ -245,6 +242,34 @@ def get_material(material_id: str, db: Session = Depends(get_db)):
         }
 
     return mat
+
+
+@router.get("/{material_id}", response_model=IndexedMaterialDetail)
+def get_material(material_id: str, request: Request, db: Session = Depends(get_db)):
+    """Get full details for a single indexed material.
+
+    Supports conditional requests via ETag (If-None-Match). When the client
+    sends a matching ETag the server returns 304 Not Modified, saving
+    bandwidth for unchanged materials.
+    """
+    mat = material_service.get_by_id(db, material_id)
+    if not mat:
+        raise HTTPException(status_code=404, detail="Material not found")
+
+    # ETag based on updated_at — cheap to compute, catches any DB update
+    etag = f'"{hashlib.md5(str(mat.updated_at).encode()).hexdigest()}"'
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304)
+
+    mat = _normalize_material_data(mat)
+
+    # Build a JSON response so we can attach ETag + Cache-Control headers
+    response = JSONResponse(
+        content=IndexedMaterialDetail.model_validate(mat).model_dump(mode="json")
+    )
+    response.headers["ETag"] = etag
+    response.headers["Cache-Control"] = "private, max-age=60"
+    return response
 
 
 @router.get("/categories")

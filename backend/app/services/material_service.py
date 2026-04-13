@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from typing import Any, Optional
 
@@ -11,6 +13,9 @@ from sqlalchemy.orm import Session
 from app.db.models import IndexedMaterial
 
 logger = logging.getLogger(__name__)
+
+_SEARCH_CACHE_PREFIX = "materials:search:v1:"
+_SEARCH_CACHE_TTL = 30  # seconds — short enough to feel fresh, long enough to absorb spikes
 
 
 def search(
@@ -41,8 +46,60 @@ def search(
     sort_dir: str = "asc",
     q: str | None = None,
 ) -> tuple[list[IndexedMaterial], int]:
-    """Paginated search with filters. Returns (results, total_count)."""
-    query = db.query(IndexedMaterial)
+    """Paginated search with filters. Returns (results, total_count).
+
+    Results for the first page of unfiltered/lightly-filtered queries are
+    cached in Redis for 30 seconds to absorb traffic spikes without hammering
+    Cloud SQL.
+    """
+    # ------------------------------------------------------------------ cache
+    # Only cache page=1 with default sort (covers the hot path: browse all)
+    _is_cacheable = (
+        page == 1
+        and sort_by == "formula"
+        and sort_dir == "asc"
+        and not any([
+            q, elements, formula, crystal_system, space_group,
+            band_gap_min, band_gap_max,
+            formation_energy_min, formation_energy_max, energy_above_hull_max,
+            bulk_modulus_min, bulk_modulus_max,
+            shear_modulus_min, shear_modulus_max,
+            thermal_conductivity_min, thermal_conductivity_max,
+            magnetic_ordering, has_elastic_data, source_db,
+            is_stable is not None,
+        ])
+    )
+    _cache_key: str | None = None
+    if _is_cacheable:
+        # Hash all params so we get a stable key regardless of ordering
+        _param_blob = json.dumps({
+            "page": page, "limit": limit, "sort_by": sort_by, "sort_dir": sort_dir,
+        }, sort_keys=True)
+        _cache_key = _SEARCH_CACHE_PREFIX + hashlib.md5(_param_blob.encode()).hexdigest()
+        try:
+            from app.core.redis_connector import get_redis
+            redis_client = get_redis()
+            cached = redis_client.get(_cache_key)
+            if cached:
+                payload = json.loads(cached)
+                # Redis stores serialized dicts; reconstruct IndexedMaterial stubs lazily
+                # by fetching the IDs from the DB (single indexed PK lookup, very fast)
+                ids = payload["ids"]
+                total = payload["total"]
+                if ids:
+                    id_map = {
+                        m.id: m
+                        for m in db.query(IndexedMaterial)
+                        .filter(IndexedMaterial.id.in_(ids))
+                        .all()
+                    }
+                    results = [id_map[i] for i in ids if i in id_map]
+                    return results, total
+        except Exception as e:
+            logger.warning("Search cache read failed: %s", e)
+
+    # ------------------------------------------------------------------ query
+    query = db.query(IndexedMaterial).execution_options(timeout=10000)
 
     # Full-text / formula search
     if q:
@@ -146,7 +203,23 @@ def search(
         sort_by = "formula"
     sort_col = getattr(IndexedMaterial, sort_by)
     order = sort_col.desc() if sort_dir == "desc" else sort_col.asc()
-    results = query.order_by(order).offset((page - 1) * limit).limit(limit).all()
+    # yield_per=100: stream rows in batches of 100 for memory efficiency
+    results = list(
+        query.order_by(order)
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .execution_options(yield_per=100)
+    )
+
+    # ---------------------------------------------------------- cache write
+    if _cache_key and results:
+        try:
+            from app.core.redis_connector import get_redis
+            redis_client = get_redis()
+            payload = json.dumps({"ids": [m.id for m in results], "total": total})
+            redis_client.setex(_cache_key, _SEARCH_CACHE_TTL, payload)
+        except Exception as e:
+            logger.warning("Search cache write failed: %s", e)
 
     return results, total
 
