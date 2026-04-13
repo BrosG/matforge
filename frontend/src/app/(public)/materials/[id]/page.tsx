@@ -103,6 +103,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+/**
+ * Recursively clean -0 values that React Server Components serialize as "$-0".
+ * Replaces any -0 or "$-0" string with plain 0 in arrays, objects, and primitives.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sanitizeNegZero<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  if (typeof data === "number") return (Object.is(data, -0) ? 0 : data) as T;
+  if (typeof data === "string" && data === "$-0") return 0 as T;
+  if (Array.isArray(data)) return data.map(sanitizeNegZero) as T;
+  if (typeof data === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data)) {
+      out[k] = sanitizeNegZero(v);
+    }
+    return out as T;
+  }
+  return data;
+}
+
 function formatProp(value: number | null | undefined, digits = 4): string {
   if (value === null || value === undefined) return "--";
   return Number(value.toPrecision(digits)).toString();
@@ -783,9 +803,9 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 </h2>
                 {hasStructure ? (
                   <MaterialStructureViewer
-                    atoms={material.structure_data!.atoms}
+                    atoms={sanitizeNegZero(material.structure_data!.atoms)}
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    latticeMatrix={(material.structure_data as any)?.lattice_matrix}
+                    latticeMatrix={sanitizeNegZero((material.structure_data as any)?.lattice_matrix)}
                     lattice={
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (material.structure_data as any)?.viewer_lattice ??
