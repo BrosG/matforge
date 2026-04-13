@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Atom, Github, Mail } from "lucide-react";
+import { VersionBadge } from "@/components/core/VersionGuard";
 
 const FOOTER_LINKS = {
   Platform: [
@@ -88,9 +89,12 @@ export function Footer() {
             &copy; {new Date().getFullYear()} MatCraft &mdash; matcraft.ai. All
             rights reserved.
           </p>
-          <p className="text-xs text-gray-600">
-            Built for materials scientists and engineers
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-gray-600">
+              Built for materials scientists and engineers
+            </p>
+            <VersionBadge />
+          </div>
         </div>
       </div>
     </footer>
