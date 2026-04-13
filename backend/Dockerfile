@@ -1,7 +1,7 @@
 # Backend Dockerfile with multi-stage build
 
 # ---- Base ----
-FROM python:3.12-slim AS base
+FROM python:3.12-slim-bookworm AS base
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -39,11 +39,6 @@ RUN pip install --no-cache-dir .
 # Install backend dependencies
 COPY backend/pyproject.toml ./backend/
 RUN cd backend && pip install --no-cache-dir .
-
-# Install heavy optional deps for electronic structure endpoints
-# mp-api + pymatgen enable band structure, DOS, XRD, phase diagrams
-RUN pip install --no-cache-dir "mp-api>=0.41" "pymatgen>=2024.2.8" || \
-    echo "WARNING: mp-api/pymatgen install failed — electronic structure endpoints degraded"
 
 COPY backend/ ./backend/
 WORKDIR /app/backend
