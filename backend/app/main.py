@@ -56,8 +56,11 @@ async def lifespan(app: FastAPI):
         create_tables()
         logger.info("Database tables created/verified")
 
+    # Apply DB indexes (idempotent — skips existing, creates missing)
+    from app.db.base import apply_indexes, warm_pool
+    apply_indexes()
+
     # Pre-warm connection pool to avoid cold-start latency
-    from app.db.base import warm_pool
     warm_pool()
 
     yield

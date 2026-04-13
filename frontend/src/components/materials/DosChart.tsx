@@ -83,7 +83,7 @@ export function DosChart({ mpId, className }: DosChartProps) {
 
   // Transform API data into recharts-friendly rows
   const { chartData, projectionKeys, hasSpin } = useMemo(() => {
-    if (!data) {
+    if (!data || !data.total?.energies?.length) {
       return { chartData: [], projectionKeys: [] as { key: string; label: string; color: string }[], hasSpin: false };
     }
 
@@ -146,7 +146,7 @@ export function DosChart({ mpId, className }: DosChartProps) {
 
   // ── Error state ────────────────────────────────────────────────────────
 
-  if (isError || !data) {
+  if (isError || !data || !data.total?.energies?.length) {
     return (
       <Card className={cn("w-full", className)}>
         <CardHeader>

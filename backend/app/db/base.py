@@ -124,6 +124,36 @@ def create_tables() -> None:
     _add_missing_columns()
 
 
+def apply_indexes() -> None:
+    """Create any indexes defined in ORM __table_args__ that don't exist yet.
+
+    SQLAlchemy's create_all() skips indexes on existing tables.
+    This function explicitly creates them using IF NOT EXISTS.
+    """
+    from sqlalchemy import inspect as sa_inspect, text
+
+    inspector = sa_inspect(engine)
+
+    with engine.begin() as conn:
+        # Ensure pg_trgm extension for trigram indexes
+        try:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        except Exception:
+            pass
+
+        for table_name, table in Base.metadata.tables.items():
+            existing_indexes = {idx["name"] for idx in inspector.get_indexes(table_name)}
+
+            for idx in table.indexes:
+                if idx.name in existing_indexes:
+                    continue
+                try:
+                    idx.create(bind=conn)
+                    logger.info("Created index: %s", idx.name)
+                except Exception as e:
+                    logger.warning("Could not create index %s: %s", idx.name, e)
+
+
 def _add_missing_columns() -> None:
     """Compare ORM models against live DB schema and add missing columns."""
     from sqlalchemy import inspect as sa_inspect, text
