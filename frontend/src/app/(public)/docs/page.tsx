@@ -7,192 +7,153 @@ import {
   Sparkles,
   Terminal,
   Code2,
-  FlaskConical,
   Layers,
-  Settings2,
   FileCode,
   ArrowRight,
-  Cpu,
-  Target,
   Zap,
+  Star,
+  Database,
+  Clock,
 } from "lucide-react";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DOC_CATEGORIES, getDocsByCategory, type DocCategoryMeta } from "@/content/docs";
+import type { LucideIcon } from "lucide-react";
 
-const SECTIONS = [
-  {
-    title: "Getting Started",
-    icon: Sparkles,
-    gradient: "from-blue-500 to-cyan-500",
-    items: [
-      { title: "Quick Start Guide", desc: "Create your first campaign in 5 minutes", badge: "Essential" },
-      { title: "Installation", desc: "Set up MatCraft locally with Docker or pip" },
-      { title: "Core Concepts", desc: "Materials, parameters, objectives, and Pareto fronts" },
-    ],
-  },
-  {
-    title: "Material Definition Language",
-    icon: FileCode,
-    gradient: "from-purple-500 to-violet-500",
-    items: [
-      { title: "MDL Specification", desc: "YAML format for defining material optimization problems" },
-      { title: "Parameters", desc: "Defining input variables with ranges and units" },
-      { title: "Objectives", desc: "Setting optimization targets and directions" },
-      { title: "Constraints", desc: "Hard and soft constraints on solutions" },
-    ],
-  },
-  {
-    title: "Optimization Engine",
-    icon: Zap,
-    gradient: "from-amber-500 to-orange-500",
-    items: [
-      { title: "CMA-ES Optimizer", desc: "Covariance Matrix Adaptation Evolution Strategy" },
-      { title: "MLP Surrogate", desc: "Neural network surrogate with MC Dropout uncertainty" },
-      { title: "Active Learning", desc: "Acquisition functions and convergence criteria" },
-      { title: "Pareto Analysis", desc: "NSGA-II non-dominated sorting and crowding distance" },
-    ],
-  },
-  {
-    title: "Domains & Plugins",
-    icon: Layers,
-    gradient: "from-emerald-500 to-teal-500",
-    items: [
-      { title: "Built-in Domains", desc: "11 materials science domains with physics models" },
-      { title: "Custom Plugins", desc: "Creating your own evaluator plugins" },
-      { title: "Physics Models", desc: "Domain-specific equations and parameters" },
-    ],
-  },
-  {
-    title: "API Reference",
-    icon: Code2,
-    gradient: "from-rose-500 to-pink-500",
-    items: [
-      { title: "REST API", desc: "Campaign management, results, and export endpoints" },
-      { title: "WebSocket API", desc: "Real-time campaign progress updates" },
-      { title: "Python SDK", desc: "Programmatic access via the materia package" },
-    ],
-  },
-  {
-    title: "CLI Reference",
-    icon: Terminal,
-    gradient: "from-slate-500 to-gray-600",
-    items: [
-      { title: "materia init", desc: "Scaffold a new material optimization project" },
-      { title: "materia run", desc: "Execute an optimization campaign" },
-      { title: "materia results", desc: "View and export campaign results" },
-      { title: "materia dashboard", desc: "Generate an interactive HTML dashboard" },
-    ],
-  },
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+  Sparkles,
+  FileCode,
+  Zap,
+  Layers,
+  Code2,
+  Terminal,
+  Star,
+  Database,
+  BookOpen,
+};
 
 export default function DocsPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <Header />
 
       {/* Hero */}
-      <section className="pt-28 pb-16 bg-gradient-to-b from-blue-50/50 to-white">
+      <section className="pt-28 pb-16 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-950/20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-200 mb-4">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-sm font-medium border border-blue-200 dark:border-blue-800 mb-4">
               <BookOpen className="h-3.5 w-3.5" />
               Documentation
             </span>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
               Learn <span className="gradient-text">MatCraft</span>
             </h1>
-            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-              Everything you need to know about materials optimization with
-              surrogate models, active learning, and Pareto analysis.
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Comprehensive guides for materials search, 3D visualization,
+              structure building, AI-powered discovery, and the full REST API.
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Quick start code block */}
-      <section className="pb-12">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="bg-gray-950 border-gray-800 overflow-hidden">
-            <CardHeader className="pb-2 border-b border-gray-800">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-xs text-gray-500 ml-2">terminal</span>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <pre className="p-6 text-sm font-mono text-gray-300 overflow-x-auto">
-                <code>
-                  <span className="text-gray-500"># Install MatCraft</span>{"\n"}
-                  <span className="text-green-400">$</span> pip install materia{"\n\n"}
-                  <span className="text-gray-500"># Initialize a water filtration project</span>{"\n"}
-                  <span className="text-green-400">$</span> materia init --domain water --name my-membrane{"\n\n"}
-                  <span className="text-gray-500"># Run optimization (500 evals, 15 rounds)</span>{"\n"}
-                  <span className="text-green-400">$</span> materia run material.yaml --budget 500 --rounds 15{"\n\n"}
-                  <span className="text-gray-500"># View Pareto-optimal results</span>{"\n"}
-                  <span className="text-green-400">$</span> materia results --top 10{"\n"}
-                  <span className="text-cyan-400">Found 12 Pareto-optimal materials</span>{"\n"}
-                  <span className="text-cyan-400">Best PFOS rejection: 99.2%</span>
-                </code>
-              </pre>
-            </CardContent>
-          </Card>
+      {/* Quick links */}
+      <section className="pb-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap justify-center gap-2">
+            {DOC_CATEGORIES.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/docs/${cat.slug}`}
+                className="px-3 py-1.5 text-sm rounded-full border border-border bg-card hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {cat.title}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Documentation sections */}
-      <section className="py-12">
+      <section className="py-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-8">
-            {SECTIONS.map((section, i) => {
-              const Icon = section.icon;
+            {DOC_CATEGORIES.map((section, i) => {
+              const Icon = ICON_MAP[section.icon] ?? Sparkles;
+              const pages = getDocsByCategory(section.slug);
+              if (pages.length === 0) return null;
+
               return (
                 <motion.div
-                  key={section.title}
+                  key={section.slug}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: i * 0.04 }}
                 >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-xl bg-gradient-to-br ${section.gradient} flex items-center justify-center shadow-sm`}
-                        >
-                          <Icon className="h-5 w-5 text-white" />
-                        </div>
-                        {section.title}
-                      </CardTitle>
+                  <Card className="border-border">
+                    <CardHeader className="pb-3">
+                      <Link href={`/docs/${section.slug}`} className="group">
+                        <CardTitle className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-xl bg-gradient-to-br ${section.gradient} flex items-center justify-center shadow-sm`}
+                          >
+                            <Icon className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <span className="group-hover:text-primary transition-colors">
+                              {section.title}
+                            </span>
+                            <p className="text-sm font-normal text-muted-foreground mt-0.5">
+                              {section.description}
+                            </p>
+                          </div>
+                          <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground group-hover:text-primary transition-colors" />
+                        </CardTitle>
+                      </Link>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {section.items.map((item) => (
-                          <div
-                            key={item.title}
-                            className="p-4 rounded-lg border hover:bg-gray-50 hover:border-blue-200 transition-colors cursor-pointer group"
+                        {pages.slice(0, 6).map((page) => (
+                          <Link
+                            key={page.slug}
+                            href={`/docs/${page.category}/${page.slug}`}
+                            className="group/item"
                           >
-                            <div className="flex items-start justify-between">
-                              <h4 className="text-sm font-semibold group-hover:text-blue-600 transition-colors">
-                                {item.title}
-                              </h4>
-                              {"badge" in item && item.badge && (
-                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
-                                  {item.badge}
-                                </Badge>
-                              )}
+                            <div className="p-4 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/30 transition-colors">
+                              <div className="flex items-start justify-between">
+                                <h4 className="text-sm font-semibold text-foreground group-hover/item:text-primary transition-colors">
+                                  {page.title}
+                                </h4>
+                                {page.order === 0 && (
+                                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                                    Start here
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {page.description}
+                              </p>
+                              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground mt-2">
+                                <Clock className="h-2.5 w-2.5" />
+                                {page.readingTime} min
+                              </span>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {item.desc}
-                            </p>
-                          </div>
+                          </Link>
                         ))}
+                        {pages.length > 6 && (
+                          <Link
+                            href={`/docs/${section.slug}`}
+                            className="p-4 rounded-lg border border-dashed border-border hover:border-primary/30 transition-colors flex items-center justify-center text-sm text-muted-foreground hover:text-primary"
+                          >
+                            +{pages.length - 6} more pages
+                            <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                          </Link>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -206,21 +167,33 @@ export default function DocsPage() {
       {/* CTA */}
       <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="max-w-3xl mx-auto px-4 text-center text-white">
-          <h2 className="text-3xl font-bold mb-4">Ready to Start?</h2>
+          <h2 className="text-3xl font-bold mb-4">Ready to Explore?</h2>
           <p className="text-blue-100 mb-6">
-            Create your first materials optimization campaign today.
+            Search 205,000+ materials, visualize crystal structures, and discover new candidates.
           </p>
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="border-white text-white hover:bg-white hover:text-blue-600"
-          >
-            <Link href="/register">
-              Get Started Free
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="border-white text-white hover:bg-white hover:text-blue-600"
+            >
+              <Link href="/materials">
+                Browse Materials
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="border-white/50 text-white hover:bg-white hover:text-blue-600"
+            >
+              <Link href="/docs/tutorials/getting-started">
+                Getting Started Tutorial
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 

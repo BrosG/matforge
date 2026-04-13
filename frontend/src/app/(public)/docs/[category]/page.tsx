@@ -8,6 +8,9 @@ import {
   Layers,
   Code2,
   Terminal,
+  Star,
+  Database,
+  BookOpen,
   Clock,
   type LucideIcon,
 } from "lucide-react";
@@ -23,6 +26,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Layers,
   Code2,
   Terminal,
+  Star,
+  Database,
+  BookOpen,
 };
 
 interface CategoryPageProps {
@@ -95,9 +101,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               href={`/docs/${page.category}/${page.slug}`}
               className="group"
             >
-              <Card className="h-full transition-colors hover:border-blue-300 hover:bg-blue-50/30">
+              <Card className="h-full transition-colors hover:border-primary/30 hover:bg-muted/30">
                 <CardContent className="p-5">
-                  <h3 className="font-semibold text-base group-hover:text-blue-600 transition-colors">
+                  <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
                     {page.title}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">

@@ -13,6 +13,11 @@ import {
   Search,
   ChevronDown,
   ExternalLink,
+  Database,
+  Atom,
+  Code,
+  User,
+  FlaskConical,
 } from "lucide-react";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -33,6 +38,11 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Layers,
   CreditCard,
   Settings,
+  Database,
+  Atom,
+  Code,
+  User,
+  FlaskConical,
 };
 
 const SITE_URL = "https://matcraft.ai";
