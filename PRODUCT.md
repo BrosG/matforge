@@ -1,10 +1,10 @@
-# MatForge — Complete Product Documentation
+# MatCraft — Complete Product Documentation
 
 > **The most comprehensive open materials discovery platform.**
 > 205,000+ real materials from Materials Project + AFLOW, with AI-powered screening, 3D visualization, and computational tools.
 
 **Live at:** [matcraft.ai](https://matcraft.ai)
-**API Docs:** [matcraft.ai/api/v1/docs](https://api.matcraft.ai/api/v1/docs)
+**API Docs:** [api.matcraft.ai/api/v1/docs](https://api.matcraft.ai/api/v1/docs)
 **Repository:** [github.com/BrosG/matforge](https://github.com/BrosG/matforge)
 
 ---
@@ -36,7 +36,7 @@
 
 ## 1. Platform Overview
 
-MatForge is a materials science platform that combines:
+MatCraft is a materials science platform that combines:
 
 - **205,000+ real DFT-computed materials** from Materials Project and AFLOW
 - **30+ properties per material** including thermodynamic, mechanical, electronic, magnetic, and thermal data
@@ -865,51 +865,160 @@ Download auto-generated notebooks from any material page.
 
 ---
 
-## 20. Roadmap
+## 20. Shipped Features (v0.3.0)
 
-### Shipped (v0.3.0)
-- [x] 205k real materials from MP + AFLOW
-- [x] 30+ properties per material
-- [x] 3D crystal structure viewer with unit cell + supercell
-- [x] Property tooltips (17 properties)
-- [x] Application suitability scores
-- [x] CIF/POSCAR/XYZ export
-- [x] Jupyter notebook generator
-- [x] Band structure / DOS / XRD APIs
-- [x] Phase diagram API
-- [x] Structure builder (supercell, surface, nanoparticle, substitution)
-- [x] AI inverse design
-- [x] Scatter plot page
-- [x] Scientific warnings + provenance
-- [x] Citations with DOIs
-- [x] ICSD experimental validation
-- [x] Decomposition pathways
-- [x] Safe expression evaluator (security)
-- [x] Rate limiting with Redis fallback
-- [x] Request tracing + structured logging
-- [x] 69 backend tests
+### Data & Ingestion
+- [x] 205,000+ real materials from Materials Project (~155k) + AFLOW (~50k)
+- [x] 30+ properties per material (thermodynamic, mechanical, electronic, magnetic, thermal, provenance)
+- [x] Automated background ingestion via Celery (paginates all APIs, rate-limited)
+- [x] Versioned ingestion markers — bump version to force full re-ingestion
+- [x] Upsert logic — duplicate external_ids update instead of crash
+- [x] JARVIS dataset downloaded to GCS bucket (Figshare blocks Cloud Run)
+- [x] Crystal system normalization (AFLOW Bravais codes → standard names: fcc→Cubic, etc.)
+- [x] Stability detection from Ehull (≤0.025 eV/atom) or formation energy fallback
 
-### Next (v0.4.0)
-- [ ] JARVIS data integration (75k materials)
-- [ ] OQMD integration (1M+ entries)
-- [ ] Interactive band structure chart component
-- [ ] Interactive DOS chart component
-- [ ] Interactive phase diagram component
-- [ ] Full 3D structure builder UI
-- [ ] Natural language search (LLM → filter)
-- [ ] Materials co-pilot chat
-- [ ] Multi-material comparator UI
-- [ ] Dark mode
-- [ ] Mobile-responsive optimization
+### Material Detail Page
+- [x] Header: formula, stability badge, crystal system, space group, source, atom count
+- [x] Scientific warnings (theoretical structure, DFT band gap underestimation, instability)
+- [x] Provenance badges (DFT method, Theoretical/Experimental, magnetic ordering, direct/indirect gap)
+- [x] Experimental validation (ICSD IDs in green box when structure is experimentally verified)
+- [x] Decomposition pathway (competing phases as red badges for unstable materials)
+- [x] Property tables grouped by category with hover tooltips (17 properties with descriptions + typical ranges)
+- [x] Application suitability scores (Solar, LED, Thermoelectric, Semiconductor, Hard Coating, Battery, Catalyst)
+- [x] Composition as percentages (50.0%, 25.0%, 25.0%)
+- [x] Lattice parameters with conventional cell label + collapsible primitive cell
+- [x] Oxidation states display
+- [x] Data source & citation with DOIs (Materials Project, AFLOW)
+- [x] Copy Citation button (one-click clipboard copy with material ID + DOI + access date)
+- [x] Cross-reference IDs to other databases
+- [x] Download buttons: CIF, POSCAR, XYZ, Jupyter notebook
+- [x] Quick stats cards (Band Gap, Formation Energy, Ehull)
+- [x] Related materials (12 by shared elements/crystal system)
+- [x] Fermi energy displayed in electronic properties
+- [x] Material-specific SEO keywords (formula, elements, space group, crystal system)
+- [x] JSON-LD structured data with property values (band gap, density, crystal system)
+- [x] Page title: "Ac₂SiHg — Cubic Fm-3m | MatCraft"
 
-### Future (v1.0)
-- [ ] 2D materials database (C2DB, JARVIS-2D)
-- [ ] Foundation model integration (GNoME, MACE-MP, CHGNet)
-- [ ] VR/AR crystal viewer (WebXR)
-- [ ] Patent landscape connector
-- [ ] Community annotations
-- [ ] Enterprise SSO/SAML
-- [ ] On-premise deployment (Docker + K8s)
+### 3D Crystal Structure Viewer
+- [x] React Three Fiber WebGL rendering with CPK element coloring (70+ elements)
+- [x] Adaptive bond detection (min pairwise distance × 1.3, covers covalent ~1.5Å to metallic ~4.5Å)
+- [x] Unit cell wireframe from raw 3x3 lattice matrix (12 edges)
+- [x] 2x2x2 supercell expansion for primitive cells with <8 atoms
+- [x] Orbit controls (rotate, zoom, pan) + auto-rotation
+- [x] Raw lattice matrix stored at ingestion — atoms and box in same coordinate frame
+
+### Search & Discovery
+- [x] Paginated search with 20+ filter parameters
+- [x] Text search (formula, elements, external ID)
+- [x] Filters: crystal system, band gap range, formation energy range, bulk/shear modulus range, thermal conductivity range, magnetic ordering, has elastic data, stability, source database
+- [x] Sort by 16 properties (ascending/descending)
+- [x] Categories API (crystal system distribution, electronic classification, property coverage)
+- [x] Interactive scatter plot page (/materials/scatter) — any 2 of 16 properties, color by third, filter by crystal system
+- [x] Similar materials API (same space group + similar band gap + same n_elements)
+- [x] Stats endpoint with Redis caching (5-minute TTL)
+
+### Electronic Structure & Computational APIs
+- [x] Band structure API (`GET /electronic/bandstructure/{mp_id}`) — via mp-api, returns plottable JSON
+- [x] Density of States API (`GET /electronic/dos/{mp_id}`) — total + element-projected
+- [x] XRD pattern simulator (`GET /electronic/xrd/{mp_id}`) — pymatgen XRDCalculator, configurable wavelength
+- [x] Phase diagram API (`GET /electronic/phase_diagram?elements=Li,Fe,O`) — convex hull, 2-4 elements
+- [x] Jupyter notebook generator (`GET /electronic/notebook/{mp_id}`) — auto-generated .ipynb
+
+### Structure Builder APIs
+- [x] Supercell generator (`POST /builder/supercell`) — NxMxL from any MP material
+- [x] Surface/slab builder (`POST /builder/surface`) — Miller index, slab thickness, vacuum
+- [x] Nanoparticle carver (`POST /builder/nanoparticle`) — spherical, configurable radius
+- [x] Element substitution (`POST /builder/substitute`) — full or partial
+- [x] AI inverse design (`POST /builder/inverse_design`) — target properties → ranked candidates
+
+### Materials Discovery Engine (Materia)
+- [x] Active learning loop: Latin Hypercube Sampling → surrogate training → CMA-ES optimization → evaluation
+- [x] Surrogate models: NumPy MLP (MC Dropout), ONNX, CHGNet, MACE
+- [x] Acquisition functions: MaxUncertainty, ExpectedImprovement, WeightedUCB
+- [x] Pareto front computation (NSGA-II + crowding distance)
+- [x] CLI: `materia init`, `run`, `results`, `pareto`, `dashboard`, `export`, `suggest`
+- [x] Plugin system (water treatment domain with PFOS rejection + permeability physics)
+
+### Security
+- [x] Safe expression evaluator (AST-whitelisted, replaces eval/exec)
+- [x] Rate limiting with in-memory fallback when Redis unavailable
+- [x] Request ID tracing + structured logging on every request
+- [x] Global exception handler (never leaks stack traces)
+- [x] Startup config validation (SECRET_KEY enforcement in production)
+- [x] Security headers (X-Content-Type-Options, X-Frame-Options, Permissions-Policy, Cache-Control)
+- [x] Internal pipeline fields stripped at API boundary (_matcraft_* markers)
+
+### Testing
+- [x] 69 backend tests (24 safe_eval + 45 API: users, campaigns, templates, health, middleware)
+- [x] 15 lattice conversion tests
+- [x] 107 core engine tests (active learning, CLI, connectors, MLP, CMA-ES, Pareto, plugins)
+
+### Infrastructure
+- [x] Auto-deploy on push to main (staging) and v* tags (production) via GitHub Actions
+- [x] Docker multi-stage builds (Python 3.12 slim, Node 22 alpine)
+- [x] Cloud Run: API (2GiB), Worker (4GiB), Frontend (512MiB)
+- [x] Cloud SQL (PostgreSQL) via VPC connector + Unix socket
+- [x] Redis (Memorystore) for caching + Celery task broker
+- [x] Auto-column creation on startup (ALTER TABLE for new ORM columns)
+- [x] Firebase auth with graceful degradation when appId missing
+
+---
+
+## 21. Known Issues & Remaining Work
+
+### Bugs (confirmed, fixes in progress)
+
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| 1 | BCT tetragonal lattice shows a=b=c instead of a=b≠c for I4/mmm space groups | Critical | Fix deployed, needs re-ingestion to propagate |
+| 2 | AFLOW entries show `--` for formation energy and Ehull with no explanation | Medium | Needs tooltip: "Not available — AFLOW does not provide this property" |
+| 3 | Mechanical properties (bulk/shear/Young's modulus) inconsistently shown — present for some MP materials but absent for others with the data | Medium | PropertyTable hides null rows correctly; coverage is ~10% of MP |
+| 4 | 3D viewer bonds absent for some metallic compounds | Medium | Adaptive threshold deployed; re-ingestion needed for lattice_matrix |
+| 5 | Decomposition pathway not rendering for all unstable materials | Low | `decomposes_to` field populated by MP but frontend section only shows when non-empty |
+
+### Features — Remaining (ordered by difficulty)
+
+#### Trivial (one-liners)
+| # | Feature | Description |
+|---|---------|-------------|
+| 1 | AFLOW `--` tooltip | Show "Not available — AFLOW does not provide this property" on hover when values are null |
+| 2 | AFLOW formation energy fallback | Derive from total energy + elemental references when available, or show clear "N/A" badge |
+
+#### Small (frontend, data already exists)
+| # | Feature | Description |
+|---|---------|-------------|
+| 3 | Effective mass display | Add electron/hole effective mass rows to Electronic table (schema exists, data sparse) |
+| 4 | JARVIS flat file ingestion | Dataset downloaded to GCS; ingestion task coded but `jarvis-tools` fails in Docker. Alternative: read JSON directly from GCS (code exists, needs testing) |
+
+#### Medium (new UI components)
+| # | Feature | Description |
+|---|---------|-------------|
+| 5 | Dark mode | Tailwind `dark:` variants, root class toggle, theme persistence in localStorage |
+| 6 | Primitive/conventional cell toggle | Button above lattice params swapping between conventional and primitive (both stored) |
+| 7 | Interactive band structure chart | Frontend component using Recharts/D3 — API returns plottable JSON, zero backend work |
+| 8 | Interactive DOS chart | Horizontal bar chart alongside band structure — API ready |
+| 9 | Interactive phase diagram | Binary/ternary diagram from convex hull API — D3 for ternary geometry |
+| 10 | Mobile 3D viewer optimization | Touch event handlers for React Three Fiber OrbitControls, reduced atom/bond sizes on small screens |
+
+#### Large (significant new features)
+| # | Feature | Description |
+|---|---------|-------------|
+| 11 | 3D structure builder UI | Browser UI for supercell/surface/nanoparticle/substitution builders (APIs all working) |
+| 12 | Natural language search | LLM parses "stable semiconductor for solar cells with no lead" → API filter params |
+| 13 | Materials co-pilot chat | Chat sidebar with material context loaded, LLM answers using real property data |
+| 14 | Multi-material comparator | Select 2-5 materials, side-by-side comparison table + radar chart + 3D viewers |
+| 15 | OQMD integration | 1M+ entries from oqmd.org REST API. Deduplication against MP entries needed |
+
+#### Future (v1.0+)
+| # | Feature | Description |
+|---|---------|-------------|
+| 16 | 2D materials database | C2DB, JARVIS-2D: graphene, MoS₂, h-BN, 5000+ 2D materials |
+| 17 | Foundation model integration | GNoME (Google), MACE-MP, CHGNet for property prediction |
+| 18 | VR/AR crystal viewer | WebXR mode for immersive structure exploration |
+| 19 | Patent landscape connector | Link materials to patents mentioning them |
+| 20 | Community annotations | User notes, data quality flags, corrections |
+| 21 | Enterprise SSO/SAML | University/corporate single sign-on |
+| 22 | On-premise deployment | Docker + Kubernetes package for air-gapped environments |
 
 ---
 
@@ -920,3 +1029,4 @@ MIT License. Data from Materials Project and AFLOW is used under their respectiv
 ---
 
 *Built with Claude Code. Powered by Materials Project, AFLOW, and JARVIS-DFT.*
+*Platform: [matcraft.ai](https://matcraft.ai) | Repository: [github.com/BrosG/matforge](https://github.com/BrosG/matforge)*
