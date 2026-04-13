@@ -1881,7 +1881,7 @@ export default function MaterialBuilder() {
                 {ELEMENT_CATEGORIES[elementCategory].map((el) => (
                   <button
                     key={el}
-                    onClick={() => setActiveElement(el)}
+                    onClick={() => { setActiveElement(el); setFracElement(el); }}
                     className={cn(
                       "relative flex flex-col items-center justify-center p-1 rounded-md border text-[10px] font-medium transition-all h-10",
                       activeElement === el
@@ -2216,7 +2216,7 @@ export default function MaterialBuilder() {
               <div className="space-y-2">
                 <select
                   value={fracElement}
-                  onChange={(e) => setFracElement(e.target.value)}
+                  onChange={(e) => { setFracElement(e.target.value); setActiveElement(e.target.value); }}
                   className="w-full h-7 rounded border border-border bg-card px-1.5 text-xs text-foreground"
                 >
                   {ALL_ELEMENTS.map((el) => (
