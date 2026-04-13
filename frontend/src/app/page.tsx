@@ -422,6 +422,174 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ===== MATERIAL BUILDER ===== */}
+      <section className="py-24 relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-gray-950 to-purple-950" />
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <motion.div
+            className="text-center mb-16"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+          >
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold mb-4">
+              <Atom className="h-4 w-4" />
+              New: 3D Material Builder
+            </span>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mt-3">
+              Build Any Structure.{" "}
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                Visually.
+              </span>
+            </h2>
+            <p className="text-lg text-gray-400 mt-4 max-w-3xl mx-auto">
+              The most powerful materials structure editor on the web. Load any material from 205,000+ entries,
+              modify it in 3D, and export simulation-ready files — all in your browser.
+            </p>
+          </motion.div>
+
+          {/* Feature grid */}
+          <div className="grid md:grid-cols-3 gap-6 mb-16">
+            {[
+              {
+                icon: Layers,
+                title: "Transform",
+                items: ["Supercell expansion (NxMxL)", "Primitive ↔ conventional cell", "Standard orientation"],
+                color: "blue",
+              },
+              {
+                icon: Target,
+                title: "Carve & Shape",
+                items: ["Nanoparticles (sphere, cube)", "Surface slabs (Miller index)", "Cluster extraction"],
+                color: "purple",
+              },
+              {
+                icon: FlaskConical,
+                title: "Modify",
+                items: ["Element substitution (full/partial)", "Vacancy creation", "Interstitial atoms"],
+                color: "cyan",
+              },
+            ].map((card, i) => (
+              <motion.div
+                key={card.title}
+                className="group relative rounded-2xl border border-gray-700/50 bg-gray-900/50 backdrop-blur-sm p-6 hover:border-blue-500/40 transition-all hover:bg-gray-900/80"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i + 1}
+                variants={fadeUp}
+              >
+                <div className={`w-12 h-12 rounded-xl bg-${card.color}-500/10 border border-${card.color}-500/20 flex items-center justify-center mb-4`}>
+                  <card.icon className={`h-6 w-6 text-${card.color}-400`} />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">{card.title}</h3>
+                <ul className="space-y-2">
+                  {card.items.map((item) => (
+                    <li key={item} className="flex items-center gap-2 text-sm text-gray-400">
+                      <ChevronRight className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Workflow strip */}
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-16"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={3}
+          >
+            {[
+              { step: "1", label: "Load Material", desc: "From 205k+ database or upload CIF" },
+              { step: "2", label: "Modify in 3D", desc: "Place, move, substitute atoms" },
+              { step: "3", label: "Transform", desc: "Supercell, surface, nanoparticle" },
+              { step: "4", label: "Analyze", desc: "Composition, bonds, coordination" },
+              { step: "5", label: "Export", desc: "CIF, POSCAR, XYZ, LAMMPS" },
+            ].map((s) => (
+              <div key={s.step} className="text-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-2 text-white font-bold text-sm shadow-lg shadow-blue-500/20">
+                  {s.step}
+                </div>
+                <div className="text-sm font-semibold text-white">{s.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{s.desc}</div>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Export formats + CTA */}
+          <motion.div
+            className="rounded-2xl border border-gray-700/50 bg-gray-900/50 backdrop-blur-sm p-8"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={4}
+          >
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-3">
+                  Export to Any Simulation Code
+                </h3>
+                <p className="text-gray-400 mb-6">
+                  One click to generate input files ready for VASP, Quantum ESPRESSO,
+                  LAMMPS, CP2K, and more. No format conversion headaches.
+                </p>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {["CIF", "POSCAR", "XYZ", "LAMMPS", "PDB"].map((fmt) => (
+                    <span key={fmt} className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-xs font-mono font-bold text-gray-300">
+                      .{fmt.toLowerCase()}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild variant="gradient" size="lg">
+                    <Link href="/material-builder">
+                      Open Material Builder
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" className="bg-gray-800 border border-gray-700 text-white hover:bg-gray-700">
+                    <Link href="/materials">
+                      Browse Materials First
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Materials", value: "205,000+", sub: "MP + AFLOW + JARVIS" },
+                  { label: "Elements", value: "94", sub: "Full periodic table" },
+                  { label: "Export Formats", value: "5+", sub: "CIF, POSCAR, XYZ..." },
+                  { label: "Operations", value: "8", sub: "Transform, carve, modify" },
+                ].map((stat) => (
+                  <div key={stat.label} className="rounded-xl bg-gray-800/50 border border-gray-700/50 p-4 text-center">
+                    <div className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                      {stat.value}
+                    </div>
+                    <div className="text-xs font-semibold text-white mt-1">{stat.label}</div>
+                    <div className="text-[10px] text-gray-500">{stat.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ===== BENEFITS ===== */}
       <section className="py-24 bg-gray-50/50">
         <div className="max-w-5xl mx-auto px-4">
