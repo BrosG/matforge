@@ -39,6 +39,7 @@ import {
   Legend,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import DeepScan from "./DeepScan";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1109,6 +1110,9 @@ export function IPRadar() {
               </div>
             )}
           </motion.div>
+
+          {/* ----- Deep Scan CTA ----- */}
+          <DeepScan query={query} />
 
           {/* ----- Charts Grid ----- */}
           <motion.div

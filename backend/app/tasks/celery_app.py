@@ -10,7 +10,7 @@ celery_app = Celery(
     "matcraft",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.run_campaign", "app.tasks.ingest_materials"],
+    include=["app.tasks.run_campaign", "app.tasks.ingest_materials", "app.tasks.deep_scan"],
 )
 
 celery_app.conf.update(
@@ -30,6 +30,7 @@ celery_app.conf.update(
     task_routes={
         "app.tasks.run_campaign.*": {"queue": "campaigns"},
         "app.tasks.ingest_materials.*": {"queue": "default"},
+        "app.tasks.deep_scan.*": {"queue": "default"},
     },
 )
 
