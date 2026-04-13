@@ -272,8 +272,8 @@ export function PhaseDiagramChart({
     );
   }
 
-  const stableCount = data.entries.filter((e) => e.stable).length;
-  const totalCount = data.entries.length;
+  const stableCount = allEntries.filter((e) => e.stable).length;
+  const totalCount = allEntries.length;
 
   // ── Binary phase diagram ───────────────────────────────────────────────
 
@@ -390,10 +390,10 @@ export function PhaseDiagramChart({
   // ── Multi-element (ternary+) simplified view ───────────────────────────
 
   // Show as a list-based scatter of stable vs unstable phases by energy
-  const allPoints = data.entries
+  const allPoints = allEntries
     .map((entry, idx) => ({
       idx,
-      energy: entry.energy,
+      energy: entry.energy_per_atom ?? entry.energy ?? 0,
       formula: entry.formula,
       stable: entry.stable,
     }))
