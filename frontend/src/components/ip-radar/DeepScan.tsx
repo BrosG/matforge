@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 interface DeepScanProps {
   query: string;
   className?: string;
+  userCredits?: number | null;
+  onRequestPurchase?: () => void;
 }
 
 interface ScanStatus {
@@ -96,7 +98,12 @@ const STATUS_LABELS: Record<string, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function DeepScan({ query, className }: DeepScanProps) {
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("access_token") || null;
+}
+
+export default function DeepScan({ query, className, userCredits, onRequestPurchase }: DeepScanProps) {
   // --- State ---
   const [showModal, setShowModal] = useState(false);
   const [directive, setDirective] = useState("");
@@ -108,8 +115,13 @@ export default function DeepScan({ query, className }: DeepScanProps) {
   const [polling, setPolling] = useState(false);
   const [results, setResults] = useState<ScanResults | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [creditsCharged, setCreditsCharged] = useState<number | null>(null);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Compute credit cost for display
+  const creditCost = Math.max(1, Math.floor(maxPatents / 100));
+  const hasEnoughCredits = userCredits == null || userCredits >= creditCost;
 
   // --- Polling logic ---
   const stopPolling = useCallback(() => {
@@ -169,9 +181,13 @@ export default function DeepScan({ query, className }: DeepScanProps) {
     setError(null);
 
     try {
+      const token = getToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch(`${API_BASE}/deep-scan/launch`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           query: query.trim(),
           directive: directive.trim(),
@@ -180,10 +196,22 @@ export default function DeepScan({ query, className }: DeepScanProps) {
         }),
       });
 
+      if (res.status === 402) {
+        setError(`Insufficient credits. You need ${creditCost} credits for this scan.`);
+        onRequestPurchase?.();
+        setLaunching(false);
+        return;
+      }
+      if (res.status === 401) {
+        setError("Authentication required. Please sign in to launch a Deep Scan.");
+        setLaunching(false);
+        return;
+      }
       if (!res.ok) throw new Error("Failed to launch deep scan");
 
       const data = await res.json();
       const id = data.scan_id;
+      setCreditsCharged(data.credits_charged ?? null);
       setScanId(id);
       setStatus({
         scan_id: id,
@@ -392,19 +420,41 @@ export default function DeepScan({ query, className }: DeepScanProps) {
                   </div>
                 </div>
 
-                {/* Cost indicator */}
-                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50">
-                  <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                {/* Credit cost indicator */}
+                <div className={cn(
+                  "flex items-center gap-2 px-4 py-3 rounded-xl border",
+                  hasEnoughCredits
+                    ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50"
+                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50"
+                )}>
+                  <Zap className={cn(
+                    "h-4 w-4 shrink-0",
+                    hasEnoughCredits
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-red-600 dark:text-red-400"
+                  )} />
                   <div className="text-sm">
-                    <span className="line-through text-gray-400 mr-2">
-                      $950 per Deep Scan
+                    <span className={cn(
+                      "font-semibold",
+                      hasEnoughCredits
+                        ? "text-amber-700 dark:text-amber-400"
+                        : "text-red-700 dark:text-red-400"
+                    )}>
+                      {creditCost} credit{creditCost !== 1 ? "s" : ""}
                     </span>
-                    <span className="font-semibold text-emerald-700 dark:text-emerald-400">
-                      Free during beta
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1">
-                      (Enterprise: 5/month included)
-                    </span>
+                    {userCredits != null && (
+                      <span className="text-gray-500 dark:text-gray-400 ml-2">
+                        (you have {userCredits})
+                      </span>
+                    )}
+                    {!hasEnoughCredits && (
+                      <button
+                        onClick={() => onRequestPurchase?.()}
+                        className="ml-2 text-blue-600 dark:text-blue-400 underline font-medium"
+                      >
+                        Buy more
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -421,10 +471,10 @@ export default function DeepScan({ query, className }: DeepScanProps) {
               <div className="p-6 border-t border-gray-100 dark:border-gray-800">
                 <button
                   onClick={handleLaunch}
-                  disabled={launching || !directive.trim()}
+                  disabled={launching || !directive.trim() || !hasEnoughCredits}
                   className={cn(
                     "w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white shadow-lg transition-all duration-200",
-                    directive.trim() && !launching
+                    directive.trim() && !launching && hasEnoughCredits
                       ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30"
                       : "bg-gray-300 dark:bg-gray-700 cursor-not-allowed shadow-none",
                   )}
@@ -434,10 +484,14 @@ export default function DeepScan({ query, className }: DeepScanProps) {
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Launching...
                     </>
+                  ) : !hasEnoughCredits ? (
+                    <>
+                      Need {creditCost} credits, you have {userCredits ?? 0}
+                    </>
                   ) : (
                     <>
                       <Rocket className="h-4 w-4" />
-                      Launch Deep Scan — Analyze{" "}
+                      Launch Deep Scan — {creditCost} credit{creditCost !== 1 ? "s" : ""} — Analyze{" "}
                       {maxPatents.toLocaleString()} Patents
                     </>
                   )}
@@ -471,6 +525,11 @@ export default function DeepScan({ query, className }: DeepScanProps) {
                   <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                     {scanId}
                   </span>
+                  {creditsCharged != null && creditsCharged > 0 && (
+                    <span className="text-xs px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
+                      Charged {creditsCharged} credit{creditsCharged !== 1 ? "s" : ""}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

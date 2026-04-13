@@ -17,8 +17,13 @@ from datetime import date, datetime
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.core.security import get_current_user_optional
+from app.db.base import get_db
+from app.db.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -1026,7 +1031,12 @@ async def scope_query(body: ScopeRequest) -> ScopeResponse:
 
 
 @router.post("/search", response_model=IPRadarResponse)
-async def ip_radar_search(body: IPRadarRequest) -> IPRadarResponse:
+async def ip_radar_search(
+    body: IPRadarRequest,
+    request: Request,
+    user: User | None = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+) -> IPRadarResponse:
     """Search and analyse materials-science patents for a given query.
 
     Combines Google Patents data with AI-powered (Gemini) or rule-based
@@ -1035,6 +1045,41 @@ async def ip_radar_search(body: IPRadarRequest) -> IPRadarResponse:
     query = body.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query must not be empty.")
+
+    # --- Credit / free-tier gating ---
+    if user is not None:
+        # Authenticated: require 1 credit
+        if user.credits < 1:
+            raise HTTPException(
+                status_code=402,
+                detail="Insufficient credits",
+                headers={"X-Credits": str(user.credits), "X-Required": "1"},
+            )
+        from app.api.v1.endpoints.credits import deduct_credits
+        deduct_credits(db, user, 1, f"IP Radar search: {query[:80]}")
+    else:
+        # Anonymous: 3 free searches per IP per day via Redis
+        try:
+            from app.core.redis_connector import get_redis
+            redis = get_redis()
+            client_ip = request.client.host if request.client else "unknown"
+            free_key = f"ip_free:{client_ip}"
+            current = redis.get(free_key)
+            count = int(current) if current else 0
+            if count >= 3:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Free search limit reached (3/day). Sign in for more.",
+                )
+            if count == 0:
+                redis.setex(free_key, 86400, "1")
+            else:
+                redis.incr(free_key)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            # Redis unavailable — allow the search (fail-open)
+            logger.warning("Redis free-tier check failed: %s", exc)
 
     # Check cache
     key = _cache_key(query, body.max_patents)

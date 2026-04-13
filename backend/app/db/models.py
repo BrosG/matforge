@@ -43,11 +43,13 @@ class User(Base):
     oauth_id = Column(String(255), nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    credits = Column(Integer, nullable=False, default=10)  # 10 free starter credits
     created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
 
     campaigns = relationship("Campaign", back_populates="owner")
     jobs = relationship("Job", back_populates="owner")
+    credit_transactions = relationship("CreditTransaction", back_populates="user")
 
 
 class Campaign(Base):
@@ -243,3 +245,16 @@ class IndexedMaterial(Base):
     tags = Column(JSON, default=list)
     fetched_at = Column(DateTime(timezone=True), default=_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class CreditTransaction(Base):
+    __tablename__ = "credit_transactions"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    amount = Column(Integer, nullable=False)  # positive = purchase, negative = usage
+    balance_after = Column(Integer, nullable=False)
+    description = Column(String(500))
+    created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
+
+    user = relationship("User", back_populates="credit_transactions")

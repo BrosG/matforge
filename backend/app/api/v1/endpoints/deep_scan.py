@@ -13,8 +13,13 @@ import math
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.core.security import get_current_user
+from app.db.base import get_db
+from app.db.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +48,7 @@ class DeepScanLaunchResponse(BaseModel):
     status: str
     message: str
     estimated_time_minutes: int
+    credits_charged: int = 0
 
 
 class DeepScanStatus(BaseModel):
@@ -100,8 +106,26 @@ def _set_scan_meta(scan_id: str, meta: dict) -> None:
 
 
 @router.post("/launch", response_model=DeepScanLaunchResponse)
-async def launch_deep_scan(req: DeepScanRequest):
+async def launch_deep_scan(
+    req: DeepScanRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Launch an asynchronous deep scan.  Returns immediately with a scan ID."""
+
+    # --- Credit gating (requires auth) ---
+    credit_cost = max(1, req.max_patents // 100)
+    if user.credits < credit_cost:
+        raise HTTPException(
+            status_code=402,
+            detail="Insufficient credits",
+            headers={
+                "X-Credits": str(user.credits),
+                "X-Required": str(credit_cost),
+            },
+        )
+    from app.api.v1.endpoints.credits import deduct_credits
+    deduct_credits(db, user, credit_cost, f"Deep Scan: {req.query[:80]} ({req.max_patents} patents)")
 
     scan_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -148,6 +172,7 @@ async def launch_deep_scan(req: DeepScanRequest):
         status="queued",
         message="Deep scan launched. Poll /status for progress.",
         estimated_time_minutes=estimated_minutes,
+        credits_charged=credit_cost,
     )
 
 

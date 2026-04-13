@@ -39,6 +39,7 @@ import {
   Legend,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import CreditBar from "./CreditBar";
 import DeepScan from "./DeepScan";
 
 // ---------------------------------------------------------------------------
@@ -495,6 +496,10 @@ export function IPRadar() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [showSettings, setShowSettings] = useState(false);
 
+  // Credit state
+  const [userCredits, setUserCredits] = useState<number | null>(null);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+
   // Scoping agent state
   const [scopeModal, setScopeModal] = useState(false);
   const [scopeMessage, setScopeMessage] = useState("");
@@ -618,12 +623,29 @@ export function IPRadar() {
       }
 
       try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+        const fetchHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) fetchHeaders["Authorization"] = `Bearer ${token}`;
+
         const res = await fetch(`${API_BASE}/ip-radar/search`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: fetchHeaders,
           body: JSON.stringify({ query: q, max_patents: maxPatents }),
         });
 
+        if (res.status === 402) {
+          setError("Insufficient credits. Purchase more to continue searching.");
+          setShowPurchaseModal(true);
+          setLoading(false);
+          stepTimers.forEach(clearTimeout);
+          return;
+        }
+        if (res.status === 429) {
+          setError("Free search limit reached (3/day). Sign in for unlimited access.");
+          setLoading(false);
+          stepTimers.forEach(clearTimeout);
+          return;
+        }
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const raw = await res.json();
 
@@ -852,6 +874,18 @@ export function IPRadar() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Credit bar + cost hint */}
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <CreditBar
+                onCreditsChange={(c) => setUserCredits(c)}
+                showPurchaseModal={showPurchaseModal}
+                onPurchaseModalClose={() => setShowPurchaseModal(false)}
+              />
+              <span className="text-[11px] text-blue-300/60">
+                1 credit per search
+              </span>
+            </div>
 
             {/* Quick examples */}
             <div className="flex flex-wrap justify-center gap-2 mt-5">
@@ -1112,7 +1146,11 @@ export function IPRadar() {
           </motion.div>
 
           {/* ----- Deep Scan CTA ----- */}
-          <DeepScan query={query} />
+          <DeepScan
+            query={query}
+            userCredits={userCredits}
+            onRequestPurchase={() => setShowPurchaseModal(true)}
+          />
 
           {/* ----- Charts Grid ----- */}
           <motion.div
