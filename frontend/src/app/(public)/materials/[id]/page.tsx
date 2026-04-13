@@ -383,6 +383,16 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                     ))}
                   </span>
                 )}
+                {/* Jupyter notebook export */}
+                {material.external_id?.startsWith("mp-") && (
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_API_URL || "https://api.matcraft.ai/api/v1"}/electronic/notebook/${material.external_id}`}
+                    className="text-xs px-1.5 py-0.5 rounded bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors"
+                    download
+                  >
+                    Jupyter
+                  </a>
+                )}
               </div>
 
               {/* Elements */}
