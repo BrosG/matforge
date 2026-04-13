@@ -10,6 +10,7 @@ import {
   Clock,
   Layers,
   Atom,
+  Download,
 } from "lucide-react";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -362,10 +363,26 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                   </span>
                 )}
                 <span className="inline-flex items-center gap-1">
-                  {material.n_elements != null && (
-                    <span className="text-gray-400">{material.structure_data?.atoms?.length ?? "?"} atoms</span>
+                  {material.structure_data?.atoms && (
+                    <span className="text-gray-400">{material.structure_data.atoms.length} atoms</span>
                   )}
                 </span>
+                {/* Structure export buttons */}
+                {material.structure_data?.atoms && material.structure_data.atoms.length > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <Download className="h-3.5 w-3.5 text-gray-400" />
+                    {(["cif", "poscar", "xyz"] as const).map((fmt) => (
+                      <a
+                        key={fmt}
+                        href={`${process.env.NEXT_PUBLIC_API_URL || "https://api.matcraft.ai/api/v1"}/materials/${id}/export/${fmt}`}
+                        className="text-xs px-1.5 py-0.5 rounded bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 transition-colors"
+                        download
+                      >
+                        {fmt.toUpperCase()}
+                      </a>
+                    ))}
+                  </span>
+                )}
               </div>
 
               {/* Elements */}

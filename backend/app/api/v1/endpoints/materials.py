@@ -301,6 +301,222 @@ def get_categories(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/{material_id}/export/{fmt}")
+def export_material_structure(
+    material_id: str,
+    fmt: str,
+    db: Session = Depends(get_db),
+):
+    """Export material structure as CIF, POSCAR, or XYZ.
+
+    Generates crystallographic file formats from the stored structure data.
+    """
+    from starlette.responses import Response
+
+    mat = material_service.get_by_id(db, material_id)
+    if not mat:
+        raise HTTPException(status_code=404, detail="Material not found")
+
+    if fmt not in ("cif", "poscar", "xyz"):
+        raise HTTPException(status_code=400, detail="Format must be cif, poscar, or xyz")
+
+    lp = mat.lattice_params or {}
+    sd = mat.structure_data or {}
+    atoms = sd.get("atoms", [])
+    matrix = sd.get("lattice_matrix")
+
+    a = lp.get("a", 1)
+    b = lp.get("b", 1)
+    c = lp.get("c", 1)
+    alpha = lp.get("alpha", 90)
+    beta = lp.get("beta", 90)
+    gamma = lp.get("gamma", 90)
+
+    if fmt == "cif":
+        lines = [
+            f"data_{mat.formula.replace(' ', '_')}",
+            f"_cell_length_a {a}",
+            f"_cell_length_b {b}",
+            f"_cell_length_c {c}",
+            f"_cell_angle_alpha {alpha}",
+            f"_cell_angle_beta {beta}",
+            f"_cell_angle_gamma {gamma}",
+            f"_symmetry_space_group_name_H-M '{mat.space_group or 'P1'}'",
+            "",
+            "loop_",
+            "_atom_site_label",
+            "_atom_site_type_symbol",
+            "_atom_site_fract_x",
+            "_atom_site_fract_y",
+            "_atom_site_fract_z",
+        ]
+        for i, atom in enumerate(atoms):
+            el = atom.get("element", "X")
+            fx = atom.get("fx", atom.get("x", 0))
+            fy = atom.get("fy", atom.get("y", 0))
+            fz = atom.get("fz", atom.get("z", 0))
+            lines.append(f"{el}{i+1} {el} {fx:.6f} {fy:.6f} {fz:.6f}")
+
+        content = "\n".join(lines)
+        return Response(
+            content=content,
+            media_type="chemical/x-cif",
+            headers={"Content-Disposition": f"attachment; filename={mat.formula}.cif"},
+        )
+
+    if fmt == "poscar":
+        lines = [
+            mat.formula,
+            "1.0",
+        ]
+        if matrix:
+            for row in matrix:
+                lines.append(f"  {row[0]:12.8f}  {row[1]:12.8f}  {row[2]:12.8f}")
+        else:
+            import math
+            ar, br, gr = math.radians(alpha), math.radians(beta), math.radians(gamma)
+            cos_a, cos_b, cos_g, sin_g = math.cos(ar), math.cos(br), math.cos(gr), math.sin(gr)
+            lines.append(f"  {a:12.8f}  {0:12.8f}  {0:12.8f}")
+            lines.append(f"  {b*cos_g:12.8f}  {b*sin_g:12.8f}  {0:12.8f}")
+            cx = c * cos_b
+            cy = c * (cos_a - cos_b * cos_g) / sin_g
+            cz = math.sqrt(max(0, c*c - cx*cx - cy*cy))
+            lines.append(f"  {cx:12.8f}  {cy:12.8f}  {cz:12.8f}")
+
+        # Count elements
+        from collections import Counter
+        el_counts = Counter(atom.get("element", "X") for atom in atoms)
+        lines.append("  ".join(el_counts.keys()))
+        lines.append("  ".join(str(v) for v in el_counts.values()))
+        lines.append("Direct")
+        for atom in atoms:
+            fx = atom.get("fx", atom.get("x", 0))
+            fy = atom.get("fy", atom.get("y", 0))
+            fz = atom.get("fz", atom.get("z", 0))
+            lines.append(f"  {fx:.8f}  {fy:.8f}  {fz:.8f}")
+
+        content = "\n".join(lines)
+        return Response(
+            content=content,
+            media_type="text/plain",
+            headers={"Content-Disposition": f"attachment; filename={mat.formula}.vasp"},
+        )
+
+    # XYZ
+    lines = [str(len(atoms)), mat.formula]
+    for atom in atoms:
+        el = atom.get("element", "X")
+        x = atom.get("x", 0)
+        y = atom.get("y", 0)
+        z = atom.get("z", 0)
+        lines.append(f"{el}  {x:.6f}  {y:.6f}  {z:.6f}")
+
+    content = "\n".join(lines)
+    return Response(
+        content=content,
+        media_type="chemical/x-xyz",
+        headers={"Content-Disposition": f"attachment; filename={mat.formula}.xyz"},
+    )
+
+
+@router.get("/scatter")
+def scatter_data(
+    x_prop: str = Query(..., description="X-axis property (e.g. band_gap)"),
+    y_prop: str = Query(..., description="Y-axis property (e.g. density)"),
+    color_prop: Optional[str] = Query(None, description="Color-by property"),
+    crystal_system: Optional[str] = None,
+    source_db: Optional[str] = None,
+    is_stable: Optional[bool] = None,
+    limit: int = Query(5000, ge=1, le=50000),
+    db: Session = Depends(get_db),
+):
+    """Get scatter plot data for any two properties. Returns [{x, y, color, formula, id}]."""
+    allowed_props = {
+        "band_gap", "formation_energy", "energy_above_hull", "density", "volume",
+        "bulk_modulus", "shear_modulus", "young_modulus", "poisson_ratio",
+        "total_magnetization", "dielectric_constant", "refractive_index",
+        "thermal_conductivity", "seebeck_coefficient", "n_elements", "efermi",
+    }
+    if x_prop not in allowed_props or y_prop not in allowed_props:
+        raise HTTPException(status_code=400, detail=f"Properties must be one of: {', '.join(sorted(allowed_props))}")
+
+    x_col = getattr(IndexedMaterial, x_prop, None)
+    y_col = getattr(IndexedMaterial, y_prop, None)
+    if x_col is None or y_col is None:
+        raise HTTPException(status_code=400, detail="Invalid property name")
+
+    query = (
+        db.query(
+            IndexedMaterial.id,
+            IndexedMaterial.formula,
+            x_col.label("x"),
+            y_col.label("y"),
+        )
+        .filter(x_col.isnot(None), y_col.isnot(None))
+    )
+
+    if crystal_system:
+        query = query.filter(IndexedMaterial.crystal_system == crystal_system)
+    if source_db:
+        query = query.filter(IndexedMaterial.source_db == source_db)
+    if is_stable is not None:
+        query = query.filter(IndexedMaterial.is_stable == is_stable)
+
+    if color_prop and color_prop in allowed_props:
+        color_col = getattr(IndexedMaterial, color_prop)
+        query = query.add_columns(color_col.label("color"))
+    else:
+        color_prop = None
+
+    rows = query.limit(limit).all()
+
+    data = []
+    for row in rows:
+        point = {"id": row.id, "formula": row.formula, "x": row.x, "y": row.y}
+        if color_prop:
+            point["color"] = row.color
+        data.append(point)
+
+    return {
+        "x_prop": x_prop,
+        "y_prop": y_prop,
+        "color_prop": color_prop,
+        "count": len(data),
+        "data": data,
+    }
+
+
+@router.get("/{material_id}/similar", response_model=list[IndexedMaterialSummary])
+def get_similar_materials(
+    material_id: str,
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    """Find structurally similar materials (same space group + similar properties)."""
+    mat = material_service.get_by_id(db, material_id)
+    if not mat:
+        raise HTTPException(status_code=404, detail="Material not found")
+
+    query = db.query(IndexedMaterial).filter(IndexedMaterial.id != mat.id)
+
+    # Same space group
+    if mat.space_group:
+        query = query.filter(IndexedMaterial.space_group == mat.space_group)
+
+    # Similar band gap (within 20%)
+    if mat.band_gap is not None:
+        margin = max(0.2, abs(mat.band_gap) * 0.2)
+        query = query.filter(
+            IndexedMaterial.band_gap.between(mat.band_gap - margin, mat.band_gap + margin)
+        )
+
+    # Same number of elements
+    if mat.n_elements:
+        query = query.filter(IndexedMaterial.n_elements == mat.n_elements)
+
+    return query.limit(limit).all()
+
+
 @router.get("/{material_id}/related", response_model=list[IndexedMaterialSummary])
 def get_related_materials(
     material_id: str,
