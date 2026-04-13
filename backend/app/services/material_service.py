@@ -112,7 +112,26 @@ def search(
     if is_stable is not None:
         query = query.filter(IndexedMaterial.is_stable == is_stable)
 
-    total = query.count()
+    # Use fast approximate row count when no filters are applied
+    # (avoids full-table sequential scan which takes 25+ seconds)
+    _has_filters = any([
+        q, elements, crystal_system, band_gap_min, band_gap_max,
+        formation_energy_min, formation_energy_max, bulk_modulus_min,
+        bulk_modulus_max, shear_modulus_min, shear_modulus_max,
+        thermal_conductivity_min, thermal_conductivity_max,
+        magnetic_ordering, has_elastic, is_stable is not None, source_db,
+    ])
+    if _has_filters:
+        total = query.count()
+    else:
+        # pg_class reltuples is updated by VACUUM/ANALYZE — fast O(1) lookup
+        try:
+            result = db.execute(
+                text("SELECT reltuples::bigint FROM pg_class WHERE relname = 'indexed_materials'")
+            ).scalar()
+            total = int(result) if result and result > 0 else query.count()
+        except Exception:
+            total = query.count()
 
     # Sorting
     allowed_sort = {
