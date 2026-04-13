@@ -230,33 +230,79 @@ def get_by_id(db: Session, material_id: str) -> Optional[IndexedMaterial]:
     return mat
 
 
+_RELATED_CACHE_PREFIX = "materials:related:v1:"
+_RELATED_CACHE_TTL = 300  # 5 minutes
+
+
 def get_related(
     db: Session,
     material: IndexedMaterial,
     limit: int = 12,
 ) -> list[IndexedMaterial]:
-    """Find materials sharing elements or crystal system with the given one."""
-    filters = []
+    """Find related materials — fast, cached, no ORDER BY random().
 
-    # Same crystal system
+    Strategy: filter by crystal_system (indexed), limit to a small set,
+    then shuffle in Python. Avoids the catastrophic ORDER BY random()
+    full-table scan that took 37+ seconds.
+    """
+    # Try Redis cache first
+    cache_key = _RELATED_CACHE_PREFIX + material.id
+    try:
+        from app.core.redis_connector import get_redis
+        import json as _json
+
+        cached = _json.loads(get_redis().get(cache_key) or "null")
+        if cached:
+            ids = cached[:limit]
+            if ids:
+                id_map = {m.id: m for m in db.query(IndexedMaterial).filter(IndexedMaterial.id.in_(ids)).all()}
+                return [id_map[i] for i in ids if i in id_map]
+    except Exception:
+        pass
+
+    import random
+
+    # Fast query: same crystal system (uses idx_mat_search_main index)
+    candidates = []
     if material.crystal_system:
-        filters.append(IndexedMaterial.crystal_system == material.crystal_system)
+        candidates = (
+            db.query(IndexedMaterial)
+            .filter(
+                IndexedMaterial.crystal_system == material.crystal_system,
+                IndexedMaterial.id != material.id,
+            )
+            .limit(200)  # fetch a small pool, shuffle in Python
+            .all()
+        )
 
-    # Shares at least one element (check formula for each element)
-    mat_elements: list[str] = material.elements or []
-    for el in mat_elements[:3]:  # cap to avoid huge OR
-        filters.append(IndexedMaterial.formula.ilike(f"%{el}%"))
+    # If not enough, supplement with same n_elements
+    if len(candidates) < limit:
+        extra = (
+            db.query(IndexedMaterial)
+            .filter(
+                IndexedMaterial.n_elements == material.n_elements,
+                IndexedMaterial.id != material.id,
+            )
+            .limit(100)
+            .all()
+        )
+        seen = {c.id for c in candidates}
+        candidates.extend(c for c in extra if c.id not in seen)
 
-    if not filters:
-        return []
+    # Shuffle and pick
+    random.shuffle(candidates)
+    results = candidates[:limit]
 
-    return (
-        db.query(IndexedMaterial)
-        .filter(IndexedMaterial.id != material.id, or_(*filters))
-        .order_by(func.random())
-        .limit(limit)
-        .all()
-    )
+    # Cache the IDs
+    try:
+        from app.core.redis_connector import get_redis
+        import json as _json
+
+        get_redis().setex(cache_key, _RELATED_CACHE_TTL, _json.dumps([m.id for m in results]))
+    except Exception:
+        pass
+
+    return results
 
 
 _STATS_CACHE_KEY = "materials:stats:v1"

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -121,19 +122,16 @@ function formatDate(dateStr: string | null): string {
 export default async function MaterialDetailPage({ params }: PageProps) {
   const { id } = await params;
 
-  // Fetch material + related in parallel — 2x faster than sequential
+  // Fetch material immediately — don't wait for related (loaded lazily below)
   let material: MaterialDetail;
-  let relatedMaterials: MaterialDetail[] = [];
   try {
-    const [mat, related] = await Promise.all([
-      fetchMaterial(id),
-      fetchRelatedMaterials(id).catch(() => [] as MaterialDetail[]),
-    ]);
-    material = mat;
-    relatedMaterials = related as MaterialDetail[];
+    material = await fetchMaterial(id);
   } catch {
     notFound();
   }
+
+  // Related materials loaded in parallel, non-blocking
+  const relatedPromise = fetchRelatedMaterials(id).catch(() => []) as Promise<MaterialDetail[]>;
 
   const hasStructure =
     material.structure_data?.atoms && material.structure_data.atoms.length > 0;
@@ -842,26 +840,21 @@ export default async function MaterialDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Related Materials */}
-        {relatedMaterials.length > 0 && (
+        {/* Related Materials — loaded async, does NOT block page render */}
+        <Suspense fallback={
           <section className="border-t border-border bg-muted/30">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-              <h2 className="text-xl font-bold text-foreground mb-6">
-                Related Materials
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {relatedMaterials.map((m) => (
-                  <MaterialCard key={m.id} material={m} />
+              <div className="h-6 w-48 bg-muted rounded animate-pulse mb-6" />
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-32 bg-muted/50 rounded-xl animate-pulse" />
                 ))}
-              </div>
-              <div className="text-center mt-8">
-                <Button variant="outline" asChild>
-                  <Link href="/materials">Browse All Materials</Link>
-                </Button>
               </div>
             </div>
           </section>
-        )}
+        }>
+          <RelatedMaterialsSection promise={relatedPromise} />
+        </Suspense>
       </main>
 
       <Footer />
@@ -872,5 +865,35 @@ export default async function MaterialDetailPage({ params }: PageProps) {
         materialFormula={material.formula}
       />
     </>
+  );
+}
+
+// Async server component — streams in after the main page
+async function RelatedMaterialsSection({
+  promise,
+}: {
+  promise: Promise<MaterialDetail[]>;
+}) {
+  const relatedMaterials = (await promise) as MaterialDetail[];
+  if (!relatedMaterials.length) return null;
+
+  return (
+    <section className="border-t border-border bg-muted/30">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+        <h2 className="text-xl font-bold text-foreground mb-6">
+          Related Materials
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {relatedMaterials.map((m) => (
+            <MaterialCard key={m.id} material={m} />
+          ))}
+        </div>
+        <div className="text-center mt-8">
+          <Button variant="outline" asChild>
+            <Link href="/materials">Browse All Materials</Link>
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
