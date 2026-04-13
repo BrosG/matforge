@@ -453,13 +453,22 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                   Compare with others
                 </Link>
                 {material.structure_data?.atoms && material.structure_data.atoms.length > 0 && (
-                  <Link
-                    href={`/builder?materialId=${material.external_id}`}
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <Atom className="h-3 w-3" />
-                    Build supercell / surface
-                  </Link>
+                  <>
+                    <Link
+                      href={`/material-builder?materialId=${material.external_id}`}
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary transition-colors font-medium"
+                    >
+                      <Atom className="h-3 w-3" />
+                      Edit in Material Builder
+                    </Link>
+                    <Link
+                      href={`/builder?materialId=${material.external_id}`}
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Layers className="h-3 w-3" />
+                      Supercell / Surface tools
+                    </Link>
+                  </>
                 )}
               </div>
 

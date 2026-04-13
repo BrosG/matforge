@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/materials", label: "Materials" },
-  { href: "/builder", label: "Builder" },
+  { href: "/material-builder", label: "3D Builder" },
+  { href: "/builder", label: "Tools" },
   { href: "/compare", label: "Compare" },
-  { href: "/explore", label: "Campaigns" },
   { href: "/docs", label: "Docs" },
   { href: "/faq", label: "FAQ" },
 ];

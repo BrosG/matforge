@@ -7,9 +7,9 @@ import { VersionBadge } from "@/components/core/VersionGuard";
 const FOOTER_LINKS = {
   Platform: [
     { href: "/materials", label: "Materials Database" },
-    { href: "/builder", label: "Structure Builder" },
+    { href: "/material-builder", label: "3D Material Builder" },
+    { href: "/builder", label: "Structure Tools" },
     { href: "/compare", label: "Compare Materials" },
-    { href: "/explore", label: "Campaigns" },
   ],
   Resources: [
     { href: "/docs", label: "Documentation" },
