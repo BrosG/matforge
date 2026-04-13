@@ -119,7 +119,7 @@ def search(
         formation_energy_min, formation_energy_max, bulk_modulus_min,
         bulk_modulus_max, shear_modulus_min, shear_modulus_max,
         thermal_conductivity_min, thermal_conductivity_max,
-        magnetic_ordering, has_elastic, is_stable is not None, source_db,
+        magnetic_ordering, has_elastic_data, is_stable is not None, source_db,
     ])
     if _has_filters:
         total = query.count()
