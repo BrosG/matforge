@@ -237,7 +237,7 @@ export function BuilderForm() {
         case "supercell":
           endpoint = "/builder/supercell";
           body = {
-            material_id: form.materialId.trim(),
+            mp_id: form.materialId.trim(),
             nx: form.nx,
             ny: form.ny,
             nz: form.nz,
@@ -246,25 +246,25 @@ export function BuilderForm() {
         case "surface":
           endpoint = "/builder/surface";
           body = {
-            material_id: form.materialId.trim(),
+            mp_id: form.materialId.trim(),
             miller_h: form.millerH,
             miller_k: form.millerK,
             miller_l: form.millerL,
-            slab_thickness: form.slabThickness,
+            min_slab_size: form.slabThickness,
             vacuum: form.vacuum,
           };
           break;
         case "nanoparticle":
           endpoint = "/builder/nanoparticle";
           body = {
-            material_id: form.materialId.trim(),
+            mp_id: form.materialId.trim(),
             radius: form.radius,
           };
           break;
         case "substitution":
           endpoint = "/builder/substitute";
           body = {
-            material_id: form.materialId.trim(),
+            mp_id: form.materialId.trim(),
             original_element: form.originalElement.trim(),
             substitute_element: form.substituteElement.trim(),
             fraction: form.fraction,
