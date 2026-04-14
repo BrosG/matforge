@@ -112,7 +112,7 @@ jobs:
             --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }} \
             --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=matforge-50499.firebaseapp.com \
             --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=matforge-50499 \
-            --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=matforge-50499.appspot.com \
+            --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=matforge-50499.firebasestorage.app \
             --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }} \
             --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }} \
             --build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }} \
