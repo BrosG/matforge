@@ -229,7 +229,7 @@ export default function DataRoomDashboard() {
                 </div>
               ))}
             </div>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 rounded-2xl" asChild>
+            <Button size="lg" className="bg-white/10 border-2 border-white text-white hover:bg-white hover:text-blue-600 rounded-2xl" asChild>
               <a href="mailto:invest@matcraft.ai">Contact: invest@matcraft.ai</a>
             </Button>
           </div>

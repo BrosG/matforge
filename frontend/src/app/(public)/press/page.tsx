@@ -175,7 +175,7 @@ export default function PressPage() {
               <div className="text-white">
                 <h2 className="text-3xl font-bold mb-4">Press Kit</h2>
                 <p className="text-blue-100 mb-6">Logo pack, brand guidelines, product screenshots, fact sheet — everything you need for coverage.</p>
-                <Button variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600" onClick={() => alert("Press kit request submitted. We'll email it within 24h.")}>
+                <Button className="bg-white/10 border-2 border-white text-white hover:bg-white hover:text-blue-600" onClick={() => alert("Press kit request submitted. We'll email it within 24h.")}>
                   <Download className="h-4 w-4 mr-2" />
                   Request Press Kit
                 </Button>

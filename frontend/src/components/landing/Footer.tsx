@@ -37,18 +37,18 @@ export function Footer() {
   return (
     <footer className="bg-gray-950 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main footer */}
-        <div className="py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
-          {/* Brand */}
-          <div className="lg:col-span-2">
+        {/* Main footer — brand (2 cols) + 4 link cols = 6 total */}
+        <div className="py-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-10">
+          {/* Brand — spans 2 cols on large screens */}
+          <div className="col-span-2 md:col-span-3 lg:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
               <Atom className="h-7 w-7 text-blue-400" />
               <span className="text-xl font-bold text-white">MatCraft</span>
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-sm">
+            <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs">
               Accelerate materials discovery with AI-powered surrogate models,
-              active learning, and multi-objective Pareto optimization. From
-              concept to candidate in hours, not months.
+              active learning, and Pareto optimization. From concept to
+              candidate in hours, not months.
             </p>
             <div className="flex gap-3">
               <a
@@ -70,13 +70,13 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Link columns */}
+          {/* 4 link columns — each takes 1 col */}
           {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-            <div key={title}>
-              <h3 className="font-semibold text-white text-sm uppercase tracking-wider mb-4">
+            <div key={title} className="col-span-1">
+              <h3 className="font-semibold text-white text-xs uppercase tracking-wider mb-4">
                 {title}
               </h3>
-              <ul className="space-y-3">
+              <ul className="space-y-2.5">
                 {links.map((link) => (
                   <li key={link.label}>
                     <Link

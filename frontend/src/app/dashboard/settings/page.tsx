@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { signOut } from "next-auth/react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -19,6 +19,7 @@ import {
   Database,
   Cpu,
   Wifi,
+  Coins,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/api";
@@ -26,9 +27,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CreditsBillingTab } from "@/components/ui/CreditsBillingTab";
+import { cn } from "@/lib/utils";
+
+type SettingsTab = "account" | "credits";
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<SettingsTab>("account");
   const [fullName, setFullName] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -91,6 +97,37 @@ export default function SettingsPage() {
           Manage your account and preferences
         </p>
       </motion.div>
+
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-border">
+        {(
+          [
+            { key: "account", label: "Account", icon: User },
+            { key: "credits", label: "Credits & Billing", icon: Coins },
+          ] as { key: SettingsTab; label: string; icon: React.ElementType }[]
+        ).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+              activeTab === tab.key
+                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <tab.icon className="h-4 w-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Credits & Billing Tab */}
+      {activeTab === "credits" && <CreditsBillingTab />}
+
+      {/* Account Tab — only show when active */}
+      {activeTab === "account" && (
+        <>
 
       {/* Profile */}
       <motion.div
@@ -377,6 +414,8 @@ export default function SettingsPage() {
           )}
         </Button>
       </motion.div>
+      </>
+      )}
     </div>
   );
 }

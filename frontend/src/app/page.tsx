@@ -28,6 +28,9 @@ import {
   Cpu,
   Shirt,
   Play,
+  GraduationCap,
+  Rocket,
+  Pill,
 } from "lucide-react";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -110,6 +113,81 @@ const DOMAINS = [
   { key: "polymer", label: "Polymers", icon: Layers, color: "text-violet-500", bg: "bg-violet-50", desc: "Sustainable polymer design" },
   { key: "coating", label: "Coatings", icon: Shield, color: "text-slate-500", bg: "bg-slate-50", desc: "Protective thin film coatings" },
   { key: "ceramic", label: "Ceramics", icon: Target, color: "text-rose-500", bg: "bg-rose-50", desc: "High-performance ceramics" },
+];
+
+const PERSONAS_PREVIEW = [
+  {
+    slug: "materials-scientists",
+    icon: FlaskConical,
+    label: "For Materials Scientists",
+    desc: "205k+ unified materials, AI inverse design, and band structures — all in one tab.",
+    gradient: "from-blue-600 to-cyan-500",
+    iconColor: "text-blue-500",
+    accentBorder: "hover:border-blue-400/60 dark:hover:border-blue-500/60",
+  },
+  {
+    slug: "engineers",
+    icon: Cpu,
+    label: "For Engineers & Product Teams",
+    desc: "Filter by 16 properties, plot scatter charts, and compare candidates in seconds.",
+    gradient: "from-orange-500 to-amber-400",
+    iconColor: "text-orange-500",
+    accentBorder: "hover:border-orange-400/60 dark:hover:border-orange-500/60",
+  },
+  {
+    slug: "students",
+    icon: GraduationCap,
+    label: "For Students & Educators",
+    desc: "Free forever — 3D crystal builder, prototype library, and real DFT property data.",
+    gradient: "from-emerald-500 to-teal-400",
+    iconColor: "text-emerald-500",
+    accentBorder: "hover:border-emerald-400/60 dark:hover:border-emerald-500/60",
+  },
+  {
+    slug: "startups",
+    icon: Rocket,
+    label: "For Deep Tech Startups",
+    desc: "Free materials data + $950 AI FTO reports vs. $5–10k at a law firm.",
+    gradient: "from-violet-600 to-purple-500",
+    iconColor: "text-violet-500",
+    accentBorder: "hover:border-violet-400/60 dark:hover:border-violet-500/60",
+  },
+  {
+    slug: "ip-lawyers",
+    icon: Shield,
+    label: "For Patent Attorneys",
+    desc: "Search 125M+ patents in seconds and deliver FTO assessments overnight.",
+    gradient: "from-slate-700 to-slate-500",
+    iconColor: "text-slate-500",
+    accentBorder: "hover:border-slate-400/60 dark:hover:border-slate-500/60",
+  },
+  {
+    slug: "ai-researchers",
+    icon: Brain,
+    label: "For AI & ML Researchers",
+    desc: "205k+ clean materials with 30+ normalised properties via REST API and bulk export.",
+    gradient: "from-indigo-600 to-blue-500",
+    iconColor: "text-indigo-500",
+    accentBorder: "hover:border-indigo-400/60 dark:hover:border-indigo-500/60",
+  },
+  {
+    slug: "pharma-biotech",
+    icon: Pill,
+    label: "For Pharma & Biotech",
+    desc: "Filter by biocompatible elements, screen implant alloys, and model nanoparticle carriers.",
+    gradient: "from-rose-500 to-pink-400",
+    iconColor: "text-rose-500",
+    accentBorder: "hover:border-rose-400/60 dark:hover:border-rose-500/60",
+  },
+  {
+    slug: "academia-labs",
+    icon: Building2,
+    label: "For Academic Labs",
+    desc: "Everything in one browser tab — free for academics with proper DOI citations.",
+    gradient: "from-teal-600 to-cyan-500",
+    iconColor: "text-teal-500",
+    accentBorder: "hover:border-teal-400/60 dark:hover:border-teal-500/60",
+  },
 ];
 
 const HOW_IT_WORKS = [
@@ -416,6 +494,80 @@ export default function LandingPage() {
                 <d.icon className={`h-8 w-8 ${d.color} mb-3 group-hover:scale-110 transition-transform`} />
                 <h3 className="font-semibold text-sm mb-1">{d.label}</h3>
                 <p className="text-xs text-gray-500">{d.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== WHO IS IT FOR? ===== */}
+      <section className="py-24 bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center mb-16"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+          >
+            <span className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">
+              Solutions
+            </span>
+            <h2 className="text-4xl font-bold mt-3 mb-4">
+              Built for{" "}
+              <span className="bg-gradient-to-r from-indigo-600 via-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                Every Researcher
+              </span>
+            </h2>
+            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+              Whether you&rsquo;re a student exploring structures for the first time
+              or an IP team running FTO analysis at scale — MatCraft has you covered.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {PERSONAS_PREVIEW.map((p, i) => (
+              <motion.div
+                key={p.slug}
+                className={`group relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 transition-all duration-200 cursor-pointer card-hover ${p.accentBorder} hover:shadow-lg`}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                whileHover={{ scale: 1.02 }}
+              >
+                {/* Top gradient accent line */}
+                <div
+                  className={`absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl bg-gradient-to-r ${p.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}
+                />
+
+                {/* Icon */}
+                <div
+                  className={`w-11 h-11 rounded-xl bg-gradient-to-br ${p.gradient} flex items-center justify-center mb-4 shadow-sm group-hover:shadow-md transition-shadow`}
+                >
+                  <p.icon className="h-5 w-5 text-white" />
+                </div>
+
+                {/* Title */}
+                <h3 className="font-semibold text-sm mb-2 leading-tight">
+                  {p.label}
+                </h3>
+
+                {/* Description */}
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+                  {p.desc}
+                </p>
+
+                {/* Link */}
+                <Link
+                  href={`/for/${p.slug}`}
+                  className={`inline-flex items-center gap-1 text-xs font-semibold ${p.iconColor} hover:opacity-80 transition-opacity`}
+                >
+                  Learn more
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
               </motion.div>
             ))}
           </div>

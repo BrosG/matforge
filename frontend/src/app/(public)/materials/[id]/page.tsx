@@ -455,11 +455,11 @@ export default async function MaterialDetailPage({ params }: PageProps) {
                 {material.structure_data?.atoms && material.structure_data.atoms.length > 0 && (
                   <>
                     <Link
-                      href={`/material-builder?materialId=${material.external_id}`}
+                      href={`/crystal-builder?materialId=${material.external_id}`}
                       className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary transition-colors font-medium"
                     >
                       <Atom className="h-3 w-3" />
-                      Edit in Material Builder
+                      Edit in Crystal Builder
                     </Link>
                     <Link
                       href={`/builder?materialId=${material.external_id}`}

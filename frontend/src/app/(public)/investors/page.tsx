@@ -160,9 +160,10 @@ export default function InvestorsPage() {
           <div className="max-w-3xl mx-auto px-4 text-center text-white">
             <h2 className="text-4xl font-bold mb-4">Interested in MatCraft?</h2>
             <p className="text-blue-100 mb-8">Get access to our full investor data room including financials, competitive analysis, and roadmap.</p>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 rounded-2xl" onClick={() => setShowModal(true)}>
+            <button onClick={() => setShowModal(true)}
+              className="inline-flex items-center justify-center px-8 py-4 rounded-2xl text-lg font-semibold border-2 border-white text-white bg-white/10 hover:bg-white hover:text-blue-600 transition-colors">
               Request Access
-            </Button>
+            </button>
           </div>
         </section>
       </main>
