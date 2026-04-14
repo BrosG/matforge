@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Atom, TrendingUp, Globe, Shield, Zap, Lock, Database, Brain, ChevronRight, X } from "lucide-react";
+import { Atom, TrendingUp, Globe, Shield, Zap, Lock, Database, Brain, ChevronRight, X, KeyRound } from "lucide-react";
+import Link from "next/link";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,13 @@ export default function InvestorsPage() {
                   Request Data Room Access
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
-                <Button size="lg" variant="outline" className="border-gray-600 text-gray-300 hover:border-blue-400 text-lg px-8 py-6 rounded-2xl" asChild>
+                <Button size="lg" variant="outline" className="bg-transparent border-gray-600 text-gray-300 hover:border-blue-400 text-lg px-8 py-6 rounded-2xl" asChild>
+                  <Link href="/data-room">
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    I have an access code
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="bg-transparent border-gray-600 text-gray-300 hover:border-blue-400 text-lg px-8 py-6 rounded-2xl" asChild>
                   <a href="mailto:invest@matcraft.ai">Contact Directly</a>
                 </Button>
               </div>
@@ -149,9 +156,18 @@ export default function InvestorsPage() {
                 </div>
               ))}
             </div>
-            <Button size="lg" onClick={() => setShowModal(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl px-8">
-              Request Full Data Room Access
-            </Button>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Button size="lg" onClick={() => setShowModal(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl px-8">
+                Request Full Data Room Access
+              </Button>
+              <Link
+                href="/data-room"
+                className="inline-flex items-center gap-2 px-8 py-3 rounded-2xl border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              >
+                <KeyRound className="h-4 w-4" />
+                Enter with access code
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -160,10 +176,19 @@ export default function InvestorsPage() {
           <div className="max-w-3xl mx-auto px-4 text-center text-white">
             <h2 className="text-4xl font-bold mb-4">Interested in MatCraft?</h2>
             <p className="text-blue-100 mb-8">Get access to our full investor data room including financials, competitive analysis, and roadmap.</p>
-            <button onClick={() => setShowModal(true)}
-              className="inline-flex items-center justify-center px-8 py-4 rounded-2xl text-lg font-semibold border-2 border-white text-white bg-white/10 hover:bg-white hover:text-blue-600 transition-colors">
-              Request Access
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <button onClick={() => setShowModal(true)}
+                className="inline-flex items-center justify-center px-8 py-4 rounded-2xl text-lg font-semibold border-2 border-white text-white bg-white/10 hover:bg-white hover:text-blue-600 transition-colors">
+                Request Access
+              </button>
+              <Link
+                href="/data-room"
+                className="inline-flex items-center gap-2 text-sm text-blue-100 hover:text-white underline underline-offset-4"
+              >
+                <KeyRound className="h-4 w-4" />
+                Already have a code? Enter the data room
+              </Link>
+            </div>
           </div>
         </section>
       </main>
