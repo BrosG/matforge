@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh run:*)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'Ingestion: {d[\\\\\"ingestion\\\\\"]}'\\)\")"
+    ]
+  }
+}

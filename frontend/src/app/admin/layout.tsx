@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Atom, LayoutDashboard, Users, CreditCard, Building2, LogOut } from "lucide-react";
+import { Atom, LayoutDashboard, Users, CreditCard, Building2, BookOpen, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin/users", icon: Users, label: "Users" },
   { href: "/admin/transactions", icon: CreditCard, label: "Transactions" },
   { href: "/admin/investor-requests", icon: Building2, label: "Investor Requests" },
+  { href: "/admin/docs", icon: BookOpen, label: "Documentation" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
