@@ -18,6 +18,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
@@ -293,25 +294,32 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
     event_type = event["type"]
-    logger.info("Stripe webhook: %s", event_type)
+    event_id = event["id"]
+    logger.info("Stripe webhook: %s (%s)", event_type, event_id)
 
-    # Handle one-time credit purchases
+    # One-time credit purchases: mode == "payment" on the checkout session.
     if event_type == "checkout.session.completed":
         session = event["data"]["object"]
-        metadata = session.get("metadata") or {}
-        tx_type = metadata.get("type")
-
-        if tx_type == "credit_purchase":
+        mode = session.get("mode")
+        if mode == "payment":
+            metadata = session.get("metadata") or {}
             user_id = metadata.get("user_id")
-            credits = int(metadata.get("credits", 0))
+            credits = _safe_int(metadata.get("credits"))
             package = metadata.get("package", "unknown")
             if user_id and credits > 0:
-                _grant_credits(db, user_id, credits, f"Stripe purchase: {package}", event["id"])
+                _grant_credits(
+                    db, user_id, credits, f"Stripe purchase: {package}", event_id
+                )
+            else:
+                logger.error(
+                    "checkout.session.completed missing user_id/credits metadata "
+                    "(event=%s)",
+                    event_id,
+                )
 
-    # Handle recurring subscription charges
+    # Recurring subscription charges — both initial and renewal.
     elif event_type == "invoice.payment_succeeded":
         invoice = event["data"]["object"]
-        # Only grant credits on subscription renewals, not initial setup invoices
         billing_reason = invoice.get("billing_reason")
         if billing_reason in ("subscription_cycle", "subscription_create"):
             subscription_id = invoice.get("subscription")
@@ -320,35 +328,66 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     sub = stripe.Subscription.retrieve(subscription_id)
                     metadata = sub.get("metadata") or {}
                     user_id = metadata.get("user_id")
-                    credits = int(metadata.get("credits_per_month", 0))
+                    credits = _safe_int(metadata.get("credits_per_month"))
                     plan = metadata.get("plan", "unknown")
                     if user_id and credits > 0:
-                        _grant_credits(db, user_id, credits, f"Subscription: {plan}", event["id"])
+                        _grant_credits(
+                            db, user_id, credits, f"Subscription: {plan}", event_id
+                        )
+                    else:
+                        logger.error(
+                            "subscription %s missing user_id/credits_per_month "
+                            "metadata (event=%s)",
+                            subscription_id,
+                            event_id,
+                        )
                 except Exception as exc:
                     logger.error("Subscription lookup failed: %s", exc)
 
     elif event_type == "customer.subscription.deleted":
-        # User cancelled — credits already granted, no action needed
         logger.info("Subscription cancelled: %s", event["data"]["object"].get("id"))
 
+    # Always 200 — Stripe will retry on non-2xx, so we only want to return a
+    # non-2xx for genuine verification failures (handled above).
     return {"received": True}
 
 
-def _grant_credits(db: Session, user_id: str, credits: int, description: str, event_id: str) -> None:
-    """Idempotently grant credits based on a Stripe event ID."""
-    # Check idempotency: don't double-credit the same event
-    existing = (
-        db.query(CreditTransaction)
-        .filter(CreditTransaction.description.like(f"%{event_id}%"))
+def _safe_int(value: Any) -> int:
+    try:
+        return int(value) if value is not None else 0
+    except (TypeError, ValueError):
+        return 0
+
+
+def _grant_credits(
+    db: Session, user_id: str, credits: int, description: str, event_id: str
+) -> None:
+    """Idempotently grant credits for a Stripe event.
+
+    Idempotency is enforced by a UNIQUE index on
+    ``credit_transactions.stripe_event_id``. Concurrent webhook retries race on
+    insert; the loser catches IntegrityError and exits cleanly. The winner
+    updates the user balance in the same transaction using ``SELECT ... FOR
+    UPDATE`` so concurrent grants to the same user are serialized.
+    """
+    # Fast path: already processed?
+    if (
+        db.query(CreditTransaction.id)
+        .filter(CreditTransaction.stripe_event_id == event_id)
         .first()
-    )
-    if existing:
+    ):
         logger.info("Event %s already processed, skipping", event_id)
         return
 
-    user = db.query(User).filter(User.id == user_id).first()
+    # Row-lock the user to prevent lost updates on concurrent grants.
+    user = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .with_for_update()
+        .first()
+    )
     if not user:
-        logger.error("User %s not found for credit grant", user_id)
+        logger.error("User %s not found for credit grant (event=%s)", user_id, event_id)
         return
 
     user.credits += credits
@@ -356,11 +395,26 @@ def _grant_credits(db: Session, user_id: str, credits: int, description: str, ev
         user_id=user.id,
         amount=credits,
         balance_after=user.credits,
-        description=f"{description} [event:{event_id}]",
+        description=description,
+        stripe_event_id=event_id,
     )
     db.add(tx)
-    db.commit()
-    logger.info("Granted %d credits to user %s (%s)", credits, user.email, description)
+    try:
+        db.commit()
+    except IntegrityError:
+        # Another worker won the race. Roll back and treat as already processed.
+        db.rollback()
+        logger.info(
+            "Event %s processed concurrently by another worker, skipping", event_id
+        )
+        return
+    logger.info(
+        "Granted %d credits to user %s (%s, event=%s)",
+        credits,
+        user.email,
+        description,
+        event_id,
+    )
 
 
 # ---------------------------------------------------------------------------

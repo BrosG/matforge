@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Atom, Loader2, Mail, Lock, Eye, EyeOff, Phone, ChevronRight, Sparkles } from "lucide-react";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { humanizeAuthError } from "@/lib/auth-errors";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -38,10 +39,22 @@ function LoginForm() {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(""); setLoading(true);
-    const result = await signIn("credentials", { email, password, redirect: false });
-    setLoading(false);
-    if (result?.error) setError("Invalid email or password.");
-    else router.push(callbackUrl);
+    try {
+      const result = await signIn("credentials", { email, password, redirect: false });
+      if (!result) {
+        setError("Authentication service unavailable. Please try again.");
+      } else if (result.error) {
+        setError("Invalid email or password.");
+      } else {
+        router.push(callbackUrl);
+        return;
+      }
+    } catch (err) {
+      console.error("[login] signIn threw", err);
+      setError("Unexpected error. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ── Google ── */
@@ -60,8 +73,7 @@ function LoginForm() {
       if (res?.error) setError("Google sign-in failed. Try again.");
       else router.push(callbackUrl);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Google sign-in failed";
-      setError(msg);
+      setError(humanizeAuthError(err, "Google sign-in failed. Please try again."));
     } finally { setLoading(false); }
   };
 
@@ -76,7 +88,7 @@ function LoginForm() {
       setConfirmation(conf);
       setOtpSent(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to send code");
+      setError(humanizeAuthError(err, "Failed to send verification code."));
     } finally { setLoading(false); }
   };
 

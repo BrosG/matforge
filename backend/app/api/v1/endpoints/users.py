@@ -15,7 +15,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.base import get_db
-from app.db.models import User
+from app.db.models import CreditTransaction, User
 
 router = APIRouter()
 
@@ -80,6 +80,9 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
+        user_id=user.id,
+        email=user.email,
+        name=user.full_name,
     )
 
 
@@ -103,11 +106,24 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
         full_name=body.full_name,
     )
     db.add(user)
+    db.flush()
+    # Audit trail for the starter-credit grant (balance comes from column default).
+    db.add(
+        CreditTransaction(
+            user_id=user.id,
+            amount=user.credits,
+            balance_after=user.credits,
+            description="Signup bonus",
+        )
+    )
     db.commit()
     db.refresh(user)
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
+        user_id=user.id,
+        email=user.email,
+        name=user.full_name,
     )
 
 

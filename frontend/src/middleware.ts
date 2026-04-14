@@ -52,7 +52,12 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all routes except static files
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    // Exclude:
+    //  - _next/static, _next/image, favicon.ico (static assets)
+    //  - api/auth/*    (NextAuth routes must return untouched JSON; stamping
+    //                   Cache-Control / security headers on them can cause
+    //                   stale HTML to be served by CDNs, which breaks
+    //                   signIn() with "t is not iterable")
+    "/((?!_next/static|_next/image|favicon.ico|api/auth).*)",
   ],
 };

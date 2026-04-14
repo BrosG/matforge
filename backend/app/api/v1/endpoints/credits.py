@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -63,14 +64,29 @@ class HistoryResponse(BaseModel):
 
 
 def deduct_credits(db: Session, user: User, amount: int, description: str) -> bool:
-    """Deduct credits from user. Returns False if insufficient balance."""
-    if user.credits < amount:
+    """Deduct credits from user atomically. Returns False if insufficient balance.
+
+    Uses ``SELECT ... FOR UPDATE`` to serialize concurrent deductions on the
+    same user (prevents double-spend under concurrent requests). The caller's
+    ``user`` instance is refreshed to reflect the committed balance.
+    """
+    if amount <= 0:
+        return True
+
+    locked = (
+        db.query(User)
+        .filter(User.id == user.id)
+        .with_for_update()
+        .first()
+    )
+    if not locked or locked.credits < amount:
         return False
-    user.credits -= amount
+
+    locked.credits -= amount
     tx = CreditTransaction(
-        user_id=user.id,
+        user_id=locked.id,
         amount=-amount,
-        balance_after=user.credits,
+        balance_after=locked.credits,
         description=description,
     )
     db.add(tx)
@@ -97,6 +113,18 @@ def purchase_credits(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Simulate a credit purchase — DEV ONLY.
+
+    Real purchases must go through Stripe Checkout (see
+    ``/api/v1/stripe/create-checkout-session``). This endpoint bypasses payment
+    and is therefore gated to non-production environments. In production it
+    returns 404 so it does not leak that the route exists.
+    """
+    env = os.environ.get("ENVIRONMENT", "development").lower()
+    if env in ("production", "prod"):
+        # Pretend it doesn't exist in prod — never grant free credits.
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
     pkg = PACKAGES.get(body.package)
     if not pkg:
         raise HTTPException(
@@ -105,13 +133,22 @@ def purchase_credits(
         )
 
     added = pkg["credits"]
-    user.credits += added
 
+    locked = (
+        db.query(User)
+        .filter(User.id == user.id)
+        .with_for_update()
+        .first()
+    )
+    if not locked:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    locked.credits += added
     tx = CreditTransaction(
-        user_id=user.id,
+        user_id=locked.id,
         amount=added,
-        balance_after=user.credits,
-        description=f"Purchased {body.package} ({added} credits, ${pkg['price_usd']})",
+        balance_after=locked.credits,
+        description=f"[DEV] Simulated purchase: {body.package} ({added} credits, ${pkg['price_usd']})",
     )
     db.add(tx)
     db.commit()

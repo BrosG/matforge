@@ -255,6 +255,9 @@ class CreditTransaction(Base):
     amount = Column(Integer, nullable=False)  # positive = purchase, negative = usage
     balance_after = Column(Integer, nullable=False)
     description = Column(String(500))
+    # Stripe event id for idempotent credit grants (unique per event).
+    # Nullable because non-Stripe transactions (usage, admin grants) don't have one.
+    stripe_event_id = Column(String(255), nullable=True, unique=True, index=True)
     created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
 
     user = relationship("User", back_populates="credit_transactions")

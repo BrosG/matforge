@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Atom, Loader2, Phone, Mail, Lock, User, Eye, EyeOff, ChevronRight, CheckCircle2 } from "lucide-react";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { humanizeAuthError } from "@/lib/auth-errors";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -76,12 +77,13 @@ function RegisterForm() {
         redirect: false,
       });
 
-      if (result?.error) {
+      if (!result || result.error) {
         router.push("/login");
       } else {
         router.push(callbackUrl);
       }
-    } catch {
+    } catch (err) {
+      console.error("[register] signIn threw", err);
       setError("Network error. Is the backend running?");
     } finally {
       setLoading(false);
@@ -113,8 +115,7 @@ function RegisterForm() {
         router.push("/dashboard");
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Google sign-up failed";
-      setError(message);
+      setError(humanizeAuthError(err, "Google sign-up failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -139,8 +140,7 @@ function RegisterForm() {
       setConfirmationResult(confirmation);
       setOtpSent(true);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to send code";
-      setError(message);
+      setError(humanizeAuthError(err, "Failed to send verification code."));
     } finally {
       setLoading(false);
     }
@@ -165,8 +165,7 @@ function RegisterForm() {
         router.push("/dashboard");
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Invalid verification code";
-      setError(message);
+      setError(humanizeAuthError(err, "Invalid verification code."));
     } finally {
       setLoading(false);
     }
