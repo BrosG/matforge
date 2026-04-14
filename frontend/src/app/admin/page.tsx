@@ -49,11 +49,25 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (status === "loading") return;
     const email = (session?.user as any)?.email;
-    if (!email || email !== ADMIN_EMAIL) { router.replace("/login"); return; }
+
+    // Not logged in — redirect to login with callback
+    if (!email) {
+      router.replace("/login?callbackUrl=/admin");
+      return;
+    }
+
+    // Logged in but not admin
+    if (email !== ADMIN_EMAIL) {
+      router.replace("/?error=not_admin");
+      return;
+    }
 
     const token = (session as any)?.accessToken;
-    fetch(`${API}/admin/stats`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json()).then(setStats).catch(() => {}).finally(() => setLoading(false));
+    fetch(`${API}/admin/stats`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setStats(d); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [session, status, router]);
 
   if (status === "loading" || loading) {

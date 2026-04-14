@@ -39,7 +39,8 @@ export default function InvestorRequestsPage() {
   useEffect(() => {
     if (status === "loading") return;
     const email = (session?.user as any)?.email;
-    if (!email || email !== ADMIN_EMAIL) { router.replace("/login"); return; }
+    if (!email) { router.replace("/login?callbackUrl=/admin/investor-requests"); return; }
+    if (email !== ADMIN_EMAIL) { router.replace("/?error=not_admin"); return; }
     fetchRequests();
   }, [session, status, filter]);
 
