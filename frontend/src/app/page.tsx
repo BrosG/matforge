@@ -616,19 +616,22 @@ export default function LandingPage() {
                 icon: Layers,
                 title: "Transform",
                 items: ["Supercell expansion (NxMxL)", "Primitive ↔ conventional cell", "Standard orientation"],
-                color: "blue",
+                iconBg: "bg-blue-500/10 border-blue-500/20",
+                iconColor: "text-blue-400",
               },
               {
                 icon: Target,
                 title: "Carve & Shape",
                 items: ["Nanoparticles (sphere, cube)", "Surface slabs (Miller index)", "Cluster extraction"],
-                color: "purple",
+                iconBg: "bg-purple-500/10 border-purple-500/20",
+                iconColor: "text-purple-400",
               },
               {
                 icon: FlaskConical,
                 title: "Modify",
                 items: ["Element substitution (full/partial)", "Vacancy creation", "Interstitial atoms"],
-                color: "cyan",
+                iconBg: "bg-cyan-500/10 border-cyan-500/20",
+                iconColor: "text-cyan-400",
               },
             ].map((card, i) => (
               <motion.div
@@ -640,8 +643,8 @@ export default function LandingPage() {
                 custom={i + 1}
                 variants={fadeUp}
               >
-                <div className={`w-12 h-12 rounded-xl bg-${card.color}-500/10 border border-${card.color}-500/20 flex items-center justify-center mb-4`}>
-                  <card.icon className={`h-6 w-6 text-${card.color}-400`} />
+                <div className={`w-12 h-12 rounded-xl border flex items-center justify-center mb-4 ${"iconBg" in card ? card.iconBg : "bg-blue-500/10 border-blue-500/20"}`}>
+                  <card.icon className={`h-6 w-6 ${"iconColor" in card ? card.iconColor : "text-blue-400"}`} />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">{card.title}</h3>
                 <ul className="space-y-2">
