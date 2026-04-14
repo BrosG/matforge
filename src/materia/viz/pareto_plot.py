@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from materia.material import Material
 from materia.mdl import MaterialDef
 
@@ -13,7 +11,7 @@ def plot_pareto_2d(
     material_def: MaterialDef,
     obj_x: int = 0,
     obj_y: int = 1,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
 ) -> None:
     """Plot 2D Pareto front scatter."""
@@ -36,14 +34,20 @@ def plot_pareto_2d(
         ax.scatter(
             [m.properties.get(obj_x_name, 0) for m in dominated],
             [m.properties.get(obj_y_name, 0) for m in dominated],
-            c="lightgray", alpha=0.5, s=20, label="Dominated",
+            c="lightgray",
+            alpha=0.5,
+            s=20,
+            label="Dominated",
         )
 
     if pareto:
         sc = ax.scatter(
             [m.properties.get(obj_x_name, 0) for m in pareto],
             [m.properties.get(obj_y_name, 0) for m in pareto],
-            c="red", s=50, zorder=5, label="Pareto Front",
+            c="red",
+            s=50,
+            zorder=5,
+            label="Pareto Front",
         )
 
         # Connect Pareto points with a line (sorted by x)
@@ -51,7 +55,8 @@ def plot_pareto_2d(
         ax.plot(
             [m.properties.get(obj_x_name, 0) for m in pareto_sorted],
             [m.properties.get(obj_y_name, 0) for m in pareto_sorted],
-            "r--", alpha=0.5,
+            "r--",
+            alpha=0.5,
         )
 
     obj_x_def = material_def.objectives[obj_x]

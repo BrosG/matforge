@@ -5,32 +5,30 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Callable
 
 import numpy as np
 
-from materia.mdl import MaterialDef, parse_material_def
-from materia.material import Material
-from materia.evaluate.base import Evaluator
-from materia.evaluate.analytic import AnalyticEvaluator
-from materia.surrogate.base import SurrogateModel
-from materia.surrogate.mlp import NumpyMLP, MLPConfig
-from materia.optimize.base import Optimizer
-from materia.optimize.cmaes import CMAES, CMAESConfig
-from materia.active_learning.loop import (
-    ActiveLearningLoop,
-    ActiveLearningConfig,
-    RoundResult,
-)
 from materia.active_learning.acquisition import (
     AcquisitionFunction,
-    MaxUncertainty,
     ExpectedImprovement,
+    MaxUncertainty,
 )
 from materia.active_learning.convergence import MaxRounds
-from materia.analysis.pareto import compute_pareto_front
+from materia.active_learning.loop import (
+    ActiveLearningConfig,
+    ActiveLearningLoop,
+    RoundResult,
+)
+from materia.evaluate.analytic import AnalyticEvaluator
+from materia.evaluate.base import Evaluator
+from materia.material import Material
+from materia.mdl import MaterialDef, parse_material_def
+from materia.optimize.base import Optimizer
+from materia.optimize.cmaes import CMAES, CMAESConfig
+from materia.surrogate.base import SurrogateModel
+from materia.surrogate.mlp import MLPConfig, NumpyMLP
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +58,9 @@ class Campaign:
     def __init__(
         self,
         definition: MaterialDef,
-        evaluator: Optional[Evaluator] = None,
-        surrogate: Optional[SurrogateModel] = None,
-        optimizer: Optional[Optimizer] = None,
+        evaluator: Evaluator | None = None,
+        surrogate: SurrogateModel | None = None,
+        optimizer: Optimizer | None = None,
     ) -> None:
         self.definition = definition
         self.evaluator = evaluator or self._default_evaluator()
@@ -159,7 +157,7 @@ class Campaign:
         budget: int = 500,
         surrogate_evals: int = 5_000_000,
         rounds: int = 15,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> CampaignResult:
         """Run a full materials discovery campaign."""
         start_time = time.time()
@@ -169,7 +167,8 @@ class Campaign:
         # CLI --rounds takes precedence over YAML config
         max_rounds = min(rounds, al_cfg.get("max_rounds", rounds))
         samples_per_round = al_cfg.get(
-            "samples_per_round", max(5, (budget - initial_samples) // max(1, max_rounds))
+            "samples_per_round",
+            max(5, (budget - initial_samples) // max(1, max_rounds)),
         )
 
         config = ActiveLearningConfig(
@@ -219,9 +218,7 @@ class Campaign:
             f"Best: {result.best_score:.6f}"
         )
 
-    def suggest(
-        self, n: int = 10, strategy: str = "max_uncertainty"
-    ) -> list[Material]:
+    def suggest(self, n: int = 10, strategy: str = "max_uncertainty") -> list[Material]:
         """Suggest the next n materials to test experimentally."""
         if not self.dataset:
             raise RuntimeError("No data available. Run a campaign first.")
@@ -258,6 +255,7 @@ class Campaign:
     def export(self, path: str, format: str = "csv") -> None:
         """Export results to file."""
         from materia.io.export import export_materials
+
         export_materials(
             materials=self.pareto_front if self.pareto_front else self.dataset,
             material_def=self.definition,

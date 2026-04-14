@@ -7,11 +7,10 @@ import os
 from contextlib import contextmanager
 from typing import Generator
 
+from app.core.config import settings
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from sqlalchemy.pool import NullPool, QueuePool, StaticPool
-
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -146,9 +145,10 @@ def apply_indexes() -> None:
         # Get existing index names
         with engine.connect() as conn:
             existing = set(
-                row[0] for row in conn.execute(text(
-                    "SELECT indexname FROM pg_indexes WHERE schemaname = 'public'"
-                ))
+                row[0]
+                for row in conn.execute(
+                    text("SELECT indexname FROM pg_indexes WHERE schemaname = 'public'")
+                )
             )
 
         # Create missing indexes
@@ -168,7 +168,8 @@ def apply_indexes() -> None:
 
 def _add_missing_columns() -> None:
     """Compare ORM models against live DB schema and add missing columns."""
-    from sqlalchemy import inspect as sa_inspect, text
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy import text
 
     inspector = sa_inspect(engine)
     existing_tables = set(inspector.get_table_names())
@@ -192,9 +193,13 @@ def _add_missing_columns() -> None:
                     default = f" DEFAULT {col.server_default.arg}"
 
                 sql = f'ALTER TABLE "{table_name}" ADD COLUMN "{col.name}" {col_type} {nullable}{default}'
-                logger.info("Adding missing column: %s.%s (%s)", table_name, col.name, col_type)
+                logger.info(
+                    "Adding missing column: %s.%s (%s)", table_name, col.name, col_type
+                )
                 try:
                     conn.execute(text(sql))
                 except Exception as e:
                     # Column might already exist in a concurrent startup
-                    logger.warning("Could not add column %s.%s: %s", table_name, col.name, e)
+                    logger.warning(
+                        "Could not add column %s.%s: %s", table_name, col.name, e
+                    )

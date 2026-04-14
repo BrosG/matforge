@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import numpy as np
 
@@ -29,11 +29,10 @@ class Optimizer(ABC):
     def optimize(
         self,
         objective_fn: Callable[[np.ndarray], np.ndarray],
-        max_evals: Optional[int] = None,
+        max_evals: int | None = None,
     ) -> tuple[np.ndarray, float]:
         """Run a complete optimization loop. Returns: (best_params, best_fitness)."""
         ...
 
     def reset(self) -> None:
         """Reset optimizer state for a fresh run."""
-        pass

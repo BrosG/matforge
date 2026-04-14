@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Optional
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -24,7 +23,7 @@ class MaterialsProjectConnector(DatasetConnector):
     Set via config.api_key or MATERIALS_PROJECT_API_KEY env var.
     """
 
-    def __init__(self, config: Optional[ConnectorConfig] = None) -> None:
+    def __init__(self, config: ConnectorConfig | None = None) -> None:
         cfg = config or ConnectorConfig(base_url=MP_BASE_URL)
         if not cfg.base_url:
             cfg.base_url = MP_BASE_URL
@@ -34,24 +33,39 @@ class MaterialsProjectConnector(DatasetConnector):
             self.config.api_key = os.environ.get("MATERIALS_PROJECT_API_KEY", "")
 
     # All fields we request from MP v2 API
-    _FIELDS = ",".join([
-        "material_id", "formula_pretty",
-        "formation_energy_per_atom", "band_gap", "energy_above_hull", "density",
-        "volume", "is_stable",
-        # Mechanical
-        "bulk_modulus", "shear_modulus", "homogeneous_poisson",
-        # Electronic
-        "total_magnetization", "ordering",
-        "e_electronic", "n",
-        "is_gap_direct", "efermi",
-        # Thermal
-        "decomposes_to",
-        # Structure
-        "symmetry", "structure",
-        # Provenance
-        "theoretical", "oxidation_states",
-        "database_IDs", "builder_meta",
-    ])
+    _FIELDS = ",".join(
+        [
+            "material_id",
+            "formula_pretty",
+            "formation_energy_per_atom",
+            "band_gap",
+            "energy_above_hull",
+            "density",
+            "volume",
+            "is_stable",
+            # Mechanical
+            "bulk_modulus",
+            "shear_modulus",
+            "homogeneous_poisson",
+            # Electronic
+            "total_magnetization",
+            "ordering",
+            "e_electronic",
+            "n",
+            "is_gap_direct",
+            "efermi",
+            # Thermal
+            "decomposes_to",
+            # Structure
+            "symmetry",
+            "structure",
+            # Provenance
+            "theoretical",
+            "oxidation_states",
+            "database_IDs",
+            "builder_meta",
+        ]
+    )
 
     def search(
         self,

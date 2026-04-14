@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from materia.active_learning.loop import RoundResult
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 def plot_convergence(
     history: list[RoundResult],
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
 ) -> None:
     """Plot convergence curves: best score, Pareto size, surrogate accuracy."""

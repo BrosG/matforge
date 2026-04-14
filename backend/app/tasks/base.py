@@ -6,8 +6,6 @@ import logging
 
 from celery import Task
 
-from app.db.base import get_db_context
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,5 +25,10 @@ class MatCraftTask(Task):
         progress = int((current / max(total, 1)) * 100)
         self.update_state(
             state="PROGRESS",
-            meta={"current": current, "total": total, "progress": progress, **(meta or {})},
+            meta={
+                "current": current,
+                "total": total,
+                "progress": progress,
+                **(meta or {}),
+            },
         )

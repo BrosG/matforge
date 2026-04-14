@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+from app.db.base import Base
 from sqlalchemy import (
     Boolean,
     Column,
@@ -17,10 +18,8 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSON, JSONB
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import relationship
-
-from app.db.base import Base
 
 
 def _uuid() -> str:
@@ -43,7 +42,9 @@ class User(Base):
     oauth_id = Column(String(255), nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    credits = Column(Integer, nullable=False, default=10, server_default="10")  # 10 free starter credits
+    credits = Column(
+        Integer, nullable=False, default=10, server_default="10"
+    )  # 10 free starter credits
     created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
 
@@ -162,7 +163,9 @@ class TemplateLike(Base):
     __tablename__ = "template_likes"
 
     id = Column(String(36), primary_key=True, default=_uuid)
-    template_id = Column(String(36), ForeignKey("templates.id"), nullable=False, index=True)
+    template_id = Column(
+        String(36), ForeignKey("templates.id"), nullable=False, index=True
+    )
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
 
 
@@ -171,18 +174,22 @@ class IndexedMaterial(Base):
 
     __table_args__ = (
         # Composite indexes for common query patterns
-        Index('idx_mat_search_main', 'crystal_system', 'is_stable', 'band_gap'),
-        Index('idx_mat_band_gap_stable', 'band_gap', 'is_stable'),
-        Index('idx_mat_source_crystal', 'source_db', 'crystal_system'),
+        Index("idx_mat_search_main", "crystal_system", "is_stable", "band_gap"),
+        Index("idx_mat_band_gap_stable", "band_gap", "is_stable"),
+        Index("idx_mat_source_crystal", "source_db", "crystal_system"),
         # GIN trigram index for fast ILIKE on formula (requires pg_trgm extension)
-        Index('idx_mat_formula_trgm', 'formula', postgresql_using='gin',
-              postgresql_ops={'formula': 'gin_trgm_ops'}),
+        Index(
+            "idx_mat_formula_trgm",
+            "formula",
+            postgresql_using="gin",
+            postgresql_ops={"formula": "gin_trgm_ops"},
+        ),
         # GIN index on elements JSON array for fast containment queries
-        Index('idx_mat_elements_gin', 'elements', postgresql_using='gin'),
+        Index("idx_mat_elements_gin", "elements", postgresql_using="gin"),
         # Individual indexes on filterable columns missing indexes
-        Index('idx_mat_total_magnetization', 'total_magnetization'),
-        Index('idx_mat_thermal_conductivity', 'thermal_conductivity'),
-        Index('idx_mat_seebeck_coefficient', 'seebeck_coefficient'),
+        Index("idx_mat_total_magnetization", "total_magnetization"),
+        Index("idx_mat_thermal_conductivity", "thermal_conductivity"),
+        Index("idx_mat_seebeck_coefficient", "seebeck_coefficient"),
     )
 
     id = Column(String(36), primary_key=True, default=_uuid)
@@ -198,7 +205,9 @@ class IndexedMaterial(Base):
     energy_above_hull = Column(Float, nullable=True, index=True)
     density = Column(Float, nullable=True, index=True)
     total_magnetization = Column(Float, nullable=True)
-    magnetic_ordering = Column(String(30), nullable=True)  # ferromagnetic, antiferromagnetic, ...
+    magnetic_ordering = Column(
+        String(30), nullable=True
+    )  # ferromagnetic, antiferromagnetic, ...
     volume = Column(Float, nullable=True)
     space_group = Column(String(20), nullable=True, index=True)
     crystal_system = Column(String(20), nullable=True, index=True)
@@ -206,38 +215,38 @@ class IndexedMaterial(Base):
     structure_data = Column(JSON, nullable=True)
 
     # Mechanical properties
-    bulk_modulus = Column(Float, nullable=True)       # GPa
-    shear_modulus = Column(Float, nullable=True)      # GPa
-    young_modulus = Column(Float, nullable=True)      # GPa
-    poisson_ratio = Column(Float, nullable=True)      # dimensionless
+    bulk_modulus = Column(Float, nullable=True)  # GPa
+    shear_modulus = Column(Float, nullable=True)  # GPa
+    young_modulus = Column(Float, nullable=True)  # GPa
+    poisson_ratio = Column(Float, nullable=True)  # dimensionless
 
     # Electronic properties
     dielectric_constant = Column(Float, nullable=True)
     refractive_index = Column(Float, nullable=True)
 
     # Thermal / thermoelectric
-    thermal_conductivity = Column(Float, nullable=True)   # W/(m·K)
-    seebeck_coefficient = Column(Float, nullable=True)    # uV/K
+    thermal_conductivity = Column(Float, nullable=True)  # W/(m·K)
+    seebeck_coefficient = Column(Float, nullable=True)  # uV/K
 
     # Carrier properties
     effective_mass_electron = Column(Float, nullable=True)  # m_e units
-    effective_mass_hole = Column(Float, nullable=True)      # m_e units
+    effective_mass_hole = Column(Float, nullable=True)  # m_e units
 
     # Electronic extras
-    efermi = Column(Float, nullable=True)             # eV
+    efermi = Column(Float, nullable=True)  # eV
     is_gap_direct = Column(Boolean, nullable=True)
 
     # Decomposition
-    decomposes_to = Column(JSON, nullable=True)       # list of competing phases
+    decomposes_to = Column(JSON, nullable=True)  # list of competing phases
 
     # Provenance & reliability
-    oxidation_states = Column(JSON, nullable=True)    # e.g. {"Fe": 3, "O": -2}
+    oxidation_states = Column(JSON, nullable=True)  # e.g. {"Fe": 3, "O": -2}
     calculation_method = Column(String(50), nullable=True)  # e.g. "GGA-PBE"
-    is_theoretical = Column(Boolean, default=True)    # computed vs experimental
+    is_theoretical = Column(Boolean, default=True)  # computed vs experimental
     experimentally_observed = Column(Boolean, default=False)  # has ICSD entry
-    icsd_ids = Column(JSON, nullable=True)            # ICSD reference IDs
-    database_ids = Column(JSON, nullable=True)        # cross-references to other DBs
-    warnings = Column(JSON, default=list)             # e.g. ["disordered structure"]
+    icsd_ids = Column(JSON, nullable=True)  # ICSD reference IDs
+    database_ids = Column(JSON, nullable=True)  # cross-references to other DBs
+    warnings = Column(JSON, default=list)  # e.g. ["disordered structure"]
 
     properties_json = Column(JSON, default=dict)
     source_url = Column(String(500), nullable=True)

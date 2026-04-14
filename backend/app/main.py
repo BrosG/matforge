@@ -6,11 +6,6 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
-
 from app.api.middleware import (
     RateLimitingMiddleware,
     RequestIDMiddleware,
@@ -20,6 +15,10 @@ from app.api.middleware import (
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.db.base import create_tables
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 
 # ---------------------------------------------------------------------------
 # Structured logging setup
@@ -62,6 +61,7 @@ async def lifespan(app: FastAPI):
 
     # Apply DB indexes (idempotent — skips existing, creates missing)
     from app.db.base import apply_indexes, warm_pool
+
     apply_indexes()
 
     # Pre-warm connection pool to avoid cold-start latency
@@ -71,6 +71,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     from app.core.redis_connector import close_redis
+
     close_redis()
     logger.info("Application shutdown complete")
 
@@ -89,7 +90,9 @@ app = FastAPI(
 # Global exception handler - never leak stack traces to clients
 # ---------------------------------------------------------------------------
 @app.exception_handler(Exception)
-async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+async def _unhandled_exception_handler(
+    request: Request, exc: Exception
+) -> JSONResponse:
     request_id = getattr(request.state, "request_id", "-")
     logger.exception("request_id=%s unhandled_exception", request_id)
     return JSONResponse(
@@ -111,7 +114,9 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.BACKEND_CORS_ORIGINS.split(",") if o.strip()],
+    allow_origins=[
+        o.strip() for o in settings.BACKEND_CORS_ORIGINS.split(",") if o.strip()
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],

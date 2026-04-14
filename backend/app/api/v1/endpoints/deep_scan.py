@@ -13,13 +13,12 @@ import math
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-
 from app.core.security import get_current_user
 from app.db.base import get_db
 from app.db.models import User
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,9 @@ SCAN_TTL_SECONDS = 48 * 3600  # 48 hours
 
 class DeepScanRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500, description="Material query")
-    directive: str = Field("", max_length=2000, description="Custom research context / mission")
+    directive: str = Field(
+        "", max_length=2000, description="Custom research context / mission"
+    )
     max_patents: int = Field(500, ge=1, le=15000, description="Max patents to retrieve")
     email: str = Field("", max_length=320, description="Notification email (optional)")
 
@@ -70,6 +71,7 @@ class DeepScanStatus(BaseModel):
 def _redis():
     """Return the shared Redis client."""
     from app.core.redis_connector import get_redis
+
     return get_redis()
 
 
@@ -125,7 +127,13 @@ async def launch_deep_scan(
             },
         )
     from app.api.v1.endpoints.credits import deduct_credits
-    deduct_credits(db, user, credit_cost, f"Deep Scan: {req.query[:80]} ({req.max_patents} patents)")
+
+    deduct_credits(
+        db,
+        user,
+        credit_cost,
+        f"Deep Scan: {req.query[:80]} ({req.max_patents} patents)",
+    )
 
     scan_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -153,6 +161,7 @@ async def launch_deep_scan(
     # Dispatch Celery task
     try:
         from app.tasks.deep_scan import run_deep_scan
+
         run_deep_scan.delay(
             scan_id=scan_id,
             query=req.query,
@@ -165,7 +174,9 @@ async def launch_deep_scan(
         meta["status"] = "failed"
         meta["message"] = "Failed to dispatch background task."
         _set_scan_meta(scan_id, meta)
-        raise HTTPException(status_code=503, detail="Background worker unavailable.") from exc
+        raise HTTPException(
+            status_code=503, detail="Background worker unavailable."
+        ) from exc
 
     return DeepScanLaunchResponse(
         scan_id=scan_id,
@@ -213,10 +224,14 @@ async def download_deep_scan(scan_id: str):
     try:
         raw = _redis().get(_result_key(scan_id))
         if raw is None:
-            raise HTTPException(status_code=404, detail="Result data expired or missing.")
+            raise HTTPException(
+                status_code=404, detail="Result data expired or missing."
+            )
         return json.loads(raw)
     except HTTPException:
         raise
     except Exception as exc:
         logger.error("Failed to read scan result %s: %s", scan_id, exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Error reading scan results.") from exc
+        raise HTTPException(
+            status_code=500, detail="Error reading scan results."
+        ) from exc

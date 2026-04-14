@@ -6,13 +6,13 @@ import hashlib
 from datetime import datetime
 from typing import Optional
 
+from app.db.base import get_db
+from app.db.models import IndexedMaterial
+from app.services import material_service
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
-from app.db.base import get_db
-from app.services import material_service
 
 router = APIRouter()
 
@@ -141,7 +141,9 @@ def search_materials(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     q: Optional[str] = None,
-    elements: Optional[str] = Query(None, description="Comma-separated element symbols, e.g. 'Li,O'"),
+    elements: Optional[str] = Query(
+        None, description="Comma-separated element symbols, e.g. 'Li,O'"
+    ),
     formula: Optional[str] = None,
     crystal_system: Optional[str] = None,
     space_group: Optional[str] = None,
@@ -196,9 +198,7 @@ def search_materials(
         sort_dir=sort_dir,
         q=q,
     )
-    return MaterialListResponse(
-        materials=results, total=total, page=page, limit=limit
-    )
+    return MaterialListResponse(materials=results, total=total, page=page, limit=limit)
 
 
 def _normalize_material_data(mat):
@@ -211,6 +211,7 @@ def _normalize_material_data(mat):
     # Fix old data with wrong lattice params (a=b=c for tetragonal, etc.)
     if mat.lattice_params and mat.crystal_system:
         from app.services.lattice_utils import normalize_lattice_for_display
+
         mat.lattice_params = normalize_lattice_for_display(
             mat.lattice_params,
             crystal_system=mat.crystal_system,
@@ -229,10 +230,9 @@ def _normalize_material_data(mat):
                 mat.structure_data["viewer_lattice"] = prim
             else:
                 from app.services.lattice_utils import conventional_to_primitive_lattice
+
                 sg = mat.space_group or ""
-                viewer_lat = conventional_to_primitive_lattice(
-                    mat.lattice_params, sg
-                )
+                viewer_lat = conventional_to_primitive_lattice(mat.lattice_params, sg)
                 mat.structure_data["viewer_lattice"] = viewer_lat
 
     # Strip internal pipeline fields — never expose to frontend
@@ -298,7 +298,9 @@ def export_material_structure(
         raise HTTPException(status_code=404, detail="Material not found")
 
     if fmt not in ("cif", "poscar", "xyz"):
-        raise HTTPException(status_code=400, detail="Format must be cif, poscar, or xyz")
+        raise HTTPException(
+            status_code=400, detail="Format must be cif, poscar, or xyz"
+        )
 
     lp = mat.lattice_params or {}
     sd = mat.structure_data or {}
@@ -335,7 +337,7 @@ def export_material_structure(
             fx = atom.get("fx", atom.get("x", 0))
             fy = atom.get("fy", atom.get("y", 0))
             fz = atom.get("fz", atom.get("z", 0))
-            lines.append(f"{el}{i+1} {el} {fx:.6f} {fy:.6f} {fz:.6f}")
+            lines.append(f"{el}{i + 1} {el} {fx:.6f} {fy:.6f} {fz:.6f}")
 
         content = "\n".join(lines)
         return Response(
@@ -354,17 +356,24 @@ def export_material_structure(
                 lines.append(f"  {row[0]:12.8f}  {row[1]:12.8f}  {row[2]:12.8f}")
         else:
             import math
+
             ar, br, gr = math.radians(alpha), math.radians(beta), math.radians(gamma)
-            cos_a, cos_b, cos_g, sin_g = math.cos(ar), math.cos(br), math.cos(gr), math.sin(gr)
+            cos_a, cos_b, cos_g, sin_g = (
+                math.cos(ar),
+                math.cos(br),
+                math.cos(gr),
+                math.sin(gr),
+            )
             lines.append(f"  {a:12.8f}  {0:12.8f}  {0:12.8f}")
-            lines.append(f"  {b*cos_g:12.8f}  {b*sin_g:12.8f}  {0:12.8f}")
+            lines.append(f"  {b * cos_g:12.8f}  {b * sin_g:12.8f}  {0:12.8f}")
             cx = c * cos_b
             cy = c * (cos_a - cos_b * cos_g) / sin_g
-            cz = math.sqrt(max(0, c*c - cx*cx - cy*cy))
+            cz = math.sqrt(max(0, c * c - cx * cx - cy * cy))
             lines.append(f"  {cx:12.8f}  {cy:12.8f}  {cz:12.8f}")
 
         # Count elements
         from collections import Counter
+
         el_counts = Counter(atom.get("element", "X") for atom in atoms)
         lines.append("  ".join(el_counts.keys()))
         lines.append("  ".join(str(v) for v in el_counts.values()))
@@ -412,28 +421,40 @@ def scatter_data(
 ):
     """Get scatter plot data for any two properties. Returns [{x, y, color, formula, id}]."""
     allowed_props = {
-        "band_gap", "formation_energy", "energy_above_hull", "density", "volume",
-        "bulk_modulus", "shear_modulus", "young_modulus", "poisson_ratio",
-        "total_magnetization", "dielectric_constant", "refractive_index",
-        "thermal_conductivity", "seebeck_coefficient", "n_elements", "efermi",
+        "band_gap",
+        "formation_energy",
+        "energy_above_hull",
+        "density",
+        "volume",
+        "bulk_modulus",
+        "shear_modulus",
+        "young_modulus",
+        "poisson_ratio",
+        "total_magnetization",
+        "dielectric_constant",
+        "refractive_index",
+        "thermal_conductivity",
+        "seebeck_coefficient",
+        "n_elements",
+        "efermi",
     }
     if x_prop not in allowed_props or y_prop not in allowed_props:
-        raise HTTPException(status_code=400, detail=f"Properties must be one of: {', '.join(sorted(allowed_props))}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Properties must be one of: {', '.join(sorted(allowed_props))}",
+        )
 
     x_col = getattr(IndexedMaterial, x_prop, None)
     y_col = getattr(IndexedMaterial, y_prop, None)
     if x_col is None or y_col is None:
         raise HTTPException(status_code=400, detail="Invalid property name")
 
-    query = (
-        db.query(
-            IndexedMaterial.id,
-            IndexedMaterial.formula,
-            x_col.label("x"),
-            y_col.label("y"),
-        )
-        .filter(x_col.isnot(None), y_col.isnot(None))
-    )
+    query = db.query(
+        IndexedMaterial.id,
+        IndexedMaterial.formula,
+        x_col.label("x"),
+        y_col.label("y"),
+    ).filter(x_col.isnot(None), y_col.isnot(None))
 
     if crystal_system:
         query = query.filter(IndexedMaterial.crystal_system == crystal_system)
@@ -487,7 +508,9 @@ def get_similar_materials(
     if mat.band_gap is not None:
         margin = max(0.2, abs(mat.band_gap) * 0.2)
         query = query.filter(
-            IndexedMaterial.band_gap.between(mat.band_gap - margin, mat.band_gap + margin)
+            IndexedMaterial.band_gap.between(
+                mat.band_gap - margin, mat.band_gap + margin
+            )
         )
 
     # Same number of elements

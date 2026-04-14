@@ -57,7 +57,6 @@ def ingest_all(self, sources: list[str] | None = None, max_per_source: int = 0):
 
 def _ingest_source(db, source: str, max_total: int) -> int:
     """Paginate through a single source and ingest all materials."""
-    from app.services.ingest_service import ingest_batch
 
     if source == "materials_project":
         return _ingest_materials_project(db, max_total)
@@ -133,19 +132,23 @@ def _ingest_materials_project(db, max_total: int) -> int:
         batch = []
         for item in items:
             entry = MaterialsProjectConnector._parse_item(item)
-            batch.append({
-                "external_id": entry.external_id,
-                "formula": entry.formula,
-                "properties": entry.properties,
-                "structure": entry.structure if entry.structure else None,
-                "metadata": entry.metadata,
-            })
+            batch.append(
+                {
+                    "external_id": entry.external_id,
+                    "formula": entry.formula,
+                    "properties": entry.properties,
+                    "structure": entry.structure if entry.structure else None,
+                    "metadata": entry.metadata,
+                }
+            )
 
         count = ingest_batch(db, batch, "materials_project")
         total += count
         offset += page_size
 
-        logger.info("MP progress: %d ingested (%d this batch, offset %d)", total, count, offset)
+        logger.info(
+            "MP progress: %d ingested (%d this batch, offset %d)", total, count, offset
+        )
 
         # Rate limiting: ~1 req/sec to be polite
         time.sleep(1.0)
@@ -161,10 +164,10 @@ def _ingest_aflow(db, max_total: int) -> int:
 
     AFLUX API uses $paging(page, per_page) for pagination.
     """
-    from app.services.ingest_service import ingest_batch
-
     import json
     from urllib.request import Request, urlopen
+
+    from app.services.ingest_service import ingest_batch
 
     base_url = "http://aflowlib.org/API/aflux/"
     props = (
@@ -204,13 +207,15 @@ def _ingest_aflow(db, max_total: int) -> int:
         batch = []
         for item in items:
             entry = AflowConnector._parse_item(item)
-            batch.append({
-                "external_id": entry.external_id,
-                "formula": entry.formula,
-                "properties": entry.properties,
-                "structure": entry.structure if entry.structure else None,
-                "metadata": entry.metadata,
-            })
+            batch.append(
+                {
+                    "external_id": entry.external_id,
+                    "formula": entry.formula,
+                    "properties": entry.properties,
+                    "structure": entry.structure if entry.structure else None,
+                    "metadata": entry.metadata,
+                }
+            )
 
         count = ingest_batch(db, batch, "aflow")
         total += count
@@ -239,9 +244,10 @@ def _ingest_jarvis(db, max_total: int) -> int:
     3. GCS public URL (no SDK needed)
     4. jarvis-tools Python package (Figshare download)
     """
-    from app.services.ingest_service import ingest_batch
     import json
     from pathlib import Path
+
+    from app.services.ingest_service import ingest_batch
 
     logger.info("Loading JARVIS-DFT 3D dataset...")
     items = None
@@ -256,7 +262,9 @@ def _ingest_jarvis(db, max_total: int) -> int:
         if lp.exists():
             try:
                 items = json.loads(lp.read_bytes().decode("utf-8"))
-                logger.info("Loaded JARVIS from local file %s: %d items", lp, len(items))
+                logger.info(
+                    "Loaded JARVIS from local file %s: %d items", lp, len(items)
+                )
                 break
             except Exception as e:
                 logger.warning("Local file %s failed: %s", lp, e)
@@ -265,6 +273,7 @@ def _ingest_jarvis(db, max_total: int) -> int:
     if not items:
         try:
             from google.cloud import storage as gcs
+
             client = gcs.Client()
             bucket = client.bucket("matforge-data")
             blob = bucket.blob("datasets/jarvis_dft_3d.json")
@@ -278,9 +287,12 @@ def _ingest_jarvis(db, max_total: int) -> int:
     if not items:
         try:
             import urllib.request
+
             gcs_url = "https://storage.googleapis.com/matforge-data/datasets/jarvis_dft_3d.json"
             logger.info("Downloading JARVIS from GCS public URL...")
-            req = urllib.request.Request(gcs_url, headers={"User-Agent": "MatCraft/1.0"})
+            req = urllib.request.Request(
+                gcs_url, headers={"User-Agent": "MatCraft/1.0"}
+            )
             with urllib.request.urlopen(req, timeout=300) as resp:
                 raw = resp.read()
             items = json.loads(raw.decode("utf-8"))
@@ -297,6 +309,7 @@ def _ingest_jarvis(db, max_total: int) -> int:
     if not items:
         try:
             from jarvis.db.figshare import data as jarvis_data
+
             items = jarvis_data("dft_3d")
             logger.info("Loaded JARVIS via jarvis-tools: %d items", len(items))
         except Exception as e:
@@ -380,13 +393,15 @@ def _ingest_jarvis(db, max_total: int) -> int:
             "crystal_system": item.get("crys", ""),
         }
 
-        batch.append({
-            "external_id": str(jid),
-            "formula": formula,
-            "properties": properties,
-            "structure": structure,
-            "metadata": metadata,
-        })
+        batch.append(
+            {
+                "external_id": str(jid),
+                "formula": formula,
+                "properties": properties,
+                "structure": structure,
+                "metadata": metadata,
+            }
+        )
 
         if len(batch) >= batch_size:
             count = ingest_batch(db, batch, "jarvis")

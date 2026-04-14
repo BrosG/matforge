@@ -75,17 +75,47 @@ _BOOL_OPS: dict[type, Any] = {
 }
 
 # Attributes allowed on the 'np' namespace (numpy)
-_NUMPY_ATTR_ALLOWLIST: frozenset[str] = frozenset({
-    "sqrt", "exp", "log", "log10", "log2",
-    "sin", "cos", "tan", "arcsin", "arccos", "arctan", "arctan2",
-    "abs", "fabs", "floor", "ceil", "round",
-    "maximum", "minimum", "clip",
-    "mean", "sum", "std", "var",
-    "pi", "e", "inf", "nan",
-    "power", "square", "cbrt",
-    "array", "zeros", "ones",
-    "float64", "float32", "int64",
-})
+_NUMPY_ATTR_ALLOWLIST: frozenset[str] = frozenset(
+    {
+        "sqrt",
+        "exp",
+        "log",
+        "log10",
+        "log2",
+        "sin",
+        "cos",
+        "tan",
+        "arcsin",
+        "arccos",
+        "arctan",
+        "arctan2",
+        "abs",
+        "fabs",
+        "floor",
+        "ceil",
+        "round",
+        "maximum",
+        "minimum",
+        "clip",
+        "mean",
+        "sum",
+        "std",
+        "var",
+        "pi",
+        "e",
+        "inf",
+        "nan",
+        "power",
+        "square",
+        "cbrt",
+        "array",
+        "zeros",
+        "ones",
+        "float64",
+        "float32",
+        "int64",
+    }
+)
 
 
 class _SafeEvaluator(ast.NodeVisitor):
@@ -127,7 +157,9 @@ class _SafeEvaluator(ast.NodeVisitor):
     def visit_Constant(self, node: ast.Constant) -> Any:
         if isinstance(node.value, (int, float, complex, bool, str, type(None))):
             return node.value
-        raise MateriaEvalError(f"Unsupported constant type: {type(node.value).__name__}")
+        raise MateriaEvalError(
+            f"Unsupported constant type: {type(node.value).__name__}"
+        )
 
     def visit_Name(self, node: ast.Name) -> Any:
         name = node.id
@@ -161,13 +193,17 @@ class _SafeEvaluator(ast.NodeVisitor):
     def visit_UnaryOp(self, node: ast.UnaryOp) -> Any:
         op = _UNARY_OPS.get(type(node.op))
         if op is None:
-            raise MateriaEvalError(f"Unsupported unary operator: {type(node.op).__name__}")
+            raise MateriaEvalError(
+                f"Unsupported unary operator: {type(node.op).__name__}"
+            )
         return op(self.visit(node.operand))
 
     def visit_BinOp(self, node: ast.BinOp) -> Any:
         op = _BIN_OPS.get(type(node.op))
         if op is None:
-            raise MateriaEvalError(f"Unsupported binary operator: {type(node.op).__name__}")
+            raise MateriaEvalError(
+                f"Unsupported binary operator: {type(node.op).__name__}"
+            )
         left = self.visit(node.left)
         right = self.visit(node.right)
         # Guard against exponent abuse
@@ -179,7 +215,9 @@ class _SafeEvaluator(ast.NodeVisitor):
     def visit_BoolOp(self, node: ast.BoolOp) -> Any:
         reducer = _BOOL_OPS.get(type(node.op))
         if reducer is None:
-            raise MateriaEvalError(f"Unsupported boolean operator: {type(node.op).__name__}")
+            raise MateriaEvalError(
+                f"Unsupported boolean operator: {type(node.op).__name__}"
+            )
         return reducer(self.visit(v) for v in node.values)
 
     def visit_Compare(self, node: ast.Compare) -> Any:

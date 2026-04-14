@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
 from app.core.security import hash_password, verify_password
 from app.db.models import User
+from sqlalchemy.orm import Session
 
 
 def get_by_email(db: Session, email: str) -> Optional[User]:

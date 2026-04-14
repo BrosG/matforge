@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -16,6 +12,9 @@ from app.core.security import (
 )
 from app.db.base import get_db
 from app.db.models import CreditTransaction, User
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 

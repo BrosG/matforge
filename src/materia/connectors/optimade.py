@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Optional
 from urllib.error import URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
@@ -47,10 +46,12 @@ class OptimadeConnector(DatasetConnector):
         results = connector.search(elements=["Si", "O"], max_results=20)
     """
 
-    def __init__(self, config: Optional[OptimadeConfig] = None) -> None:
+    def __init__(self, config: OptimadeConfig | None = None) -> None:
         cfg = config or OptimadeConfig()
         if not cfg.base_url:
-            cfg.base_url = OPTIMADE_PROVIDERS.get(cfg.provider, OPTIMADE_PROVIDERS["mp"])
+            cfg.base_url = OPTIMADE_PROVIDERS.get(
+                cfg.provider, OPTIMADE_PROVIDERS["mp"]
+            )
         super().__init__(cfg)
         self._provider = getattr(cfg, "provider", "mp")
 
@@ -78,7 +79,9 @@ class OptimadeConnector(DatasetConnector):
                 "density": f"_{self._provider}_density",
             }
             for prop_name, (lo, hi) in property_range.items():
-                optimade_field = prop_map.get(prop_name, f"_{self._provider}_{prop_name}")
+                optimade_field = prop_map.get(
+                    prop_name, f"_{self._provider}_{prop_name}"
+                )
                 parts.append(f"{optimade_field} >= {lo}")
                 parts.append(f"{optimade_field} <= {hi}")
 
@@ -101,7 +104,9 @@ class OptimadeConnector(DatasetConnector):
         if filter_str:
             params["filter"] = filter_str
 
-        url = f"{self.config.base_url}/v1/structures?{urlencode(params, quote_via=quote)}"
+        url = (
+            f"{self.config.base_url}/v1/structures?{urlencode(params, quote_via=quote)}"
+        )
         req = Request(url)
         req.add_header("Accept", "application/json")
 

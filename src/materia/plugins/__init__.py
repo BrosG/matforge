@@ -12,7 +12,11 @@ def discover_plugins() -> dict[str, Path]:
     plugins_dir = Path(__file__).parent
     PLUGIN_REGISTRY.clear()
     for child in plugins_dir.iterdir():
-        if child.is_dir() and (child / "__init__.py").exists() and child.name != "__pycache__":
+        if (
+            child.is_dir()
+            and (child / "__init__.py").exists()
+            and child.name != "__pycache__"
+        ):
             PLUGIN_REGISTRY[child.name] = child
     return PLUGIN_REGISTRY
 
@@ -42,6 +46,7 @@ def get_plugin_equations(domain: str) -> dict:
         return {}
 
     import importlib.util
+
     spec = importlib.util.spec_from_file_location(
         f"materia.plugins.{domain}.physics", physics_path
     )

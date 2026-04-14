@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Optional
 
 import redis
-
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)

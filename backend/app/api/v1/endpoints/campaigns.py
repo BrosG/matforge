@@ -5,13 +5,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-
-from app.core.security import get_current_user, get_current_user_optional
+from app.core.security import get_current_user
 from app.db.base import get_db
 from app.db.models import Campaign, MaterialRecord, User
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
@@ -199,11 +198,7 @@ def get_analytics(
     )
     domain_counts = {row[0]: row[1] for row in domain_rows}
 
-    recent = (
-        base.order_by(Campaign.created_at.desc())
-        .limit(5)
-        .all()
-    )
+    recent = base.order_by(Campaign.created_at.desc()).limit(5).all()
 
     return AnalyticsResponse(
         total_campaigns=total,
@@ -402,15 +397,12 @@ def export_campaign(
         raise HTTPException(status_code=404, detail="Campaign not found")
 
     materials = (
-        db.query(MaterialRecord)
-        .filter(MaterialRecord.campaign_id == campaign_id)
-        .all()
+        db.query(MaterialRecord).filter(MaterialRecord.campaign_id == campaign_id).all()
     )
 
     if format == "cif":
-        from starlette.responses import Response
-
         from materia.io.cif_writer import material_to_cif
+        from starlette.responses import Response
 
         cif_blocks = []
         for m in materials:
@@ -420,13 +412,14 @@ def export_campaign(
         return Response(
             content=content,
             media_type="chemical/x-cif",
-            headers={"Content-Disposition": f"attachment; filename={campaign.name}_materials.cif"},
+            headers={
+                "Content-Disposition": f"attachment; filename={campaign.name}_materials.cif"
+            },
         )
 
     if format == "poscar":
-        from starlette.responses import Response
-
         from materia.io.poscar_writer import material_to_poscar
+        from starlette.responses import Response
 
         poscar_blocks = []
         for m in materials:
@@ -436,7 +429,9 @@ def export_campaign(
         return Response(
             content=content,
             media_type="text/plain",
-            headers={"Content-Disposition": f"attachment; filename={campaign.name}_materials.poscar"},
+            headers={
+                "Content-Disposition": f"attachment; filename={campaign.name}_materials.poscar"
+            },
         )
 
     if format == "json":
@@ -463,7 +458,9 @@ def export_campaign(
 
     output = io.StringIO()
     if materials:
-        prop_keys = sorted(materials[0].properties.keys()) if materials[0].properties else []
+        prop_keys = (
+            sorted(materials[0].properties.keys()) if materials[0].properties else []
+        )
         writer = csv.writer(output)
         writer.writerow(["score", "source", "dominated", "round"] + prop_keys)
         for m in materials:
@@ -475,5 +472,7 @@ def export_campaign(
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={campaign.name}_results.csv"},
+        headers={
+            "Content-Disposition": f"attachment; filename={campaign.name}_results.csv"
+        },
     )

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+from app.core.security import require_admin
+from app.db.base import get_db
+from app.db.models import User
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
-from app.core.security import require_admin
-from app.db.base import get_db
-from app.db.models import User
 
 router = APIRouter()
 
@@ -36,9 +35,8 @@ def get_aggregate_stats(
     db: Session = Depends(get_db),
 ):
     """Get aggregate statistics across all campaigns (admin only)."""
-    from sqlalchemy import func
-
     from app.db.models import Campaign, MaterialRecord
+    from sqlalchemy import func
 
     total_campaigns = db.query(func.count(Campaign.id)).scalar() or 0
     completed_campaigns = (
@@ -98,9 +96,7 @@ def export_training_data(
     from app.db.models import Campaign, MaterialRecord
 
     def generate_jsonl():
-        campaigns = (
-            db.query(Campaign).filter(Campaign.status == "completed").all()
-        )
+        campaigns = db.query(Campaign).filter(Campaign.status == "completed").all()
         for campaign in campaigns:
             materials = (
                 db.query(MaterialRecord)
@@ -110,7 +106,9 @@ def export_training_data(
             for mat in materials:
                 record = {
                     "domain": campaign.domain,
-                    "params": mat.params if isinstance(mat.params, (list, dict)) else {},
+                    "params": mat.params
+                    if isinstance(mat.params, (list, dict))
+                    else {},
                     "properties": mat.properties or {},
                     "composition": mat.composition or {},
                     "score": mat.score,

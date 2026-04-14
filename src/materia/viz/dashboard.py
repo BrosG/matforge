@@ -6,7 +6,7 @@ import json
 import webbrowser
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from jinja2 import Template
 
@@ -169,7 +169,9 @@ def generate_dashboard(
 
     obj_names = [o.name for o in material_def.objectives]
     obj_x = obj_names[0] if obj_names else "obj_0"
-    obj_y = obj_names[1] if len(obj_names) > 1 else obj_names[0] if obj_names else "obj_1"
+    obj_y = (
+        obj_names[1] if len(obj_names) > 1 else obj_names[0] if obj_names else "obj_1"
+    )
 
     # Pareto scatter data
     pareto_data = {
@@ -190,16 +192,20 @@ def generate_dashboard(
     # Top materials table
     top_materials = []
     for m in pareto[:20]:
-        top_materials.append({
-            "score": round(m.score, 4),
-            "obj_values": [round(m.properties.get(o, 0), 4) for o in obj_names],
-            "source": m.source.value,
-            "status": "Pareto" if not m.dominated else "Dominated",
-            "badge_class": "badge-pareto" if not m.dominated else "badge-dominated",
-        })
+        top_materials.append(
+            {
+                "score": round(m.score, 4),
+                "obj_values": [round(m.properties.get(o, 0), 4) for o in obj_names],
+                "source": m.source.value,
+                "status": "Pareto" if not m.dominated else "Dominated",
+                "badge_class": "badge-pareto" if not m.dominated else "badge-dominated",
+            }
+        )
 
     obj_x_def = material_def.objectives[0] if material_def.objectives else None
-    obj_y_def = material_def.objectives[1] if len(material_def.objectives) > 1 else obj_x_def
+    obj_y_def = (
+        material_def.objectives[1] if len(material_def.objectives) > 1 else obj_x_def
+    )
 
     template = Template(DASHBOARD_TEMPLATE)
     html = template.render(
@@ -215,17 +221,19 @@ def generate_dashboard(
         pareto_data=json.dumps(pareto_data),
         dominated_data=json.dumps(dominated_data),
         convergence_data=json.dumps(convergence_data),
-        obj_x_label=f"{obj_x} ({obj_x_def.unit})" if obj_x_def and obj_x_def.unit else obj_x,
-        obj_y_label=f"{obj_y} ({obj_y_def.unit})" if obj_y_def and obj_y_def.unit else obj_y,
+        obj_x_label=f"{obj_x} ({obj_x_def.unit})"
+        if obj_x_def and obj_x_def.unit
+        else obj_x,
+        obj_y_label=f"{obj_y} ({obj_y_def.unit})"
+        if obj_y_def and obj_y_def.unit
+        else obj_y,
     )
 
     Path(output_path).write_text(html, encoding="utf-8")
     return output_path
 
 
-def serve_dashboard(
-    path: str = "dashboard.html", port: int = 8050
-) -> None:
+def serve_dashboard(path: str = "dashboard.html", port: int = 8050) -> None:
     """Serve the dashboard HTML file via a simple HTTP server."""
     dashboard_path = Path(path).resolve()
     if not dashboard_path.exists():

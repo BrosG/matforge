@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+from app.db.base import get_db
+from app.db.models import InvestorAccessRequest
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-
-from app.db.base import get_db
-from app.db.models import InvestorAccessRequest
 
 router = APIRouter()
 

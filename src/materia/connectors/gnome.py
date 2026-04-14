@@ -9,7 +9,6 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from materia.connectors.base import ConnectorConfig, DatasetConnector, DatasetEntry
 
@@ -38,7 +37,7 @@ class GnomeConnector(DatasetConnector):
     Set data_dir via config or GNOME_DATA_DIR environment variable.
     """
 
-    def __init__(self, config: Optional[GnomeConfig] = None) -> None:
+    def __init__(self, config: GnomeConfig | None = None) -> None:
         cfg = config or GnomeConfig()
         super().__init__(cfg)
         data_dir = getattr(cfg, "data_dir", "") or os.environ.get("GNOME_DATA_DIR", "")

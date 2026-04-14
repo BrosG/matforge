@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional
 
 from materia.evaluate.dft.base_dft import DFTConfig, DFTEvaluator
 from materia.mdl import MaterialDef
@@ -13,7 +12,7 @@ from materia.mdl import MaterialDef
 class GpawEvaluator(DFTEvaluator):
     """Evaluator that runs GPAW calculations via generated Python scripts."""
 
-    def __init__(self, config: Optional[DFTConfig] = None) -> None:
+    def __init__(self, config: DFTConfig | None = None) -> None:
         cfg = config or DFTConfig(executable="gpaw python")
         super().__init__(cfg)
         self.xc = cfg.extra_settings.get("xc", "PBE")
@@ -33,9 +32,7 @@ class GpawEvaluator(DFTEvaluator):
         if material_def.composition:
             elements = material_def.composition.components
         if not elements:
-            elements = sorted(
-                (material_def.metadata or {}).get("elements", ["H", "H"])
-            )
+            elements = sorted((material_def.metadata or {}).get("elements", ["H", "H"]))
 
         kpts_str = repr(tuple(self.kpts) if isinstance(self.kpts, list) else self.kpts)
         elem_str = repr(elements)
@@ -51,7 +48,7 @@ from gpaw import GPAW, PW
 elements = {elem_str}
 atoms = bulk(elements[0], 'fcc', a={a:.4f}) if len(elements) == 1 else Atoms(
     symbols="".join(elements),
-    positions=[[0, 0, 0]] + [[{a/2:.4f}, {a/2:.4f}, 0]] * (len(elements) - 1),
+    positions=[[0, 0, 0]] + [[{a / 2:.4f}, {a / 2:.4f}, 0]] * (len(elements) - 1),
     cell=[{a:.4f}, {a:.4f}, {a:.4f}],
     pbc=True,
 )

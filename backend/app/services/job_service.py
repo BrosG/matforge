@@ -6,9 +6,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
 from app.db.models import Job
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 

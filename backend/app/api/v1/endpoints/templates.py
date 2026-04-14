@@ -5,13 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-
 from app.core.security import get_current_user
 from app.db.base import get_db
 from app.db.models import Campaign, Template, TemplateLike, User
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
@@ -130,8 +129,7 @@ def list_templates(
 
     return TemplateListResponse(
         templates=[
-            _template_to_response(t, liked_by_me=t.id in liked_ids)
-            for t in templates
+            _template_to_response(t, liked_by_me=t.id in liked_ids) for t in templates
         ],
         total=total,
         page=page,
@@ -264,7 +262,9 @@ def delete_template(
         .first()
     )
     if not template:
-        raise HTTPException(status_code=404, detail="Template not found or not owned by you")
+        raise HTTPException(
+            status_code=404, detail="Template not found or not owned by you"
+        )
 
     db.query(TemplateLike).filter(TemplateLike.template_id == template_id).delete()
     db.delete(template)

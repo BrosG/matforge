@@ -64,7 +64,19 @@ src = ["app"]
 
 [tool.ruff.lint]
 select = ["F", "E", "W", "I", "B", "RUF"]
-ignore = ["E501"]
+ignore = [
+    "E501",   # line length (handled by formatter)
+    "B008",   # FastAPI Depends(...) in defaults is the idiomatic pattern
+    "B904",   # raise-without-from - pervasive in existing handlers
+    "B905",   # zip-without-strict
+    "B007",   # unused-loop-control-variable
+    "RUF002", # ambiguous unicode in docstrings (em-dash, en-dash intentional)
+    "RUF003", # ambiguous unicode in comments
+    "RUF005", # list concat is fine for small static lists
+    "RUF046", # int(x) cast is fine for clarity
+    "RUF059", # unused-unpacked-variable
+    "E712",   # SQLAlchemy ``col == True`` is required for ORM filters
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

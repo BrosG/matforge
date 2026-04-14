@@ -8,7 +8,6 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from materia.connectors.base import ConnectorConfig, DatasetConnector, DatasetEntry
 
@@ -36,10 +35,12 @@ class OpenDACConnector(DatasetConnector):
     Set data_dir via config or OPENDAC_DATA_DIR environment variable.
     """
 
-    def __init__(self, config: Optional[OpenDACConfig] = None) -> None:
+    def __init__(self, config: OpenDACConfig | None = None) -> None:
         cfg = config or OpenDACConfig()
         super().__init__(cfg)
-        data_dir = getattr(cfg, "data_dir", "") or os.environ.get("OPENDAC_DATA_DIR", "")
+        data_dir = getattr(cfg, "data_dir", "") or os.environ.get(
+            "OPENDAC_DATA_DIR", ""
+        )
         self._data_dir = Path(data_dir) if data_dir else None
         self._records: list[dict] | None = None
 
@@ -164,7 +165,11 @@ class OpenDACConnector(DatasetConnector):
                 for key in ("adsorption_energy", "energy", "dft_energy"):
                     val = record.get(key)
                     if val is not None and isinstance(val, (int, float)):
-                        prop_name = "adsorption_energy" if key in ("adsorption_energy", "energy") else key
+                        prop_name = (
+                            "adsorption_energy"
+                            if key in ("adsorption_energy", "energy")
+                            else key
+                        )
                         properties[prop_name] = float(val)
 
                 catalyst = record.get("catalyst_formula", "")

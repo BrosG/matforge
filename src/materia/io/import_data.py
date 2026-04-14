@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-from pathlib import Path
 
 import numpy as np
 
@@ -48,11 +47,13 @@ def import_csv(
                 if col in row:
                     properties[o_def.name] = float(row[col])
 
-            materials.append(Material(
-                params=params,
-                properties=properties,
-                source=MaterialSource.EXPERIMENT,
-                metadata={"material_def": material_def},
-            ))
+            materials.append(
+                Material(
+                    params=params,
+                    properties=properties,
+                    source=MaterialSource.EXPERIMENT,
+                    metadata={"material_def": material_def},
+                )
+            )
 
     return materials

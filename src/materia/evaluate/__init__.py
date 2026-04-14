@@ -1,7 +1,7 @@
-from materia.evaluate.base import Evaluator
 from materia.evaluate.analytic import AnalyticEvaluator
+from materia.evaluate.base import Evaluator
 
-__all__ = ["Evaluator", "AnalyticEvaluator"]
+__all__ = ["AnalyticEvaluator", "Evaluator"]
 
 
 def __getattr__(name: str):

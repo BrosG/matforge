@@ -5,7 +5,8 @@ from __future__ import annotations
 import os
 
 import firebase_admin
-from firebase_admin import auth as firebase_auth, credentials
+from firebase_admin import auth as firebase_auth
+from firebase_admin import credentials
 
 _app: firebase_admin.App | None = None
 

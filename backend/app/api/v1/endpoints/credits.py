@@ -6,13 +6,12 @@ import logging
 import os
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-
 from app.core.security import get_current_user
 from app.db.base import get_db
 from app.db.models import CreditTransaction, User
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +72,7 @@ def deduct_credits(db: Session, user: User, amount: int, description: str) -> bo
     if amount <= 0:
         return True
 
-    locked = (
-        db.query(User)
-        .filter(User.id == user.id)
-        .with_for_update()
-        .first()
-    )
+    locked = db.query(User).filter(User.id == user.id).with_for_update().first()
     if not locked or locked.credits < amount:
         return False
 
@@ -134,14 +128,11 @@ def purchase_credits(
 
     added = pkg["credits"]
 
-    locked = (
-        db.query(User)
-        .filter(User.id == user.id)
-        .with_for_update()
-        .first()
-    )
+    locked = db.query(User).filter(User.id == user.id).with_for_update().first()
     if not locked:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     locked.credits += added
     tx = CreditTransaction(

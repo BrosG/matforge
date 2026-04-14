@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -26,7 +25,7 @@ class PerovskiteConnector(DatasetConnector):
     No API key required.
     """
 
-    def __init__(self, config: Optional[ConnectorConfig] = None) -> None:
+    def __init__(self, config: ConnectorConfig | None = None) -> None:
         cfg = config or ConnectorConfig(base_url=PEROVSKITE_BASE_URL)
         if not cfg.base_url:
             cfg.base_url = PEROVSKITE_BASE_URL
@@ -60,7 +59,11 @@ class PerovskiteConnector(DatasetConnector):
             logger.error(f"Perovskite Database API error: {e}")
             return []
 
-        items = data if isinstance(data, list) else data.get("materials", data.get("data", []))
+        items = (
+            data
+            if isinstance(data, list)
+            else data.get("materials", data.get("data", []))
+        )
 
         entries: list[DatasetEntry] = []
         for item in items[:max_results]:

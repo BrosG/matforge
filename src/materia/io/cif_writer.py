@@ -7,11 +7,14 @@ from pathlib import Path
 from materia.material import Material
 from materia.mdl import MaterialDef
 
-
 # Standard lattice parameter names to look for in physical values
 _LATTICE_PARAMS = {
-    "a": 5.0, "b": 5.0, "c": 5.0,
-    "alpha": 90.0, "beta": 90.0, "gamma": 90.0,
+    "a": 5.0,
+    "b": 5.0,
+    "c": 5.0,
+    "alpha": 90.0,
+    "beta": 90.0,
+    "gamma": 90.0,
 }
 
 
@@ -66,7 +69,7 @@ def material_to_cif(
             frac_x = (i + 0.5) / max(n, 1)
             occ = composition[elem]
             lines.append(
-                f"{elem}{i+1}  {elem}  {frac_x:.4f}  0.5000  0.5000  {occ:.4f}"
+                f"{elem}{i + 1}  {elem}  {frac_x:.4f}  0.5000  0.5000  {occ:.4f}"
             )
 
     # Add properties as comments
@@ -89,7 +92,7 @@ def export_cif(
     sorted_materials = sorted(materials, key=lambda m: m.score)
     blocks = []
     for i, m in enumerate(sorted_materials):
-        block = material_to_cif(m, material_def, block_name=f"matforge_{i+1}")
+        block = material_to_cif(m, material_def, block_name=f"matforge_{i + 1}")
         blocks.append(block)
 
     Path(path).write_text("\n".join(blocks), encoding="utf-8")

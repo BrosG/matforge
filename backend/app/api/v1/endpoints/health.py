@@ -5,10 +5,9 @@ from __future__ import annotations
 import logging
 import threading
 
+from app.db.base import check_connection, get_db
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-
-from app.db.base import check_connection, get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -54,6 +53,7 @@ async def full_health(db: Session = Depends(get_db)):
     engine_version = "unknown"
     try:
         import materia
+
         engine_version = getattr(materia, "__version__", "1.0.0")
     except ImportError:
         engine_version = "1.0.0"
@@ -96,12 +96,14 @@ def _maybe_trigger_ingestion(db: Session) -> str:
 
         try:
             from app.db.base import create_tables
+
             create_tables()
         except Exception as e:
             logger.warning("create_tables in health check: %s", e)
 
         try:
             from app.services.startup_ingest import ensure_real_data
+
             ensure_real_data()
             _ingestion_triggered = True
             return "triggered"
@@ -124,6 +126,7 @@ async def info():
     engine_version = "1.0.0"
     try:
         import materia
+
         engine_version = getattr(materia, "__version__", "1.0.0")
     except ImportError:
         pass

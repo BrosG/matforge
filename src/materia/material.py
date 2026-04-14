@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -33,7 +33,7 @@ class Material:
 
     def recipe(self) -> dict[str, Any]:
         """Return a human-readable recipe decoding normalized params to physical values."""
-        material_def: Optional[MaterialDef] = self.metadata.get("material_def")
+        material_def: MaterialDef | None = self.metadata.get("material_def")
         if material_def is None:
             return {"params": self.params.tolist(), "composition": self.composition}
 
@@ -48,17 +48,18 @@ class Material:
         recipe["composition"] = self.composition
         return recipe
 
-    def objective_vector(self, material_def: Optional[MaterialDef] = None) -> np.ndarray:
+    def objective_vector(self, material_def: MaterialDef | None = None) -> np.ndarray:
         """Return property values as a numpy array ordered by material_def objectives."""
         mdef = material_def or self.metadata.get("material_def")
         if mdef is None:
             return np.array(list(self.properties.values()))
-        return np.array([
-            self.properties.get(obj.name, np.nan)
-            for obj in mdef.objectives
-        ])
+        return np.array(
+            [self.properties.get(obj.name, np.nan) for obj in mdef.objectives]
+        )
 
-    def physical_values(self, material_def: Optional[MaterialDef] = None) -> dict[str, float]:
+    def physical_values(
+        self, material_def: MaterialDef | None = None
+    ) -> dict[str, float]:
         """Decode normalized params to physical parameter values."""
         mdef = material_def or self.metadata.get("material_def")
         if mdef is None:

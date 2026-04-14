@@ -40,7 +40,9 @@ def pfos_rejection(
     # Crosslinking reduces effective pore size
     crosslink_factor = 0.5 + 0.5 * crosslink_density
 
-    rejection = 100 * size_rejection * charge_factor * thickness_factor * crosslink_factor
+    rejection = (
+        100 * size_rejection * charge_factor * thickness_factor * crosslink_factor
+    )
     return float(np.clip(rejection, 0, 99.9))
 
 
@@ -89,9 +91,7 @@ def fouling_resistance(
     charge_score = abs(surface_charge_density) / 50
     crosslink_score = crosslink_density
 
-    score = (
-        hydrophilic_score * 0.4 + charge_score * 0.3 + crosslink_score * 0.3
-    ) * 100
+    score = (hydrophilic_score * 0.4 + charge_score * 0.3 + crosslink_score * 0.3) * 100
     return float(np.clip(score, 0, 100))
 
 

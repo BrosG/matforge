@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -20,7 +19,7 @@ class VaspEvaluator(DFTEvaluator):
     Parses OUTCAR for total energy, band gap, and other properties.
     """
 
-    def __init__(self, config: Optional[DFTConfig] = None) -> None:
+    def __init__(self, config: DFTConfig | None = None) -> None:
         cfg = config or DFTConfig(executable="vasp_std")
         super().__init__(cfg)
         self.potcar_dir = cfg.extra_settings.get("potcar_dir", "")
@@ -84,16 +83,12 @@ class VaspEvaluator(DFTEvaluator):
         properties: dict[str, float] = {}
 
         # Total energy
-        energy_matches = re.findall(
-            r"free  energy   TOTEN\s*=\s*([-\d.]+)\s*eV", text
-        )
+        energy_matches = re.findall(r"free  energy   TOTEN\s*=\s*([-\d.]+)\s*eV", text)
         if energy_matches:
             properties["total_energy"] = float(energy_matches[-1])
 
         # Band gap
-        gap_match = re.search(
-            r"band gap\s*[=:]\s*([\d.]+)\s*eV", text, re.IGNORECASE
-        )
+        gap_match = re.search(r"band gap\s*[=:]\s*([\d.]+)\s*eV", text, re.IGNORECASE)
         if gap_match:
             properties["band_gap"] = float(gap_match.group(1))
 

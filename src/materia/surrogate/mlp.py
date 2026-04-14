@@ -12,7 +12,6 @@ Features:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -32,7 +31,7 @@ class MLPConfig:
     early_stopping_patience: int = 20
     validation_fraction: float = 0.1
     mc_samples: int = 30
-    seed: Optional[int] = None
+    seed: int | None = None
 
 
 class NumpyMLP(SurrogateModel):
@@ -42,7 +41,7 @@ class NumpyMLP(SurrogateModel):
         self,
         input_dim: int,
         output_dim: int,
-        config: Optional[MLPConfig] = None,
+        config: MLPConfig | None = None,
     ) -> None:
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -68,10 +67,10 @@ class NumpyMLP(SurrogateModel):
         self._t = 0
 
         # Normalization stats
-        self._x_mean: Optional[np.ndarray] = None
-        self._x_std: Optional[np.ndarray] = None
-        self._y_mean: Optional[np.ndarray] = None
-        self._y_std: Optional[np.ndarray] = None
+        self._x_mean: np.ndarray | None = None
+        self._x_std: np.ndarray | None = None
+        self._y_mean: np.ndarray | None = None
+        self._y_std: np.ndarray | None = None
         self._training_history: dict[str, list[float]] = {}
 
     def _forward(
@@ -111,15 +110,11 @@ class NumpyMLP(SurrogateModel):
             db_list.insert(0, db)
 
             if i > 0:
-                delta = (delta @ self.weights[i].T) * (activations[i] > 0).astype(
-                    float
-                )
+                delta = (delta @ self.weights[i].T) * (activations[i] > 0).astype(float)
 
         return dW_list, db_list
 
-    def _adam_step(
-        self, dW_list: list[np.ndarray], db_list: list[np.ndarray]
-    ) -> None:
+    def _adam_step(self, dW_list: list[np.ndarray], db_list: list[np.ndarray]) -> None:
         """Apply Adam optimizer update."""
         self._t += 1
         lr = self.config.learning_rate
@@ -151,7 +146,11 @@ class NumpyMLP(SurrogateModel):
         Y = Y[valid_mask]
 
         if X.shape[0] < 2:
-            return {"final_train_loss": float("inf"), "final_val_loss": float("inf"), "epochs_trained": 0}
+            return {
+                "final_train_loss": float("inf"),
+                "final_val_loss": float("inf"),
+                "epochs_trained": 0,
+            }
 
         # Normalize (use max(std, 1e-8) to handle constant columns)
         self._x_mean = X.mean(axis=0)

@@ -13,9 +13,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy.orm import Session
-
 from app.db.models import IndexedMaterial
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,9 @@ def _parse_formula(formula: str) -> dict[str, float]:
 
 def _anonymous_formula(elements: list[str]) -> str:
     labels = "ABCDEFGH"
-    return "".join(labels[i] if i < len(labels) else f"X{i}" for i in range(len(elements)))
+    return "".join(
+        labels[i] if i < len(labels) else f"X{i}" for i in range(len(elements))
+    )
 
 
 def _safe_float(val: Any) -> float | None:
@@ -49,16 +50,27 @@ def _safe_float(val: Any) -> float | None:
 
 _BRAVAIS_TO_CRYSTAL_SYSTEM: dict[str, str] = {
     # AFLOW Bravais lattice codes → standard crystal system names
-    "cub": "Cubic", "fcc": "Cubic", "bcc": "Cubic",
-    "tet": "Tetragonal", "bct": "Tetragonal",
-    "orc": "Orthorhombic", "orcf": "Orthorhombic", "orci": "Orthorhombic", "orcc": "Orthorhombic",
+    "cub": "Cubic",
+    "fcc": "Cubic",
+    "bcc": "Cubic",
+    "tet": "Tetragonal",
+    "bct": "Tetragonal",
+    "orc": "Orthorhombic",
+    "orcf": "Orthorhombic",
+    "orci": "Orthorhombic",
+    "orcc": "Orthorhombic",
     "hex": "Hexagonal",
     "rhl": "Trigonal",
-    "mcl": "Monoclinic", "mclc": "Monoclinic",
+    "mcl": "Monoclinic",
+    "mclc": "Monoclinic",
     "tri": "Triclinic",
     # Already proper names (from MP)
-    "cubic": "Cubic", "tetragonal": "Tetragonal", "orthorhombic": "Orthorhombic",
-    "hexagonal": "Hexagonal", "trigonal": "Trigonal", "monoclinic": "Monoclinic",
+    "cubic": "Cubic",
+    "tetragonal": "Tetragonal",
+    "orthorhombic": "Orthorhombic",
+    "hexagonal": "Hexagonal",
+    "trigonal": "Trigonal",
+    "monoclinic": "Monoclinic",
     "triclinic": "Triclinic",
 }
 
@@ -149,7 +161,9 @@ def ingest_entry(
     record.seebeck_coefficient = _safe_float(properties.get("seebeck_coefficient"))
 
     # Carrier
-    record.effective_mass_electron = _safe_float(properties.get("effective_mass_electron"))
+    record.effective_mass_electron = _safe_float(
+        properties.get("effective_mass_electron")
+    )
     record.effective_mass_hole = _safe_float(properties.get("effective_mass_hole"))
 
     # Electronic extras
@@ -228,6 +242,7 @@ def ingest_entry(
 
     # Apply data quality normalization (magnetization noise, warnings, tags)
     from app.services.data_quality import normalize_material
+
     normalize_material(record)
 
     # Source URL

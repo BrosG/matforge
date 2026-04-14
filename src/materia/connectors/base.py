@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -39,7 +38,7 @@ class DatasetEntry:
 class DatasetConnector(ABC):
     """Fetches materials data from public databases."""
 
-    def __init__(self, config: Optional[ConnectorConfig] = None) -> None:
+    def __init__(self, config: ConnectorConfig | None = None) -> None:
         self.config = config or ConnectorConfig()
 
     @abstractmethod

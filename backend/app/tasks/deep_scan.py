@@ -38,6 +38,7 @@ BATCH_SIZE = 20  # patents per AI call
 
 def _redis():
     from app.core.redis_connector import get_redis
+
     return get_redis()
 
 
@@ -89,10 +90,13 @@ def _update_status(
 def _import_ip_radar():
     """Lazily import ip_radar helpers to avoid circular imports."""
     from app.api.v1.endpoints import ip_radar
+
     return ip_radar
 
 
-def _search_patents_sync(query: str, max_patents: int) -> tuple[list[dict[str, Any]], int]:
+def _search_patents_sync(
+    query: str, max_patents: int
+) -> tuple[list[dict[str, Any]], int]:
     """Run the async patent search functions synchronously inside Celery."""
     import asyncio
 
@@ -117,11 +121,11 @@ def _search_patents_sync(query: str, max_patents: int) -> tuple[list[dict[str, A
 
     try:
         loop = asyncio.new_event_loop()
-        patents, total, source = loop.run_until_complete(_do_search())
+        patents, total, _source = loop.run_until_complete(_do_search())
         loop.close()
     except Exception as exc:
         logger.error("Patent search failed: %s", exc, exc_info=True)
-        patents, total, source = [], 0, "none"
+        patents, total = [], 0
 
     return patents, total
 
@@ -166,7 +170,7 @@ def _analyse_batch_gemini(
         patent_lines = []
         for p in batch:
             patent_lines.append(
-                f"- {p['patent_id']}: \"{p['title']}\" "
+                f'- {p["patent_id"]}: "{p["title"]}" '
                 f"(Assignee: {p.get('assignee', '')}, Filed: {p.get('filing_date', '')}, "
                 f"Country: {p.get('country_code', '')})\n"
                 f"  Snippet: {(p.get('snippet', '') or '')[:300]}"
@@ -177,7 +181,7 @@ def _analyse_batch_gemini(
         if directive:
             directive_block = (
                 f'\nCUSTOM RESEARCH DIRECTIVE: "{directive}"\n'
-                "For each patent, also score a \"directive_relevance\" (0-1) indicating "
+                'For each patent, also score a "directive_relevance" (0-1) indicating '
                 "how relevant this patent is to the researcher's specific goal above.\n"
             )
 
@@ -194,8 +198,7 @@ def _analyse_batch_gemini(
         )
 
         user_prompt = (
-            f"User query: {query}\n\n"
-            f"Patents to analyse ({len(batch)}):\n{patent_text}"
+            f"User query: {query}\n\nPatents to analyse ({len(batch)}):\n{patent_text}"
         )
 
         response = model.generate_content(
@@ -253,9 +256,24 @@ def _compile_report(
         pid = rp["patent_id"]
         ai = analyses.get(pid, {})
 
-        category = ai.get("category") or _classify_rule_based(rp.get("title", ""), rp.get("snippet", ""), query)["category"]
-        claim_summary = ai.get("claim_summary") or f"Patent relating to {(rp.get('title', '') or '')[:120]}."
-        relevance = float(ai.get("relevance_score", ip._rule_based_relevance(query, rp.get("title", ""), rp.get("snippet", ""))))
+        category = (
+            ai.get("category")
+            or _classify_rule_based(rp.get("title", ""), rp.get("snippet", ""), query)[
+                "category"
+            ]
+        )
+        claim_summary = (
+            ai.get("claim_summary")
+            or f"Patent relating to {(rp.get('title', '') or '')[:120]}."
+        )
+        relevance = float(
+            ai.get(
+                "relevance_score",
+                ip._rule_based_relevance(
+                    query, rp.get("title", ""), rp.get("snippet", "")
+                ),
+            )
+        )
         directive_rel = float(ai.get("directive_relevance", 0.0))
         status = ip._patent_status(rp.get("filing_date", ""))
 
@@ -328,7 +346,7 @@ def _compile_report(
         high_directive = sum(1 for s in directive_scores if s >= 0.7)
         fto_assessment += (
             f"Of these, {high_directive} patents scored high directive relevance "
-            f"(>=0.7) for the research goal: \"{directive[:100]}\". "
+            f'(>=0.7) for the research goal: "{directive[:100]}". '
         )
     fto_assessment += (
         "A detailed freedom-to-operate opinion by a patent attorney is recommended "
@@ -339,7 +357,9 @@ def _compile_report(
     # Directive-specific section
     directive_section = None
     if directive:
-        top_directive_patents = sorted(patent_items, key=lambda x: x["directive_relevance"], reverse=True)[:20]
+        top_directive_patents = sorted(
+            patent_items, key=lambda x: x["directive_relevance"], reverse=True
+        )[:20]
         directive_section = {
             "directive": directive,
             "top_relevant_patents": top_directive_patents,
@@ -347,7 +367,9 @@ def _compile_report(
                 sum(directive_scores) / max(len(directive_scores), 1), 3
             ),
             "high_relevance_count": sum(1 for s in directive_scores if s >= 0.7),
-            "medium_relevance_count": sum(1 for s in directive_scores if 0.3 <= s < 0.7),
+            "medium_relevance_count": sum(
+                1 for s in directive_scores if 0.3 <= s < 0.7
+            ),
             "low_relevance_count": sum(1 for s in directive_scores if s < 0.3),
         }
 
@@ -372,8 +394,8 @@ def _compile_report(
 @celery_app.task(
     name="app.tasks.deep_scan.run_deep_scan",
     bind=True,
-    soft_time_limit=3600,   # 1 hour soft limit
-    time_limit=3660,        # hard kill after 61 minutes
+    soft_time_limit=3600,  # 1 hour soft limit
+    time_limit=3660,  # hard kill after 61 minutes
 )
 def run_deep_scan(
     self,
@@ -384,13 +406,20 @@ def run_deep_scan(
     email: str,
 ):
     """Execute the full deep-scan pipeline."""
-    logger.info("Deep scan %s started: query=%r, max_patents=%d", scan_id, query, max_patents)
+    logger.info(
+        "Deep scan %s started: query=%r, max_patents=%d", scan_id, query, max_patents
+    )
 
     try:
         # ------------------------------------------------------------------
         # Step 1 — Search
         # ------------------------------------------------------------------
-        _update_status(scan_id, status="searching", progress=0.05, message="Searching patent databases…")
+        _update_status(
+            scan_id,
+            status="searching",
+            progress=0.05,
+            message="Searching patent databases…",
+        )
         self.update_state(state="SEARCHING", meta={"scan_id": scan_id})
 
         patents, total_found = _search_patents_sync(query, max_patents)
@@ -410,7 +439,9 @@ def run_deep_scan(
             )
             # Store empty result
             empty_report = _compile_report(query, directive, [], {}, 0)
-            _redis().setex(_result_key(scan_id), SCAN_TTL_SECONDS, json.dumps(empty_report))
+            _redis().setex(
+                _result_key(scan_id), SCAN_TTL_SECONDS, json.dumps(empty_report)
+            )
             _update_status(
                 scan_id,
                 result_url=f"/api/v1/deep-scan/{scan_id}/download",
@@ -420,7 +451,12 @@ def run_deep_scan(
         # ------------------------------------------------------------------
         # Step 2 — AI batch analysis
         # ------------------------------------------------------------------
-        _update_status(scan_id, status="analyzing", progress=0.20, message="Analysing patents with AI…")
+        _update_status(
+            scan_id,
+            status="analyzing",
+            progress=0.20,
+            message="Analysing patents with AI…",
+        )
         self.update_state(state="ANALYZING", meta={"scan_id": scan_id})
 
         analyses: dict[str, dict[str, Any]] = {}
@@ -447,7 +483,9 @@ def run_deep_scan(
             except Exception as exc:
                 logger.warning(
                     "Batch %d/%d failed — falling back to rule-based: %s",
-                    batch_idx + 1, num_batches, exc,
+                    batch_idx + 1,
+                    num_batches,
+                    exc,
                 )
                 for p in batch:
                     if p["patent_id"] not in analyses:
@@ -468,7 +506,9 @@ def run_deep_scan(
         # ------------------------------------------------------------------
         # Step 3 — Compile report
         # ------------------------------------------------------------------
-        _update_status(scan_id, status="generating", progress=0.85, message="Generating report…")
+        _update_status(
+            scan_id, status="generating", progress=0.85, message="Generating report…"
+        )
         self.update_state(state="GENERATING", meta={"scan_id": scan_id})
 
         report = _compile_report(query, directive, patents, analyses, total_found)
@@ -496,10 +536,15 @@ def run_deep_scan(
             logger.info(
                 "Deep scan %s completed. Email notification would be sent to %s. "
                 "(Email sending not yet implemented.)",
-                scan_id, email,
+                scan_id,
+                email,
             )
 
-        logger.info("Deep scan %s completed successfully: %d patents analysed.", scan_id, len(patents))
+        logger.info(
+            "Deep scan %s completed successfully: %d patents analysed.",
+            scan_id,
+            len(patents),
+        )
         return {"scan_id": scan_id, "status": "completed", "patents": len(patents)}
 
     except Exception as exc:

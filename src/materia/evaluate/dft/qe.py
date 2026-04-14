@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional
 
 from materia.evaluate.dft.base_dft import DFTConfig, DFTEvaluator
 from materia.mdl import MaterialDef
@@ -13,7 +12,7 @@ from materia.mdl import MaterialDef
 class QuantumEspressoEvaluator(DFTEvaluator):
     """Evaluator that runs Quantum ESPRESSO pw.x calculations."""
 
-    def __init__(self, config: Optional[DFTConfig] = None) -> None:
+    def __init__(self, config: DFTConfig | None = None) -> None:
         cfg = config or DFTConfig(executable="pw.x")
         super().__init__(cfg)
         self.pseudo_dir = cfg.extra_settings.get("pseudo_dir", "./pseudo")
@@ -35,22 +34,20 @@ class QuantumEspressoEvaluator(DFTEvaluator):
         if material_def.composition:
             elements = material_def.composition.components
         if not elements:
-            elements = sorted(
-                (material_def.metadata or {}).get("elements", ["X"])
-            )
+            elements = sorted((material_def.metadata or {}).get("elements", ["X"]))
 
         nat = max(len(elements), 1)
         ntyp = nat
 
         lines = [
             "&CONTROL",
-            f"  calculation = 'scf'",
+            "  calculation = 'scf'",
             f"  prefix = '{material_def.name}'",
             f"  pseudo_dir = '{self.pseudo_dir}'",
-            f"  outdir = './'",
+            "  outdir = './'",
             "/",
             "&SYSTEM",
-            f"  ibrav = 0",
+            "  ibrav = 0",
             f"  nat = {nat}",
             f"  ntyp = {ntyp}",
             f"  ecutwfc = {self.ecutwfc}",
@@ -103,10 +100,16 @@ class QuantumEspressoEvaluator(DFTEvaluator):
 
         energy_match = re.search(r"!\s+total energy\s+=\s+([-\d.]+)\s+Ry", text)
         if energy_match:
-            properties["total_energy"] = float(energy_match.group(1)) * 13.6057  # Ry -> eV
+            properties["total_energy"] = (
+                float(energy_match.group(1)) * 13.6057
+            )  # Ry -> eV
 
-        fermi_match = re.search(r"the Fermi energy is\s+([-\d.]+)\s+ev", text, re.IGNORECASE)
+        fermi_match = re.search(
+            r"the Fermi energy is\s+([-\d.]+)\s+ev", text, re.IGNORECASE
+        )
         if fermi_match:
             properties["fermi_energy"] = float(fermi_match.group(1))
 
-        return {obj.name: properties.get(obj.name, 0.0) for obj in material_def.objectives}
+        return {
+            obj.name: properties.get(obj.name, 0.0) for obj in material_def.objectives
+        }

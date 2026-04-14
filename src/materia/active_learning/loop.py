@@ -3,20 +3,20 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from typing import Optional, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
 
 import numpy as np
 
-from materia.material import Material
-from materia.mdl import MaterialDef
-from materia.types import MaterialSource
-from materia.evaluate.base import Evaluator
-from materia.surrogate.base import SurrogateModel
-from materia.optimize.base import Optimizer
 from materia.active_learning.acquisition import AcquisitionFunction, MaxUncertainty
 from materia.active_learning.convergence import ConvergenceCriterion, MaxRounds
 from materia.analysis.pareto import compute_pareto_front
+from materia.evaluate.base import Evaluator
+from materia.material import Material
+from materia.mdl import MaterialDef
+from materia.optimize.base import Optimizer
+from materia.surrogate.base import SurrogateModel
+from materia.types import MaterialSource
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class ActiveLearningConfig:
     samples_per_round: int = 10
     surrogate_evals: int = 100_000
     max_rounds: int = 15
-    seed: Optional[int] = None
+    seed: int | None = None
 
 
 @dataclass
@@ -53,10 +53,10 @@ class ActiveLearningLoop:
         evaluator: Evaluator,
         surrogate: SurrogateModel,
         optimizer: Optimizer,
-        config: Optional[ActiveLearningConfig] = None,
-        acquisition: Optional[AcquisitionFunction] = None,
-        convergence: Optional[ConvergenceCriterion] = None,
-        on_round_complete: Optional[Callable[[RoundResult], None]] = None,
+        config: ActiveLearningConfig | None = None,
+        acquisition: AcquisitionFunction | None = None,
+        convergence: ConvergenceCriterion | None = None,
+        on_round_complete: Callable[[RoundResult], None] | None = None,
     ) -> None:
         self.material_def = material_def
         self.evaluator = evaluator
@@ -138,9 +138,7 @@ class ActiveLearningLoop:
 
     def initialize(self) -> list[Material]:
         """Generate and evaluate initial samples via LHS."""
-        logger.info(
-            f"Generating {self.config.initial_samples} initial samples via LHS"
-        )
+        logger.info(f"Generating {self.config.initial_samples} initial samples via LHS")
         initial_params = self._latin_hypercube_sample(self.config.initial_samples)
         initial_materials = self._evaluate_batch(initial_params)
         self.dataset.extend(initial_materials)

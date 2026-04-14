@@ -5,13 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
+from app.core.security import get_current_user
+from app.db.base import get_db
+from app.db.models import Job, User
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
-from app.core.security import get_current_user, get_current_user_optional
-from app.db.base import get_db
-from app.db.models import Job, User
 
 router = APIRouter()
 
@@ -99,9 +98,7 @@ def get_job(
 ):
     """Get a single job by ID."""
     job = (
-        db.query(Job)
-        .filter(Job.id == job_id, Job.owner_id == current_user.id)
-        .first()
+        db.query(Job).filter(Job.id == job_id, Job.owner_id == current_user.id).first()
     )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")

@@ -13,17 +13,15 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timezone
 from typing import Any
-
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
 from app.db.base import get_db
 from app.db.models import CreditTransaction, User
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -237,7 +235,9 @@ def create_subscription_session(
     if not price_id:
         raise HTTPException(status_code=503, detail="Subscription price not configured")
 
-    success = body.success_url or f"{FRONTEND_URL}/dashboard/settings?subscription=active"
+    success = (
+        body.success_url or f"{FRONTEND_URL}/dashboard/settings?subscription=active"
+    )
     cancel = body.cancel_url or f"{FRONTEND_URL}/dashboard/settings?subscription=cancel"
 
     try:
@@ -285,7 +285,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     sig_header = request.headers.get("stripe-signature", "")
 
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
     except ValueError:
         logger.warning("Invalid Stripe webhook payload")
         raise HTTPException(status_code=400, detail="Invalid payload")
@@ -380,12 +382,7 @@ def _grant_credits(
         return
 
     # Row-lock the user to prevent lost updates on concurrent grants.
-    user = (
-        db.query(User)
-        .filter(User.id == user_id)
-        .with_for_update()
-        .first()
-    )
+    user = db.query(User).filter(User.id == user_id).with_for_update().first()
     if not user:
         logger.error("User %s not found for credit grant (event=%s)", user_id, event_id)
         return

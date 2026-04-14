@@ -17,13 +17,12 @@ from datetime import date, datetime
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-
 from app.core.security import get_current_user_optional
 from app.db.base import get_db
 from app.db.models import User
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -78,31 +77,97 @@ QUERY_EXPANSIONS: dict[str, list[str]] = {
 # Category keywords for rule-based fallback
 _CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "Composition/Alloy": [
-        "alloy", "composition", "compound", "doped", "doping", "solid solution",
-        "stoichiometry", "phase diagram", "intermetallic", "eutectic",
+        "alloy",
+        "composition",
+        "compound",
+        "doped",
+        "doping",
+        "solid solution",
+        "stoichiometry",
+        "phase diagram",
+        "intermetallic",
+        "eutectic",
     ],
     "Process/Synthesis": [
-        "method", "process", "synthesis", "fabrication", "sintering", "annealing",
-        "deposition", "sputtering", "CVD", "PVD", "sol-gel", "hydrothermal",
-        "electrospinning", "melt", "casting", "hot press", "spark plasma",
+        "method",
+        "process",
+        "synthesis",
+        "fabrication",
+        "sintering",
+        "annealing",
+        "deposition",
+        "sputtering",
+        "CVD",
+        "PVD",
+        "sol-gel",
+        "hydrothermal",
+        "electrospinning",
+        "melt",
+        "casting",
+        "hot press",
+        "spark plasma",
     ],
     "Application": [
-        "battery", "cathode", "anode", "solar cell", "photovoltaic", "catalyst",
-        "sensor", "LED", "display", "capacitor", "supercapacitor", "fuel cell",
-        "thermoelectric", "semiconductor", "transistor", "electrode", "electrolyte",
+        "battery",
+        "cathode",
+        "anode",
+        "solar cell",
+        "photovoltaic",
+        "catalyst",
+        "sensor",
+        "LED",
+        "display",
+        "capacitor",
+        "supercapacitor",
+        "fuel cell",
+        "thermoelectric",
+        "semiconductor",
+        "transistor",
+        "electrode",
+        "electrolyte",
     ],
     "Coating/Surface Treatment": [
-        "coating", "surface", "thin film", "layer", "barrier", "encapsulat",
-        "plating", "anodiz", "passivat", "corrosion", "protective",
+        "coating",
+        "surface",
+        "thin film",
+        "layer",
+        "barrier",
+        "encapsulat",
+        "plating",
+        "anodiz",
+        "passivat",
+        "corrosion",
+        "protective",
     ],
     "Nanostructure/Morphology": [
-        "nanoparticle", "nanostructure", "nanowire", "nanotube", "nanosheet",
-        "quantum dot", "nanocomposite", "nanocrystal", "mesoporous", "microporous",
-        "morpholog", "2D material", "heterostructure",
+        "nanoparticle",
+        "nanostructure",
+        "nanowire",
+        "nanotube",
+        "nanosheet",
+        "quantum dot",
+        "nanocomposite",
+        "nanocrystal",
+        "mesoporous",
+        "microporous",
+        "morpholog",
+        "2D material",
+        "heterostructure",
     ],
     "Characterization Method": [
-        "characteriz", "measurement", "spectroscop", "diffraction", "microscop",
-        "XRD", "SEM", "TEM", "XPS", "Raman", "FTIR", "impedance", "calorimetr",
+        "characteriz",
+        "measurement",
+        "spectroscop",
+        "diffraction",
+        "microscop",
+        "XRD",
+        "SEM",
+        "TEM",
+        "XPS",
+        "Raman",
+        "FTIR",
+        "impedance",
+        "calorimetr",
     ],
 }
 
@@ -259,7 +324,9 @@ def _patent_status(filing_date_str: str) -> str:
         # Handle various date formats
         for fmt in ("%Y-%m-%d", "%Y%m%d", "%Y-%m", "%Y"):
             try:
-                filed = datetime.strptime(filing_date_str[:len(fmt.replace("%", "").replace("-", "0-"))], fmt).date()
+                filed = datetime.strptime(
+                    filing_date_str[: len(fmt.replace("%", "").replace("-", "0-"))], fmt
+                ).date()
                 break
             except ValueError:
                 continue
@@ -294,7 +361,9 @@ def _classify_patent_rule_based(title: str, snippet: str) -> tuple[str, str]:
             best_score = score
             best_cat = cat
     # Simple claim summary from title
-    claim_summary = f"Patent relating to {title[:120]}." if title else "No summary available."
+    claim_summary = (
+        f"Patent relating to {title[:120]}." if title else "No summary available."
+    )
     return best_cat, claim_summary
 
 
@@ -317,23 +386,27 @@ def _rule_based_whitespaces(query: str, categories: list[str]) -> list[dict]:
 
     whitespaces: list[dict] = []
     for cat in sorted(missing):
-        whitespaces.append({
-            "domain": cat,
-            "description": f"No patents found covering {cat} for the query '{query}'. This may represent an unpatented area.",
-            "confidence": 0.4,
-            "rationale": f"Zero patents in the {cat} category among analysed results.",
-        })
+        whitespaces.append(
+            {
+                "domain": cat,
+                "description": f"No patents found covering {cat} for the query '{query}'. This may represent an unpatented area.",
+                "confidence": 0.4,
+                "rationale": f"Zero patents in the {cat} category among analysed results.",
+            }
+        )
     # Also flag under-represented categories
     if categories:
         avg = len(categories) / max(len(present), 1)
         for cat, count in cat_counts.items():
             if count < avg * 0.3 and cat != "Other":
-                whitespaces.append({
-                    "domain": cat,
-                    "description": f"Under-represented patent activity in {cat} ({count} patents).",
-                    "confidence": 0.3,
-                    "rationale": f"Only {count} patents vs. average {avg:.0f} per category.",
-                })
+                whitespaces.append(
+                    {
+                        "domain": cat,
+                        "description": f"Under-represented patent activity in {cat} ({count} patents).",
+                        "confidence": 0.3,
+                        "rationale": f"Only {count} patents vs. average {avg:.0f} per category.",
+                    }
+                )
     return whitespaces[:5]
 
 
@@ -366,10 +439,14 @@ async def _search_epo_ops(
             data = resp.json()
 
             # Parse response
-            search_result = data.get("ops:world-patent-data", {}).get("ops:biblio-search", {})
+            search_result = data.get("ops:world-patent-data", {}).get(
+                "ops:biblio-search", {}
+            )
             total_results = int(search_result.get("@total-result-count", 0))
 
-            results_list = search_result.get("ops:search-result", {}).get("ops:publication-reference", [])
+            results_list = search_result.get("ops:search-result", {}).get(
+                "ops:publication-reference", []
+            )
             if isinstance(results_list, dict):
                 results_list = [results_list]
 
@@ -382,14 +459,16 @@ async def _search_epo_ops(
                 kind = doc_id.get("kind", {}).get("$", "")
                 patent_id = f"{country}{doc_number}{kind}"
 
-                patents.append({
-                    "patent_id": patent_id,
-                    "title": f"Patent {patent_id}",  # Basic search doesn't return titles
-                    "snippet": "",
-                    "assignee": "",
-                    "filing_date": "",
-                    "country_code": country,
-                })
+                patents.append(
+                    {
+                        "patent_id": patent_id,
+                        "title": f"Patent {patent_id}",  # Basic search doesn't return titles
+                        "snippet": "",
+                        "assignee": "",
+                        "filing_date": "",
+                        "country_code": country,
+                    }
+                )
 
             # Batch fetch bibliographic data for richer results (title, abstract, assignee)
             if patents:
@@ -423,30 +502,47 @@ async def _search_epo_ops(
                                             break
 
                             # Applicant
-                            applicants = biblio_data.get("parties", {}).get("applicants", {}).get("applicant", [])
+                            applicants = (
+                                biblio_data.get("parties", {})
+                                .get("applicants", {})
+                                .get("applicant", [])
+                            )
                             if isinstance(applicants, dict):
                                 applicants = [applicants]
                             if applicants:
-                                name = applicants[0].get("applicant-name", {}).get("name", {}).get("$", "")
+                                name = (
+                                    applicants[0]
+                                    .get("applicant-name", {})
+                                    .get("name", {})
+                                    .get("$", "")
+                                )
                                 for p in patents:
                                     if p["patent_id"] == pid:
                                         p["assignee"] = name
                                         break
 
                             # Filing date
-                            app_ref = biblio_data.get("application-reference", {}).get("document-id", {})
+                            app_ref = biblio_data.get("application-reference", {}).get(
+                                "document-id", {}
+                            )
                             if isinstance(app_ref, list):
                                 app_ref = app_ref[0]
                             fdate = app_ref.get("date", {}).get("$", "")
                             if fdate:
                                 for p in patents:
                                     if p["patent_id"] == pid:
-                                        p["filing_date"] = f"{fdate[:4]}-{fdate[4:6]}-{fdate[6:8]}" if len(fdate) >= 8 else fdate
+                                        p["filing_date"] = (
+                                            f"{fdate[:4]}-{fdate[4:6]}-{fdate[6:8]}"
+                                            if len(fdate) >= 8
+                                            else fdate
+                                        )
                                         break
                     except Exception:
                         pass  # Enrichment is best-effort
 
-        logger.info("EPO OPS returned %d results (total: %d)", len(patents), total_results)
+        logger.info(
+            "EPO OPS returned %d results (total: %d)", len(patents), total_results
+        )
     except Exception as exc:
         logger.warning("EPO OPS search failed: %s", exc)
 
@@ -488,7 +584,14 @@ async def _search_lens_org(
                     },
                     "size": min(max_patents, 100),
                     "sort": [{"date_published": "desc"}],
-                    "include": ["lens_id", "title", "abstract", "applicant", "date_published", "jurisdiction"],
+                    "include": [
+                        "lens_id",
+                        "title",
+                        "abstract",
+                        "applicant",
+                        "date_published",
+                        "jurisdiction",
+                    ],
                 },
             )
             resp.raise_for_status()
@@ -496,16 +599,24 @@ async def _search_lens_org(
 
             total_results = data.get("total", 0)
             for hit in data.get("data", []):
-                patents.append({
-                    "patent_id": hit.get("lens_id", ""),
-                    "title": hit.get("title", ""),
-                    "snippet": (hit.get("abstract", "") or "")[:500],
-                    "assignee": (hit.get("applicant", [None])[0] or {}).get("name", "") if hit.get("applicant") else "",
-                    "filing_date": hit.get("date_published", ""),
-                    "country_code": hit.get("jurisdiction", ""),
-                })
+                patents.append(
+                    {
+                        "patent_id": hit.get("lens_id", ""),
+                        "title": hit.get("title", ""),
+                        "snippet": (hit.get("abstract", "") or "")[:500],
+                        "assignee": (hit.get("applicant", [None])[0] or {}).get(
+                            "name", ""
+                        )
+                        if hit.get("applicant")
+                        else "",
+                        "filing_date": hit.get("date_published", ""),
+                        "country_code": hit.get("jurisdiction", ""),
+                    }
+                )
 
-        logger.info("Lens.org returned %d results (total: %d)", len(patents), total_results)
+        logger.info(
+            "Lens.org returned %d results (total: %d)", len(patents), total_results
+        )
     except Exception as exc:
         logger.warning("Lens.org search failed: %s", exc)
 
@@ -543,16 +654,10 @@ async def _search_google_patents(
             data = json.loads(text)
 
             # Extract total
-            total_results = (
-                data.get("results", {})
-                .get("total_num_results", 0)
-            )
+            total_results = data.get("results", {}).get("total_num_results", 0)
 
             # Extract patent clusters
-            clusters = (
-                data.get("results", {})
-                .get("cluster", [])
-            )
+            clusters = data.get("results", {}).get("cluster", [])
             for cluster in clusters:
                 for result in cluster.get("result", []):
                     patent = result.get("patent", {})
@@ -565,9 +670,15 @@ async def _search_google_patents(
                     assignee = ""
                     assignee_list = patent.get("assignee", [])
                     if assignee_list:
-                        assignee = assignee_list[0] if isinstance(assignee_list[0], str) else str(assignee_list[0])
+                        assignee = (
+                            assignee_list[0]
+                            if isinstance(assignee_list[0], str)
+                            else str(assignee_list[0])
+                        )
                     # Filing date
-                    filing_date = patent.get("filing_date", patent.get("priority_date", ""))
+                    filing_date = patent.get(
+                        "filing_date", patent.get("priority_date", "")
+                    )
                     # Country
                     country = patent.get("country_code", "")
                     if not country and patent_id:
@@ -575,18 +686,26 @@ async def _search_google_patents(
                         cc_match = re.match(r"^([A-Z]{2})", patent_id)
                         country = cc_match.group(1) if cc_match else ""
 
-                    patents.append({
-                        "patent_id": patent_id,
-                        "title": title,
-                        "snippet": snippet_raw,
-                        "assignee": assignee,
-                        "filing_date": filing_date,
-                        "country_code": country,
-                    })
+                    patents.append(
+                        {
+                            "patent_id": patent_id,
+                            "title": title,
+                            "snippet": snippet_raw,
+                            "assignee": assignee,
+                            "filing_date": filing_date,
+                            "country_code": country,
+                        }
+                    )
 
-        logger.info("Google Patents returned %d results (total: %d)", len(patents), total_results)
+        logger.info(
+            "Google Patents returned %d results (total: %d)",
+            len(patents),
+            total_results,
+        )
     except httpx.HTTPStatusError as exc:
-        logger.warning("Google Patents HTTP error %s: %s", exc.response.status_code, exc)
+        logger.warning(
+            "Google Patents HTTP error %s: %s", exc.response.status_code, exc
+        )
     except httpx.RequestError as exc:
         logger.warning("Google Patents request error: %s", exc)
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
@@ -614,7 +733,9 @@ async def _analyse_with_gemini(
     try:
         import google.generativeai as genai  # type: ignore[import-untyped]
     except ImportError:
-        logger.info("google-generativeai not installed; falling back to rule-based analysis.")
+        logger.info(
+            "google-generativeai not installed; falling back to rule-based analysis."
+        )
         return None
 
     try:
@@ -625,7 +746,7 @@ async def _analyse_with_gemini(
         patent_summaries = []
         for p in patents[:100]:  # Cap to avoid token overflow
             patent_summaries.append(
-                f"- {p['patent_id']}: \"{p['title']}\" (Assignee: {p['assignee']}, "
+                f'- {p["patent_id"]}: "{p["title"]}" (Assignee: {p["assignee"]}, '
                 f"Filed: {p['filing_date']}, Country: {p['country_code']})\n"
                 f"  Snippet: {p['snippet'][:300]}"
             )
@@ -638,7 +759,10 @@ async def _analyse_with_gemini(
 
         response = model.generate_content(
             [
-                {"role": "user", "parts": [GEMINI_SYSTEM_PROMPT + "\n\n" + user_prompt]},
+                {
+                    "role": "user",
+                    "parts": [GEMINI_SYSTEM_PROMPT + "\n\n" + user_prompt],
+                },
             ],
             generation_config=genai.GenerationConfig(
                 temperature=0.3,
@@ -707,7 +831,9 @@ def _build_response(
             _, claim_summary = _classify_patent_rule_based(rp["title"], rp["snippet"])
 
         # Relevance
-        relevance = ai_info.get("relevance_score", _rule_based_relevance(query, rp["title"], rp["snippet"]))
+        relevance = ai_info.get(
+            "relevance_score", _rule_based_relevance(query, rp["title"], rp["snippet"])
+        )
 
         # Status
         status = _patent_status(rp["filing_date"])
@@ -793,7 +919,11 @@ def _build_response(
             f"not constitute legal advice."
         )
 
-    data_source = "Google Patents + Gemini AI" if ai_result else "Google Patents + rule-based analysis"
+    data_source = (
+        "Google Patents + Gemini AI"
+        if ai_result
+        else "Google Patents + rule-based analysis"
+    )
 
     return IPRadarResponse(
         query=query,
@@ -818,6 +948,7 @@ def _get_cached(key: str) -> IPRadarResponse | None:
     """Try to read a cached response from Redis."""
     try:
         from app.core.redis_connector import get_redis
+
         r = get_redis()
         raw = r.get(key)
         if raw:
@@ -832,6 +963,7 @@ def _set_cached(key: str, response: IPRadarResponse) -> None:
     """Store a response in Redis with 24-hour TTL."""
     try:
         from app.core.redis_connector import get_redis
+
         r = get_redis()
         r.setex(key, 86400, response.model_dump_json())
         logger.debug("IP Radar result cached under key %s", key)
@@ -867,10 +999,28 @@ and build a precise query combining the original material + the narrowing contex
 
 # Broad material keywords that trigger scoping
 _BROAD_MATERIALS = {
-    "LiFePO4", "perovskite", "graphene", "SiC", "GaN", "MoS2", "TiO2",
-    "ZnO", "silicon", "carbon nanotube", "MOF", "solid-state electrolyte",
-    "high-entropy alloy", "thermoelectric", "superconductor", "piezoelectric",
-    "lithium", "cobalt", "nickel", "iron oxide", "alumina", "zirconia",
+    "LiFePO4",
+    "perovskite",
+    "graphene",
+    "SiC",
+    "GaN",
+    "MoS2",
+    "TiO2",
+    "ZnO",
+    "silicon",
+    "carbon nanotube",
+    "MOF",
+    "solid-state electrolyte",
+    "high-entropy alloy",
+    "thermoelectric",
+    "superconductor",
+    "piezoelectric",
+    "lithium",
+    "cobalt",
+    "nickel",
+    "iron oxide",
+    "alumina",
+    "zirconia",
 }
 
 
@@ -898,7 +1048,10 @@ def _rule_based_scope(query: str) -> ScopeResponse:
     q_lower = query.lower()
     suggestions = []
 
-    if any(k in q_lower for k in ["battery", "lifepo4", "cathode", "anode", "lithium", "electrolyte"]):
+    if any(
+        k in q_lower
+        for k in ["battery", "lifepo4", "cathode", "anode", "lithium", "electrolyte"]
+    ):
         suggestions = [
             "Synthesis & Manufacturing methods",
             "Doping & Compositional modifications",
@@ -919,7 +1072,9 @@ def _rule_based_scope(query: str) -> ScopeResponse:
             "Electronic device applications",
             "Energy storage (supercapacitors, batteries)",
         ]
-    elif any(k in q_lower for k in ["sic", "silicon carbide", "gan", "gallium nitride"]):
+    elif any(
+        k in q_lower for k in ["sic", "silicon carbide", "gan", "gallium nitride"]
+    ):
         suggestions = [
             "Power semiconductor devices",
             "Crystal growth & Wafer fabrication",
@@ -976,7 +1131,9 @@ async def _ai_scope(query: str, context: str) -> ScopeResponse | None:
 
         response = model.generate_content(
             [{"role": "user", "parts": [SCOPING_PROMPT + "\n\n" + user_msg]}],
-            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=2048),
+            generation_config=genai.GenerationConfig(
+                temperature=0.3, max_output_tokens=2048
+            ),
         )
 
         raw = response.text.strip()
@@ -1056,11 +1213,13 @@ async def ip_radar_search(
                 headers={"X-Credits": str(user.credits), "X-Required": "1"},
             )
         from app.api.v1.endpoints.credits import deduct_credits
+
         deduct_credits(db, user, 1, f"IP Radar search: {query[:80]}")
     else:
         # Anonymous: 3 free searches per IP per day via Redis
         try:
             from app.core.redis_connector import get_redis
+
             redis = get_redis()
             client_ip = request.client.host if request.client else "unknown"
             free_key = f"ip_free:{client_ip}"
@@ -1101,7 +1260,12 @@ async def ip_radar_search(
         raw_patents, total_found = await _search_lens_org(query, body.max_patents)
         data_source = "Lens.org"
 
-    logger.info("Retrieved %d patents for query '%s' via %s", len(raw_patents), query, data_source)
+    logger.info(
+        "Retrieved %d patents for query '%s' via %s",
+        len(raw_patents),
+        query,
+        data_source,
+    )
 
     # AI analysis (Gemini with rule-based fallback)
     ai_result: dict[str, Any] | None = None

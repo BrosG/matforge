@@ -7,6 +7,7 @@ import enum
 
 class MaterialSource(enum.Enum):
     """Origin of property data for a material."""
+
     PHYSICS = "physics"
     SURROGATE = "surrogate"
     EXPERIMENT = "experiment"
@@ -15,5 +16,6 @@ class MaterialSource(enum.Enum):
 
 class ObjectiveDirection(enum.Enum):
     """Direction of optimization for an objective."""
+
     MINIMIZE = "minimize"
     MAXIMIZE = "maximize"

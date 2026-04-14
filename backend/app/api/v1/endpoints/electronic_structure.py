@@ -6,10 +6,9 @@ and returns plottable JSON for the frontend.
 
 from __future__ import annotations
 
+import json
 import logging
-import math
 import os
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -26,7 +25,9 @@ def get_bandstructure(mp_id: str):
     Returns: {efermi, bands: [{spin, energies: [[...]]}], branches: [{name, start, end}]}
     """
     if not mp_id.startswith("mp-"):
-        raise HTTPException(status_code=400, detail="Only Materials Project IDs (mp-XXXX) supported")
+        raise HTTPException(
+            status_code=400, detail="Only Materials Project IDs (mp-XXXX) supported"
+        )
 
     try:
         from mp_api.client import MPRester
@@ -38,10 +39,14 @@ def get_bandstructure(mp_id: str):
         return _bandstructure_metadata(mp_id)
     except Exception as e:
         logger.error("Failed to fetch band structure for %s: %s", mp_id, e)
-        raise HTTPException(status_code=404, detail=f"Band structure not available for {mp_id}")
+        raise HTTPException(
+            status_code=404, detail=f"Band structure not available for {mp_id}"
+        )
 
     if bs is None:
-        raise HTTPException(status_code=404, detail=f"No band structure data for {mp_id}")
+        raise HTTPException(
+            status_code=404, detail=f"No band structure data for {mp_id}"
+        )
 
     # Extract plottable data
     result = {
@@ -64,7 +69,10 @@ def get_bandstructure(mp_id: str):
     prev_kpt = None
     for kpt in bs.kpoints:
         if prev_kpt is not None:
-            dk = sum((a - b) ** 2 for a, b in zip(kpt.frac_coords, prev_kpt.frac_coords)) ** 0.5
+            dk = (
+                sum((a - b) ** 2 for a, b in zip(kpt.frac_coords, prev_kpt.frac_coords))
+                ** 0.5
+            )
             d += dk
         distances.append(d)
         prev_kpt = kpt
@@ -72,11 +80,13 @@ def get_bandstructure(mp_id: str):
 
     # Branches (high-symmetry path segments)
     for branch in bs.branches:
-        result["branches"].append({
-            "name": branch["name"],
-            "start_index": branch["start_index"],
-            "end_index": branch["end_index"],
-        })
+        result["branches"].append(
+            {
+                "name": branch["name"],
+                "start_index": branch["start_index"],
+                "end_index": branch["end_index"],
+            }
+        )
 
     # Band energies per spin channel
     for spin, bands in bs.bands.items():
@@ -95,7 +105,9 @@ def get_bandstructure(mp_id: str):
 def get_dos(mp_id: str):
     """Fetch density of states for an MP material and return plottable data."""
     if not mp_id.startswith("mp-"):
-        raise HTTPException(status_code=400, detail="Only Materials Project IDs supported")
+        raise HTTPException(
+            status_code=400, detail="Only Materials Project IDs supported"
+        )
 
     try:
         from mp_api.client import MPRester
@@ -124,14 +136,16 @@ def get_dos(mp_id: str):
         result["total"][str(spin)] = [round(float(d), 6) for d in densities]
 
     # Element-projected DOS
-    if hasattr(dos, 'get_element_dos') and callable(dos.get_element_dos):
+    if hasattr(dos, "get_element_dos") and callable(dos.get_element_dos):
         try:
             el_dos = dos.get_element_dos()
             for element, edos in el_dos.items():
                 el_name = str(element)
                 result["elemental"][el_name] = {}
                 for spin, densities in edos.densities.items():
-                    result["elemental"][el_name][str(spin)] = [round(float(d), 6) for d in densities]
+                    result["elemental"][el_name][str(spin)] = [
+                        round(float(d), 6) for d in densities
+                    ]
         except Exception:
             pass
 
@@ -141,11 +155,15 @@ def get_dos(mp_id: str):
 @router.get("/xrd/{mp_id}")
 def get_xrd_pattern(
     mp_id: str,
-    wavelength: float = Query(1.5406, description="X-ray wavelength in Angstrom (default: Cu K-alpha)"),
+    wavelength: float = Query(
+        1.5406, description="X-ray wavelength in Angstrom (default: Cu K-alpha)"
+    ),
 ):
     """Simulate XRD pattern from crystal structure."""
     if not mp_id.startswith("mp-"):
-        raise HTTPException(status_code=400, detail="Only Materials Project IDs supported")
+        raise HTTPException(
+            status_code=400, detail="Only Materials Project IDs supported"
+        )
 
     try:
         from mp_api.client import MPRester
@@ -168,16 +186,25 @@ def get_xrd_pattern(
             "hkls": [
                 {"hkl": list(hkl["hkl"]), "multiplicity": hkl.get("multiplicity", 1)}
                 for hkl in pattern.hkls
-            ] if hasattr(pattern, 'hkls') else [],
-            "d_spacings": [round(float(d), 4) for d in pattern.d_hkls] if hasattr(pattern, 'd_hkls') else [],
+            ]
+            if hasattr(pattern, "hkls")
+            else [],
+            "d_spacings": [round(float(d), 4) for d in pattern.d_hkls]
+            if hasattr(pattern, "d_hkls")
+            else [],
         }
     except ImportError:
-        raise HTTPException(status_code=501, detail="pymatgen not installed — XRD simulation requires pymatgen")
+        raise HTTPException(
+            status_code=501,
+            detail="pymatgen not installed — XRD simulation requires pymatgen",
+        )
     except HTTPException:
         raise
     except Exception as e:
         logger.error("XRD simulation failed for %s: %s", mp_id, e)
-        raise HTTPException(status_code=500, detail="XRD simulation failed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="XRD simulation failed. Please try again."
+        )
 
 
 @router.get("/phase_diagram")
@@ -197,7 +224,9 @@ def get_phase_diagram(
             entries = mpr.get_entries_in_chemsys(el_list)
 
         if not entries:
-            raise HTTPException(status_code=404, detail=f"No entries for {'-'.join(el_list)}")
+            raise HTTPException(
+                status_code=404, detail=f"No entries for {'-'.join(el_list)}"
+            )
 
         pd = PhaseDiagram(entries)
 
@@ -205,22 +234,32 @@ def get_phase_diagram(
         stable = []
         for entry in pd.stable_entries:
             comp = entry.composition.reduced_formula
-            stable.append({
-                "formula": comp,
-                "energy_per_atom": round(float(entry.energy_per_atom), 6),
-                "composition": {str(el): round(float(amt), 4) for el, amt in entry.composition.fractional_composition.items()},
-            })
+            stable.append(
+                {
+                    "formula": comp,
+                    "energy_per_atom": round(float(entry.energy_per_atom), 6),
+                    "composition": {
+                        str(el): round(float(amt), 4)
+                        for el, amt in entry.composition.fractional_composition.items()
+                    },
+                }
+            )
 
         unstable = []
         for entry in pd.unstable_entries:
             comp = entry.composition.reduced_formula
             ehull = round(float(pd.get_e_above_hull(entry)), 6)
-            unstable.append({
-                "formula": comp,
-                "energy_per_atom": round(float(entry.energy_per_atom), 6),
-                "energy_above_hull": ehull,
-                "composition": {str(el): round(float(amt), 4) for el, amt in entry.composition.fractional_composition.items()},
-            })
+            unstable.append(
+                {
+                    "formula": comp,
+                    "energy_per_atom": round(float(entry.energy_per_atom), 6),
+                    "energy_above_hull": ehull,
+                    "composition": {
+                        str(el): round(float(amt), 4)
+                        for el, amt in entry.composition.fractional_composition.items()
+                    },
+                }
+            )
 
         return {
             "elements": el_list,
@@ -229,12 +268,17 @@ def get_phase_diagram(
             "unstable_phases": unstable[:100],  # Cap to avoid huge response
         }
     except ImportError:
-        raise HTTPException(status_code=501, detail="pymatgen + mp-api required for phase diagrams")
+        raise HTTPException(
+            status_code=501, detail="pymatgen + mp-api required for phase diagrams"
+        )
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Phase diagram failed for %s: %s", elements, e)
-        raise HTTPException(status_code=500, detail="Phase diagram computation failed. Please try again.")
+        raise HTTPException(
+            status_code=500,
+            detail="Phase diagram computation failed. Please try again.",
+        )
 
 
 def _bandstructure_metadata(mp_id: str) -> dict:
@@ -253,7 +297,9 @@ def _bandstructure_metadata(mp_id: str) -> dict:
 
     items = data.get("data", [])
     if not items:
-        raise HTTPException(status_code=404, detail=f"No electronic structure for {mp_id}")
+        raise HTTPException(
+            status_code=404, detail=f"No electronic structure for {mp_id}"
+        )
 
     item = items[0]
     return {
@@ -277,13 +323,19 @@ def generate_notebook(mp_id: str):
     from starlette.responses import Response
 
     if not mp_id.startswith("mp-"):
-        raise HTTPException(status_code=400, detail="Only Materials Project IDs supported")
+        raise HTTPException(
+            status_code=400, detail="Only Materials Project IDs supported"
+        )
 
     notebook = {
         "nbformat": 4,
         "nbformat_minor": 5,
         "metadata": {
-            "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+            "kernelspec": {
+                "display_name": "Python 3",
+                "language": "python",
+                "name": "python3",
+            },
             "language_info": {"name": "python", "version": "3.10.0"},
         },
         "cells": [
@@ -292,7 +344,7 @@ def generate_notebook(mp_id: str):
                 "metadata": {},
                 "source": [
                     f"# Material Analysis: {mp_id}\n",
-                    f"Auto-generated by MatForge (matcraft.ai)\n\n",
+                    "Auto-generated by MatForge (matcraft.ai)\n\n",
                     "This notebook reproduces the material data shown on MatForge using the Materials Project API.",
                 ],
             },

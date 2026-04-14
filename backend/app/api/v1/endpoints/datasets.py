@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-
 from app.core.security import get_current_user, require_admin
 from app.db.base import get_db
 from app.db.models import Campaign, MaterialRecord, User
 from app.services.ingest_service import ingest_entry
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -285,6 +284,4 @@ def trigger_bulk_ingestion(
         args=[body.sources, body.max_per_source],
         queue="default",
     )
-    return BulkIngestResponse(
-        task_id=task.id, status="queued", sources=body.sources
-    )
+    return BulkIngestResponse(task_id=task.id, status="queued", sources=body.sources)

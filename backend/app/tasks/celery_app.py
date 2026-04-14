@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
-from celery import Celery
-
 from app.core.config import settings
+from celery import Celery
 
 celery_app = Celery(
     "matcraft",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.run_campaign", "app.tasks.ingest_materials", "app.tasks.deep_scan"],
+    include=[
+        "app.tasks.run_campaign",
+        "app.tasks.ingest_materials",
+        "app.tasks.deep_scan",
+    ],
 )
 
 celery_app.conf.update(

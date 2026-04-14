@@ -8,11 +8,11 @@ from typing import Any
 import numpy as np
 
 from materia.evaluate.base import Evaluator
+from materia.exceptions import MateriaEvalError
 from materia.material import Material
 from materia.mdl import MaterialDef
 from materia.safe_eval import safe_eval, safe_exec
 from materia.types import MaterialSource
-from materia.exceptions import MateriaEvalError
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ class AnalyticEvaluator(Evaluator):
         self._plugins_loaded = True
         try:
             from materia.plugins import discover_plugins, get_plugin_equations
+
             for domain in discover_plugins():
                 eqs = get_plugin_equations(domain)
                 self._plugin_functions.update(eqs)
@@ -57,14 +58,19 @@ class AnalyticEvaluator(Evaluator):
                 satisfied = safe_eval(constraint.expression, physical_values)
                 if not satisfied:
                     # Return a heavily penalized material (finite values to avoid NaN in surrogate training)
-                    properties = {obj.name: -1e6 if obj.direction.value == "maximize" else 1e6
-                                  for obj in material_def.objectives}
+                    properties = {
+                        obj.name: -1e6 if obj.direction.value == "maximize" else 1e6
+                        for obj in material_def.objectives
+                    }
                     return Material(
                         params=params.copy(),
                         properties=properties,
                         score=float("inf"),
                         source=MaterialSource.PHYSICS,
-                        metadata={"material_def": material_def, "constraint_violated": constraint.description},
+                        metadata={
+                            "material_def": material_def,
+                            "constraint_violated": constraint.description,
+                        },
                     )
             except MateriaEvalError as e:
                 logger.warning(
@@ -114,7 +120,11 @@ class AnalyticEvaluator(Evaluator):
         # Otherwise treat as inline Python expression via safe AST evaluator
         # Handle multi-line equations (last expression is the result)
         lines = equation.strip().split("\n")
-        lines = [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]
+        lines = [
+            line.strip()
+            for line in lines
+            if line.strip() and not line.strip().startswith("#")
+        ]
 
         if not lines:
             return 0.0

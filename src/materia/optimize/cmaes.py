@@ -6,8 +6,8 @@ Minimizes an objective function f: R^D -> R over [0,1]^D.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional
 
 import numpy as np
 
@@ -22,13 +22,13 @@ class CMAESConfig:
     max_generations: int = 1000
     tol_fun: float = 1e-12
     tol_x: float = 1e-12
-    seed: Optional[int] = None
+    seed: int | None = None
 
 
 class CMAES(Optimizer):
     """CMA-ES optimizer operating in [0,1]^D."""
 
-    def __init__(self, dim: int, config: Optional[CMAESConfig] = None) -> None:
+    def __init__(self, dim: int, config: CMAESConfig | None = None) -> None:
         self.dim = dim
         self.config = config or CMAESConfig()
         self._rng = np.random.default_rng(self.config.seed)
@@ -47,9 +47,7 @@ class CMAES(Optimizer):
         # Adaptation rates
         self.c_sigma = (self.mu_eff + 2) / (d + self.mu_eff + 5)
         self.d_sigma = (
-            1
-            + 2 * max(0, np.sqrt((self.mu_eff - 1) / (d + 1)) - 1)
-            + self.c_sigma
+            1 + 2 * max(0, np.sqrt((self.mu_eff - 1) / (d + 1)) - 1) + self.c_sigma
         )
         self.c_c = (4 + self.mu_eff / d) / (d + 4 + 2 * self.mu_eff / d)
         self.c_1 = 2 / ((d + 1.3) ** 2 + self.mu_eff)
@@ -96,11 +94,7 @@ class CMAES(Optimizer):
         # Eigendecomposition
         eigenvalues, eigenvectors = np.linalg.eigh(self.C)
         eigenvalues = np.maximum(eigenvalues, 1e-20)
-        C_inv_sqrt = (
-            eigenvectors
-            @ np.diag(1.0 / np.sqrt(eigenvalues))
-            @ eigenvectors.T
-        )
+        C_inv_sqrt = eigenvectors @ np.diag(1.0 / np.sqrt(eigenvalues)) @ eigenvectors.T
 
         displacement = (self.mean - old_mean) / self.sigma
 
@@ -140,7 +134,9 @@ class CMAES(Optimizer):
             rank_mu += self.weights[i] * np.outer(diff, diff)
 
         self.C = (
-            (1 - self.c_1 - self.c_mu) * self.C + self.c_1 * rank_one + self.c_mu * rank_mu
+            (1 - self.c_1 - self.c_mu) * self.C
+            + self.c_1 * rank_one
+            + self.c_mu * rank_mu
         )
         self.C = (self.C + self.C.T) / 2  # Ensure symmetry
 
@@ -157,7 +153,7 @@ class CMAES(Optimizer):
     def optimize(
         self,
         objective_fn: Callable[[np.ndarray], np.ndarray],
-        max_evals: Optional[int] = None,
+        max_evals: int | None = None,
     ) -> tuple[np.ndarray, float]:
         """Run full CMA-ES optimization loop.
 

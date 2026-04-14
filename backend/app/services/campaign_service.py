@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
 from app.db.models import Campaign, MaterialRecord
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
 
-def get_campaign(db: Session, campaign_id: str, owner_id: Optional[str] = None) -> Optional[Campaign]:
+def get_campaign(
+    db: Session, campaign_id: str, owner_id: Optional[str] = None
+) -> Optional[Campaign]:
     query = db.query(Campaign).filter(Campaign.id == campaign_id)
     if owner_id:
         query = query.filter(Campaign.owner_id == owner_id)

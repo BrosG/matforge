@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -42,14 +41,14 @@ class MaceSurrogate(SurrogateModel):
         self,
         input_dim: int,
         output_dim: int,
-        config: Optional[MaceConfig] = None,
+        config: MaceConfig | None = None,
     ) -> None:
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.config = config or MaceConfig()
         self._calculator = None
         self._fallback = None
-        self._residual_std: Optional[np.ndarray] = None
+        self._residual_std: np.ndarray | None = None
         self._trained = False
 
         try:

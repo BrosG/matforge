@@ -7,8 +7,8 @@ import logging
 import tempfile
 from pathlib import Path
 
-from app.tasks.celery_app import celery_app
 from app.tasks.base import MatCraftTask
+from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
@@ -79,21 +79,28 @@ def run_campaign_task(self, campaign_id: str) -> dict:
                 )
 
             # Publish WebSocket update
-            _publish_ws_update(campaign_id, {
-                "type": "ROUND_COMPLETE",
-                "round": round_result.round_number,
-                "total_rounds": rounds,
-                "total_evaluated": round_result.total_evaluated,
-                "pareto_size": len(round_result.pareto_front),
-                "best_score": round_result.best_score,
-                "progress": int((round_result.round_number / max(rounds, 1)) * 100),
-            })
+            _publish_ws_update(
+                campaign_id,
+                {
+                    "type": "ROUND_COMPLETE",
+                    "round": round_result.round_number,
+                    "total_rounds": rounds,
+                    "total_evaluated": round_result.total_evaluated,
+                    "pareto_size": len(round_result.pareto_front),
+                    "best_score": round_result.best_score,
+                    "progress": int((round_result.round_number / max(rounds, 1)) * 100),
+                },
+            )
 
             # Update Celery task progress
-            self.update_progress(round_result.round_number, rounds, {
-                "pareto_size": len(round_result.pareto_front),
-                "total_evaluated": round_result.total_evaluated,
-            })
+            self.update_progress(
+                round_result.round_number,
+                rounds,
+                {
+                    "pareto_size": len(round_result.pareto_front),
+                    "total_evaluated": round_result.total_evaluated,
+                },
+            )
 
         engine._on_round_complete = progress_callback
 
@@ -110,16 +117,18 @@ def run_campaign_task(self, campaign_id: str) -> dict:
             material_dicts = []
             pareto_ids = {id(m) for m in result.pareto_front}
             for m in result.all_materials:
-                material_dicts.append({
-                    "params": m.params.tolist(),
-                    "properties": m.properties,
-                    "composition": m.composition,
-                    "score": m.score,
-                    "source": m.source.value,
-                    "uncertainty": m.uncertainty,
-                    "dominated": id(m) not in pareto_ids,
-                    "metadata": {},
-                })
+                material_dicts.append(
+                    {
+                        "params": m.params.tolist(),
+                        "properties": m.properties,
+                        "composition": m.composition,
+                        "score": m.score,
+                        "source": m.source.value,
+                        "uncertainty": m.uncertainty,
+                        "dominated": id(m) not in pareto_ids,
+                        "metadata": {},
+                    }
+                )
 
             campaign_service.save_materials(
                 db=db,
@@ -142,13 +151,16 @@ def run_campaign_task(self, campaign_id: str) -> dict:
             )
 
         # Publish completion
-        _publish_ws_update(campaign_id, {
-            "type": "CAMPAIGN_COMPLETE",
-            "total_rounds": result.total_rounds,
-            "total_evaluated": result.total_evaluated,
-            "pareto_size": len(result.pareto_front),
-            "wall_time": result.wall_time_seconds,
-        })
+        _publish_ws_update(
+            campaign_id,
+            {
+                "type": "CAMPAIGN_COMPLETE",
+                "total_rounds": result.total_rounds,
+                "total_evaluated": result.total_evaluated,
+                "pareto_size": len(result.pareto_front),
+                "wall_time": result.wall_time_seconds,
+            },
+        )
 
         return summary
 
@@ -156,10 +168,13 @@ def run_campaign_task(self, campaign_id: str) -> dict:
         logger.error(f"Campaign {campaign_id} failed: {exc}", exc_info=True)
         with get_db_context() as db:
             campaign_service.mark_campaign_failed(db, campaign_id, str(exc))
-        _publish_ws_update(campaign_id, {
-            "type": "CAMPAIGN_FAILED",
-            "error": str(exc),
-        })
+        _publish_ws_update(
+            campaign_id,
+            {
+                "type": "CAMPAIGN_FAILED",
+                "error": str(exc),
+            },
+        )
         raise
 
     finally:

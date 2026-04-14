@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -18,7 +17,7 @@ OQMD_BASE_URL = "http://oqmd.org/oqmdapi/formationenergy"
 class OqmdConnector(DatasetConnector):
     """Fetches data from the OQMD database. No API key required."""
 
-    def __init__(self, config: Optional[ConnectorConfig] = None) -> None:
+    def __init__(self, config: ConnectorConfig | None = None) -> None:
         cfg = config or ConnectorConfig(base_url=OQMD_BASE_URL)
         if not cfg.base_url:
             cfg.base_url = OQMD_BASE_URL
@@ -38,9 +37,7 @@ class OqmdConnector(DatasetConnector):
         }
 
         if elements:
-            params["filter"] = " AND ".join(
-                f"element={e}" for e in elements
-            )
+            params["filter"] = " AND ".join(f"element={e}" for e in elements)
         if formula:
             params["filter"] = f"composition={formula}"
 

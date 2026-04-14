@@ -31,12 +31,24 @@ def cli(verbose: bool) -> None:
 
 @cli.command()
 @click.option(
-    "--domain", "-d", required=True,
-    type=click.Choice([
-        "water", "battery", "solar", "co2", "catalyst",
-        "hydrogen", "construction", "bio", "agri",
-        "electronics", "textile",
-    ]),
+    "--domain",
+    "-d",
+    required=True,
+    type=click.Choice(
+        [
+            "water",
+            "battery",
+            "solar",
+            "co2",
+            "catalyst",
+            "hydrogen",
+            "construction",
+            "bio",
+            "agri",
+            "electronics",
+            "textile",
+        ]
+    ),
     help="Application domain",
 )
 @click.option("--name", "-n", required=True, help="Project name")
@@ -61,8 +73,8 @@ def init(domain: str, name: str, output_dir: str) -> None:
     (out_path / "data").mkdir(exist_ok=True)
 
     click.echo(f"Project initialized at {out_path}")
-    click.echo(f"  material.yaml  - Material definition (edit to customize)")
-    click.echo(f"  data/          - Place experimental data here")
+    click.echo("  material.yaml  - Material definition (edit to customize)")
+    click.echo("  data/          - Place experimental data here")
     click.echo(f"\nNext: edit {yaml_path} then run:")
     click.echo(f"  materia run {yaml_path} --budget 500")
 
@@ -70,12 +82,20 @@ def init(domain: str, name: str, output_dir: str) -> None:
 @cli.command()
 @click.argument("config", type=click.Path(exists=True))
 @click.option("--budget", "-b", default=500, help="Total evaluation budget")
-@click.option("--surrogate-evals", "-s", default=5_000_000, help="Surrogate evals per round")
+@click.option(
+    "--surrogate-evals", "-s", default=5_000_000, help="Surrogate evals per round"
+)
 @click.option("--rounds", "-r", default=15, help="Max active learning rounds")
 @click.option("--seed", default=None, type=int, help="Random seed")
 @click.option("--output", "-o", default=None, help="Output directory for results")
-def run(config: str, budget: int, surrogate_evals: int, rounds: int,
-        seed: int | None, output: str | None) -> None:
+def run(
+    config: str,
+    budget: int,
+    surrogate_evals: int,
+    rounds: int,
+    seed: int | None,
+    output: str | None,
+) -> None:
     """Run a materials discovery campaign.
 
     CONFIG is the path to a material.yaml file.
@@ -105,7 +125,7 @@ def run(config: str, budget: int, surrogate_evals: int, rounds: int,
 
     # Show top 5 Pareto solutions
     if result.pareto_front:
-        click.echo(f"\nTop 5 Pareto solutions:")
+        click.echo("\nTop 5 Pareto solutions:")
         sorted_pareto = sorted(result.pareto_front, key=lambda m: m.score)
         for i, m in enumerate(sorted_pareto[:5], 1):
             props = ", ".join(f"{k}={v:.2f}" for k, v in m.properties.items())
@@ -124,12 +144,16 @@ def run(config: str, budget: int, surrogate_evals: int, rounds: int,
 
 @cli.command()
 @click.option("--top", "-t", default=20, help="Number of top results to show")
-@click.option("--dir", "-d", "results_dir", default=".materia", help="Results directory")
+@click.option(
+    "--dir", "-d", "results_dir", default=".materia", help="Results directory"
+)
 def results(top: int, results_dir: str) -> None:
     """Display results from the most recent campaign."""
     results_path = Path(results_dir) / "results.json"
     if not results_path.exists():
-        click.echo(f"No results found at {results_path}. Run a campaign first.", err=True)
+        click.echo(
+            f"No results found at {results_path}. Run a campaign first.", err=True
+        )
         sys.exit(1)
 
     data = json.loads(results_path.read_text(encoding="utf-8"))
@@ -147,7 +171,9 @@ def results(top: int, results_dir: str) -> None:
 
 
 @cli.command()
-@click.option("--dir", "-d", "results_dir", default=".materia", help="Results directory")
+@click.option(
+    "--dir", "-d", "results_dir", default=".materia", help="Results directory"
+)
 @click.option("--save", "-s", default=None, help="Save plot to file")
 def pareto(results_dir: str, save: str | None) -> None:
     """Display and plot the Pareto front."""
@@ -159,11 +185,12 @@ def pareto(results_dir: str, save: str | None) -> None:
     click.echo("Pareto front plot requires matplotlib. Generating...")
 
     try:
-        from materia.viz.pareto_plot import plot_pareto_2d
-        from materia.mdl import parse_material_def
-        from materia.material import Material
-        from materia.types import MaterialSource
-        import numpy as np
+        import numpy as np  # noqa: F401
+
+        from materia.material import Material  # noqa: F401
+        from materia.mdl import parse_material_def  # noqa: F401
+        from materia.types import MaterialSource  # noqa: F401
+        from materia.viz.pareto_plot import plot_pareto_2d  # noqa: F401
 
         state = json.loads(state_path.read_text(encoding="utf-8"))
         click.echo(
@@ -175,7 +202,9 @@ def pareto(results_dir: str, save: str | None) -> None:
 
 
 @cli.command()
-@click.option("--dir", "-d", "results_dir", default=".materia", help="Results directory")
+@click.option(
+    "--dir", "-d", "results_dir", default=".materia", help="Results directory"
+)
 @click.option("--port", "-p", default=8050, help="Dashboard port")
 def dashboard(results_dir: str, port: int) -> None:
     """Launch the interactive HTML dashboard."""
@@ -187,16 +216,22 @@ def dashboard(results_dir: str, port: int) -> None:
         sys.exit(1)
 
     from materia.viz.dashboard import serve_dashboard
+
     serve_dashboard(str(dashboard_path), port=port)
 
 
 @cli.command()
 @click.option(
-    "--format", "-f", "fmt", default="csv",
+    "--format",
+    "-f",
+    "fmt",
+    default="csv",
     type=click.Choice(["csv", "json", "recipe"]),
 )
 @click.option("--file", "-o", "output_file", required=True, help="Output file path")
-@click.option("--dir", "-d", "results_dir", default=".materia", help="Results directory")
+@click.option(
+    "--dir", "-d", "results_dir", default=".materia", help="Results directory"
+)
 @click.option("--top", "-t", default=None, type=int, help="Export only top N")
 def export(fmt: str, output_file: str, results_dir: str, top: int | None) -> None:
     """Export results to a file."""
@@ -216,7 +251,9 @@ def export(fmt: str, output_file: str, results_dir: str, top: int | None) -> Non
 @click.argument("config", type=click.Path(exists=True))
 @click.option("--n", "-n", default=10, help="Number of suggestions")
 @click.option(
-    "--strategy", "-s", default="max_uncertainty",
+    "--strategy",
+    "-s",
+    default="max_uncertainty",
     type=click.Choice(["max_uncertainty", "expected_improvement"]),
 )
 def suggest(config: str, n: int, strategy: str) -> None:

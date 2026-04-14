@@ -7,7 +7,6 @@ import subprocess
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -41,7 +40,7 @@ class DFTEvaluator(Evaluator):
     - parse_output(): extract properties from output files
     """
 
-    def __init__(self, config: Optional[DFTConfig] = None) -> None:
+    def __init__(self, config: DFTConfig | None = None) -> None:
         self.config = config or DFTConfig()
 
     def evaluate(self, params: np.ndarray, material_def: MaterialDef) -> Material:
@@ -102,9 +101,7 @@ class DFTEvaluator(Evaluator):
         """Parse DFT output files and return property values."""
         ...
 
-    def _run_command(
-        self, cmd: str, calc_dir: Path
-    ) -> subprocess.CompletedProcess:
+    def _run_command(self, cmd: str, calc_dir: Path) -> subprocess.CompletedProcess:
         """Execute a shell command with timeout."""
         full_cmd = f"{self.config.mpi_command} {cmd}".strip()
         return subprocess.run(

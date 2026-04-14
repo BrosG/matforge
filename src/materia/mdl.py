@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
-from materia.types import ObjectiveDirection
 from materia.exceptions import MateriaConfigError
+from materia.types import ObjectiveDirection
 
 
 @dataclass
@@ -35,7 +35,7 @@ class ObjectiveDef:
     direction: ObjectiveDirection
     unit: str = ""
     weight: float = 1.0
-    equation: Optional[str] = None
+    equation: str | None = None
     description: str = ""
 
 
@@ -66,7 +66,7 @@ class MaterialDef:
     parameters: list[ParameterDef] = field(default_factory=list)
     objectives: list[ObjectiveDef] = field(default_factory=list)
     constraints: list[ConstraintDef] = field(default_factory=list)
-    composition: Optional[CompositionDef] = None
+    composition: CompositionDef | None = None
     surrogate_config: dict[str, Any] = field(default_factory=dict)
     optimizer_config: dict[str, Any] = field(default_factory=dict)
     active_learning_config: dict[str, Any] = field(default_factory=dict)
@@ -116,13 +116,15 @@ def parse_material_def(path: str | Path) -> MaterialDef:
             raise MateriaConfigError(
                 f"Parameter '{p['name']}' range must be [low, high]"
             )
-        parameters.append(ParameterDef(
-            name=p["name"],
-            range=(float(r[0]), float(r[1])),
-            unit=p.get("unit", ""),
-            type=p.get("type", "continuous"),
-            description=p.get("description", ""),
-        ))
+        parameters.append(
+            ParameterDef(
+                name=p["name"],
+                range=(float(r[0]), float(r[1])),
+                unit=p.get("unit", ""),
+                type=p.get("type", "continuous"),
+                description=p.get("description", ""),
+            )
+        )
 
     # Parse objectives
     objectives = []
@@ -137,26 +139,28 @@ def parse_material_def(path: str | Path) -> MaterialDef:
             raise MateriaConfigError(
                 f"Objective '{o['name']}' direction must be 'minimize' or 'maximize'"
             )
-        objectives.append(ObjectiveDef(
-            name=o["name"],
-            direction=direction,
-            unit=o.get("unit", ""),
-            weight=float(o.get("weight", 1.0)),
-            equation=o.get("equation"),
-            description=o.get("description", ""),
-        ))
+        objectives.append(
+            ObjectiveDef(
+                name=o["name"],
+                direction=direction,
+                unit=o.get("unit", ""),
+                weight=float(o.get("weight", 1.0)),
+                equation=o.get("equation"),
+                description=o.get("description", ""),
+            )
+        )
 
     # Parse constraints
     constraints = []
     for i, c in enumerate(raw.get("constraints", [])):
         if not isinstance(c, dict) or "expression" not in c:
-            raise MateriaConfigError(
-                f"Constraint {i} must have an 'expression' field"
+            raise MateriaConfigError(f"Constraint {i} must have an 'expression' field")
+        constraints.append(
+            ConstraintDef(
+                expression=c["expression"],
+                description=c.get("description", ""),
             )
-        constraints.append(ConstraintDef(
-            expression=c["expression"],
-            description=c.get("description", ""),
-        ))
+        )
 
     # Parse composition
     composition = None

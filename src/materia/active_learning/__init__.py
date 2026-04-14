@@ -1,9 +1,12 @@
-from materia.active_learning.loop import ActiveLearningLoop, ActiveLearningConfig
-from materia.active_learning.acquisition import MaxUncertainty, ExpectedImprovement
+from materia.active_learning.acquisition import ExpectedImprovement, MaxUncertainty
 from materia.active_learning.convergence import MaxRounds, ParetoStabilized
+from materia.active_learning.loop import ActiveLearningConfig, ActiveLearningLoop
 
 __all__ = [
-    "ActiveLearningLoop", "ActiveLearningConfig",
-    "MaxUncertainty", "ExpectedImprovement",
-    "MaxRounds", "ParetoStabilized",
+    "ActiveLearningConfig",
+    "ActiveLearningLoop",
+    "ExpectedImprovement",
+    "MaxRounds",
+    "MaxUncertainty",
+    "ParetoStabilized",
 ]

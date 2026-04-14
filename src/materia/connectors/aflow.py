@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
 from urllib.request import Request, urlopen
 
 from materia.connectors.base import ConnectorConfig, DatasetConnector, DatasetEntry
@@ -17,7 +16,7 @@ AFLOW_BASE_URL = "http://aflowlib.org/API/aflux/"
 class AflowConnector(DatasetConnector):
     """Fetches data from the AFLOW database. No API key required."""
 
-    def __init__(self, config: Optional[ConnectorConfig] = None) -> None:
+    def __init__(self, config: ConnectorConfig | None = None) -> None:
         cfg = config or ConnectorConfig(base_url=AFLOW_BASE_URL)
         if not cfg.base_url:
             cfg.base_url = AFLOW_BASE_URL

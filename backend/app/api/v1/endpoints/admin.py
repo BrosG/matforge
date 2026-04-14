@@ -6,14 +6,13 @@ import secrets
 import string
 from datetime import datetime, timedelta, timezone
 
+from app.core.security import require_admin
+from app.db.base import get_db
+from app.db.models import Campaign, CreditTransaction, InvestorAccessRequest, User
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-
-from app.core.security import require_admin
-from app.db.base import get_db
-from app.db.models import Campaign, CreditTransaction, InvestorAccessRequest, User
 
 router = APIRouter()
 
@@ -37,18 +36,38 @@ def get_stats(db: Session = Depends(get_db), admin: User = Depends(require_admin
     thirty_days = now - timedelta(days=30)
 
     total_users = db.query(func.count(User.id)).scalar() or 0
-    active_7d = db.query(func.count(User.id)).filter(User.updated_at >= seven_days).scalar() or 0
-    active_30d = db.query(func.count(User.id)).filter(User.updated_at >= thirty_days).scalar() or 0
+    active_7d = (
+        db.query(func.count(User.id)).filter(User.updated_at >= seven_days).scalar()
+        or 0
+    )
+    active_30d = (
+        db.query(func.count(User.id)).filter(User.updated_at >= thirty_days).scalar()
+        or 0
+    )
     total_campaigns = db.query(func.count(Campaign.id)).scalar() or 0
 
-    positive_tx = db.query(func.coalesce(func.sum(CreditTransaction.amount), 0)).filter(CreditTransaction.amount > 0)
+    positive_tx = db.query(func.coalesce(func.sum(CreditTransaction.amount), 0)).filter(
+        CreditTransaction.amount > 0
+    )
     total_credits_sold = positive_tx.scalar() or 0
-    credits_30d = positive_tx.filter(CreditTransaction.created_at >= thirty_days).scalar() or 0
+    credits_30d = (
+        positive_tx.filter(CreditTransaction.created_at >= thirty_days).scalar() or 0
+    )
 
     total_tx = db.query(func.count(CreditTransaction.id)).scalar() or 0
-    tx_30d = db.query(func.count(CreditTransaction.id)).filter(CreditTransaction.created_at >= thirty_days).scalar() or 0
+    tx_30d = (
+        db.query(func.count(CreditTransaction.id))
+        .filter(CreditTransaction.created_at >= thirty_days)
+        .scalar()
+        or 0
+    )
 
-    pending_req = db.query(func.count(InvestorAccessRequest.id)).filter(InvestorAccessRequest.status == "pending").scalar() or 0
+    pending_req = (
+        db.query(func.count(InvestorAccessRequest.id))
+        .filter(InvestorAccessRequest.status == "pending")
+        .scalar()
+        or 0
+    )
 
     return AdminStats(
         total_users=total_users,
@@ -87,15 +106,24 @@ def list_users(
     if search:
         query = query.filter(User.email.ilike(f"%{search}%"))
     total = query.count()
-    users = query.order_by(User.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    users = (
+        query.order_by(User.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
     return {
         "total": total,
         "page": page,
         "limit": limit,
         "users": [
             UserOut(
-                id=u.id, email=u.email, full_name=u.full_name, credits=u.credits,
-                is_admin=u.is_admin, is_active=u.is_active,
+                id=u.id,
+                email=u.email,
+                full_name=u.full_name,
+                credits=u.credits,
+                is_admin=u.is_admin,
+                is_active=u.is_active,
                 created_at=u.created_at.isoformat() if u.created_at else "",
                 updated_at=u.updated_at.isoformat() if u.updated_at else None,
             )
@@ -110,19 +138,31 @@ class AddCreditsRequest(BaseModel):
 
 
 @router.post("/users/{user_id}/credits")
-def add_credits(user_id: str, body: AddCreditsRequest, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def add_credits(
+    user_id: str,
+    body: AddCreditsRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.credits += body.amount
-    tx = CreditTransaction(user_id=user.id, amount=body.amount, balance_after=user.credits, description=f"Admin: {body.reason}")
+    tx = CreditTransaction(
+        user_id=user.id,
+        amount=body.amount,
+        balance_after=user.credits,
+        description=f"Admin: {body.reason}",
+    )
     db.add(tx)
     db.commit()
     return {"credits": user.credits, "transaction_id": tx.id}
 
 
 @router.post("/users/{user_id}/toggle-admin")
-def toggle_admin(user_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def toggle_admin(
+    user_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)
+):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -132,17 +172,27 @@ def toggle_admin(user_id: str, db: Session = Depends(get_db), admin: User = Depe
 
 
 @router.get("/transactions")
-def list_transactions(page: int = 1, limit: int = 50, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def list_transactions(
+    page: int = 1,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
     limit = min(limit, 200)
     query = db.query(CreditTransaction).order_by(CreditTransaction.created_at.desc())
     total = query.count()
     txs = query.offset((page - 1) * limit).limit(limit).all()
     return {
-        "total": total, "page": page, "limit": limit,
+        "total": total,
+        "page": page,
+        "limit": limit,
         "transactions": [
             {
-                "id": t.id, "user_id": t.user_id, "amount": t.amount,
-                "balance_after": t.balance_after, "description": t.description,
+                "id": t.id,
+                "user_id": t.user_id,
+                "amount": t.amount,
+                "balance_after": t.balance_after,
+                "description": t.description,
                 "created_at": t.created_at.isoformat() if t.created_at else "",
             }
             for t in txs
@@ -163,10 +213,16 @@ def list_investor_requests(
     return {
         "requests": [
             {
-                "id": r.id, "full_name": r.full_name, "email": r.email,
-                "company": r.company, "role": r.role, "message": r.message,
+                "id": r.id,
+                "full_name": r.full_name,
+                "email": r.email,
+                "company": r.company,
+                "role": r.role,
+                "message": r.message,
                 "status": r.status,
-                "access_password": r.access_password if r.status == "approved" else None,
+                "access_password": r.access_password
+                if r.status == "approved"
+                else None,
                 "created_at": r.created_at.isoformat() if r.created_at else "",
                 "reviewed_at": r.reviewed_at.isoformat() if r.reviewed_at else None,
             }
@@ -181,8 +237,14 @@ def _gen_password(length: int = 12) -> str:
 
 
 @router.post("/investor-requests/{req_id}/approve")
-def approve_request(req_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
-    req = db.query(InvestorAccessRequest).filter(InvestorAccessRequest.id == req_id).first()
+def approve_request(
+    req_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)
+):
+    req = (
+        db.query(InvestorAccessRequest)
+        .filter(InvestorAccessRequest.id == req_id)
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
     req.status = "approved"
@@ -190,12 +252,22 @@ def approve_request(req_id: str, db: Session = Depends(get_db), admin: User = De
     req.reviewed_at = datetime.now(timezone.utc)
     req.reviewed_by = admin.id
     db.commit()
-    return {"status": "approved", "access_password": req.access_password, "email": req.email}
+    return {
+        "status": "approved",
+        "access_password": req.access_password,
+        "email": req.email,
+    }
 
 
 @router.post("/investor-requests/{req_id}/reject")
-def reject_request(req_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
-    req = db.query(InvestorAccessRequest).filter(InvestorAccessRequest.id == req_id).first()
+def reject_request(
+    req_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)
+):
+    req = (
+        db.query(InvestorAccessRequest)
+        .filter(InvestorAccessRequest.id == req_id)
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
     req.status = "rejected"

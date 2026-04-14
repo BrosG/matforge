@@ -10,12 +10,10 @@ Fixes systematic issues in DFT data before display:
 from __future__ import annotations
 
 import logging
-from typing import Any
-
-from sqlalchemy.orm import Session
 
 from app.db.models import IndexedMaterial
 from app.services.lattice_utils import normalize_lattice_for_display
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +74,10 @@ def _normalize_tags(mat: IndexedMaterial) -> None:
     for tag in tags:
         if tag == "thermoelectric":
             # Only keep if we have at least one thermoelectric property
-            if mat.seebeck_coefficient is not None or mat.thermal_conductivity is not None:
+            if (
+                mat.seebeck_coefficient is not None
+                or mat.thermal_conductivity is not None
+            ):
                 validated.append(tag)
             # else: silently drop — tag promises data we can't deliver
         elif tag == "elastic-data":

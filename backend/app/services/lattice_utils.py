@@ -65,7 +65,7 @@ def _matrix_to_params(matrix: list[list[float]]) -> dict[str, float]:
         return math.degrees(math.acos(cos_angle))
 
     alpha = _angle(vb, vc, b, c)  # angle between b and c
-    beta = _angle(va, vc, a, c)   # angle between a and c
+    beta = _angle(va, vc, a, c)  # angle between a and c
     gamma = _angle(va, vb, a, b)  # angle between a and b
 
     return {
@@ -142,13 +142,15 @@ def extract_atoms_from_structure(structure: dict) -> list[dict] | None:
                 atom["fz"] = _clean(abc[2])
             atoms.append(atom)
         elif element and abc and len(abc) >= 3:
-            atoms.append({
-                "element": element,
-                "x": round(float(abc[0]), 4),
-                "y": round(float(abc[1]), 4),
-                "z": round(float(abc[2]), 4),
-                "cartesian": False,  # These are fractional
-            })
+            atoms.append(
+                {
+                    "element": element,
+                    "x": round(float(abc[0]), 4),
+                    "y": round(float(abc[1]), 4),
+                    "z": round(float(abc[2]), 4),
+                    "cartesian": False,  # These are fractional
+                }
+            )
 
     return atoms if atoms else None
 
@@ -200,7 +202,7 @@ def primitive_to_conventional_atoms(
     elif centering == "A":
         translations = [(0, 0, 0), (0, 0.5, 0.5)]
     elif centering == "R":
-        translations = [(0, 0, 0), (2/3, 1/3, 1/3), (1/3, 2/3, 2/3)]
+        translations = [(0, 0, 0), (2 / 3, 1 / 3, 1 / 3), (1 / 3, 2 / 3, 2 / 3)]
     else:
         return atoms
 
@@ -224,7 +226,12 @@ def primitive_to_conventional_atoms(
             nfz = (fz + tz) % 1.0
 
             # Deduplicate with tolerance
-            key = (atom["element"], round(nfx * 100), round(nfy * 100), round(nfz * 100))
+            key = (
+                atom["element"],
+                round(nfx * 100),
+                round(nfy * 100),
+                round(nfz * 100),
+            )
             if key in seen:
                 continue
             seen.add(key)
@@ -234,21 +241,29 @@ def primitive_to_conventional_atoms(
                 nfx, nfy, nfz, a_conv, b_conv, c_conv, al_conv, be_conv, ga_conv
             )
 
-            conv_atoms.append({
-                "element": atom["element"],
-                "x": round(cx, 4),
-                "y": round(cy, 4),
-                "z": round(cz, 4),
-                "cartesian": True,
-            })
+            conv_atoms.append(
+                {
+                    "element": atom["element"],
+                    "x": round(cx, 4),
+                    "y": round(cy, 4),
+                    "z": round(cz, 4),
+                    "cartesian": True,
+                }
+            )
 
     return conv_atoms
 
 
 def _frac_to_cart_simple(
-    fx: float, fy: float, fz: float,
-    a: float, b: float, c: float,
-    alpha: float, beta: float, gamma: float,
+    fx: float,
+    fy: float,
+    fz: float,
+    a: float,
+    b: float,
+    c: float,
+    alpha: float,
+    beta: float,
+    gamma: float,
 ) -> tuple[float, float, float]:
     """Convert fractional to Cartesian coordinates."""
     ar = math.radians(alpha)
@@ -302,16 +317,30 @@ def conventional_to_primitive_lattice(lattice: dict, space_group: str) -> dict:
     if centering == "I":
         # BCC: a_prim = a_conv × √3/2
         ap = round(a * math.sqrt(3) / 2, 4)
-        return {"a": ap, "b": ap, "c": ap, "alpha": 109.47, "beta": 109.47, "gamma": 109.47}
+        return {
+            "a": ap,
+            "b": ap,
+            "c": ap,
+            "alpha": 109.47,
+            "beta": 109.47,
+            "gamma": 109.47,
+        }
 
     if centering == "C":
-        ap = round(math.sqrt(a**2/4 + b**2/4), 4)
-        return {"a": ap, "b": ap, "c": c, "alpha": 90.0, "beta": 90.0, "gamma": round(2*math.degrees(math.atan2(b, a)), 2)}
+        ap = round(math.sqrt(a**2 / 4 + b**2 / 4), 4)
+        return {
+            "a": ap,
+            "b": ap,
+            "c": c,
+            "alpha": 90.0,
+            "beta": 90.0,
+            "gamma": round(2 * math.degrees(math.atan2(b, a)), 2),
+        }
 
     if centering == "R":
         # Rhombohedral
-        ap = round(math.sqrt(a**2/3 + c**2/9), 4)
-        cos_alpha = (2*c**2/9 - a**2/3) / (2*(a**2/3 + c**2/9))
+        ap = round(math.sqrt(a**2 / 3 + c**2 / 9), 4)
+        cos_alpha = (2 * c**2 / 9 - a**2 / 3) / (2 * (a**2 / 3 + c**2 / 9))
         al = round(math.degrees(math.acos(max(-1, min(1, cos_alpha)))), 2)
         return {"a": ap, "b": ap, "c": ap, "alpha": al, "beta": al, "gamma": al}
 
@@ -325,7 +354,9 @@ def _approx_eq(a: float, b: float, tol: float = 0.02) -> bool:
     return abs(a - b) / max(abs(a), abs(b)) < tol
 
 
-def _angles_approx(angles: tuple[float, float, float], target: float, tol: float = 2.0) -> bool:
+def _angles_approx(
+    angles: tuple[float, float, float], target: float, tol: float = 2.0
+) -> bool:
     """Check if all three angles are approximately equal to target (in degrees)."""
     return all(abs(a - target) < tol for a in angles)
 
@@ -359,8 +390,12 @@ def _angles_match_system(
 
 
 def primitive_to_conventional(
-    a: float, b: float, c: float,
-    alpha: float, beta: float, gamma: float,
+    a: float,
+    b: float,
+    c: float,
+    alpha: float,
+    beta: float,
+    gamma: float,
     crystal_system: str | None = None,
     space_group: str | None = None,
 ) -> dict[str, Any]:
@@ -393,9 +428,7 @@ def primitive_to_conventional(
 
     # Detect primitive cell by lattice length inconsistency with crystal system
     # Tetragonal conventional: a=b≠c. If a=b=c, it's likely BCT primitive.
-    tetragonal_as_cubic = (
-        cs == "tetragonal" and _approx_eq(a, b) and _approx_eq(b, c)
-    )
+    tetragonal_as_cubic = cs == "tetragonal" and _approx_eq(a, b) and _approx_eq(b, c)
     # Orthorhombic conventional: a≠b≠c. If any two are equal, could be primitive centered.
     # (less reliable — skip for now)
 
@@ -405,8 +438,12 @@ def primitive_to_conventional(
 
     # Angles are wrong for this crystal system → primitive cell detected
     result["primitive"] = {
-        "a": round(a, 4), "b": round(b, 4), "c": round(c, 4),
-        "alpha": round(alpha, 2), "beta": round(beta, 2), "gamma": round(gamma, 2),
+        "a": round(a, 4),
+        "b": round(b, 4),
+        "c": round(c, 4),
+        "alpha": round(alpha, 2),
+        "beta": round(beta, 2),
+        "gamma": round(gamma, 2),
     }
     result["converted"] = True
 
@@ -423,10 +460,16 @@ def primitive_to_conventional(
             # Unknown cubic primitive — approximate
             a_conv = avg_a * math.sqrt(2)
 
-        result.update({
-            "a": round(a_conv, 4), "b": round(a_conv, 4), "c": round(a_conv, 4),
-            "alpha": 90.0, "beta": 90.0, "gamma": 90.0,
-        })
+        result.update(
+            {
+                "a": round(a_conv, 4),
+                "b": round(a_conv, 4),
+                "c": round(a_conv, 4),
+                "alpha": 90.0,
+                "beta": 90.0,
+                "gamma": 90.0,
+            }
+        )
 
     elif cs == "tetragonal":
         # Tetragonal: a=b, c different, all angles 90°
@@ -440,7 +483,9 @@ def primitive_to_conventional(
             # a_conv ≈ a_prim × √2, c_conv from geometry
             avg_ab = (a + b) / 2.0
             a_conv = avg_ab * math.sqrt(2)
-            result.update({"a": round(a_conv, 4), "b": round(a_conv, 4), "c": round(c, 4)})
+            result.update(
+                {"a": round(a_conv, 4), "b": round(a_conv, 4), "c": round(c, 4)}
+            )
         result.update({"alpha": 90.0, "beta": 90.0, "gamma": 90.0})
 
     elif cs == "orthorhombic":
@@ -448,7 +493,11 @@ def primitive_to_conventional(
         result.update({"alpha": 90.0, "beta": 90.0, "gamma": 90.0})
 
     elif cs in ("hexagonal", "trigonal"):
-        if _approx_eq(a, b) and _approx_eq(b, c) and _angles_approx((alpha, beta, gamma), 60.0, tol=10.0):
+        if (
+            _approx_eq(a, b)
+            and _approx_eq(b, c)
+            and _angles_approx((alpha, beta, gamma), 60.0, tol=10.0)
+        ):
             # Rhombohedral primitive → hexagonal conventional
             avg_a = (a + b + c) / 3.0
             avg_alpha_rad = math.radians((alpha + beta + gamma) / 3.0)
@@ -456,10 +505,16 @@ def primitive_to_conventional(
             a_hex = avg_a * math.sqrt(2) * math.sqrt(1 - math.cos(avg_alpha_rad))
             c_hex = avg_a * math.sqrt(3) * math.sqrt(1 + 2 * math.cos(avg_alpha_rad))
 
-            result.update({
-                "a": round(a_hex, 4), "b": round(a_hex, 4), "c": round(c_hex, 4),
-                "alpha": 90.0, "beta": 90.0, "gamma": 120.0,
-            })
+            result.update(
+                {
+                    "a": round(a_hex, 4),
+                    "b": round(a_hex, 4),
+                    "c": round(c_hex, 4),
+                    "alpha": 90.0,
+                    "beta": 90.0,
+                    "gamma": 120.0,
+                }
+            )
         else:
             # Force hexagonal angles
             result.update({"alpha": 90.0, "beta": 90.0, "gamma": 120.0})
@@ -492,8 +547,12 @@ def normalize_lattice_for_display(
         return lattice_params
 
     return primitive_to_conventional(
-        float(a), float(b), float(c),
-        float(alpha), float(beta), float(gamma),
+        float(a),
+        float(b),
+        float(c),
+        float(alpha),
+        float(beta),
+        float(gamma),
         crystal_system=crystal_system,
         space_group=space_group,
     )

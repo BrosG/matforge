@@ -7,15 +7,16 @@ import json
 import logging
 from typing import Any, Optional
 
+from app.db.models import IndexedMaterial
 from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
-
-from app.db.models import IndexedMaterial
 
 logger = logging.getLogger(__name__)
 
 _SEARCH_CACHE_PREFIX = "materials:search:v1:"
-_SEARCH_CACHE_TTL = 30  # seconds — short enough to feel fresh, long enough to absorb spikes
+_SEARCH_CACHE_TTL = (
+    30  # seconds — short enough to feel fresh, long enough to absorb spikes
+)
 
 
 def search(
@@ -58,26 +59,49 @@ def search(
         page == 1
         and sort_by == "formula"
         and sort_dir == "asc"
-        and not any([
-            q, elements, formula, crystal_system, space_group,
-            band_gap_min, band_gap_max,
-            formation_energy_min, formation_energy_max, energy_above_hull_max,
-            bulk_modulus_min, bulk_modulus_max,
-            shear_modulus_min, shear_modulus_max,
-            thermal_conductivity_min, thermal_conductivity_max,
-            magnetic_ordering, has_elastic_data, source_db,
-            is_stable is not None,
-        ])
+        and not any(
+            [
+                q,
+                elements,
+                formula,
+                crystal_system,
+                space_group,
+                band_gap_min,
+                band_gap_max,
+                formation_energy_min,
+                formation_energy_max,
+                energy_above_hull_max,
+                bulk_modulus_min,
+                bulk_modulus_max,
+                shear_modulus_min,
+                shear_modulus_max,
+                thermal_conductivity_min,
+                thermal_conductivity_max,
+                magnetic_ordering,
+                has_elastic_data,
+                source_db,
+                is_stable is not None,
+            ]
+        )
     )
     _cache_key: str | None = None
     if _is_cacheable:
         # Hash all params so we get a stable key regardless of ordering
-        _param_blob = json.dumps({
-            "page": page, "limit": limit, "sort_by": sort_by, "sort_dir": sort_dir,
-        }, sort_keys=True)
-        _cache_key = _SEARCH_CACHE_PREFIX + hashlib.md5(_param_blob.encode()).hexdigest()
+        _param_blob = json.dumps(
+            {
+                "page": page,
+                "limit": limit,
+                "sort_by": sort_by,
+                "sort_dir": sort_dir,
+            },
+            sort_keys=True,
+        )
+        _cache_key = (
+            _SEARCH_CACHE_PREFIX + hashlib.md5(_param_blob.encode()).hexdigest()
+        )
         try:
             from app.core.redis_connector import get_redis
+
             redis_client = get_redis()
             cached = redis_client.get(_cache_key)
             if cached:
@@ -151,9 +175,13 @@ def search(
 
     # Thermal ranges
     if thermal_conductivity_min is not None:
-        query = query.filter(IndexedMaterial.thermal_conductivity >= thermal_conductivity_min)
+        query = query.filter(
+            IndexedMaterial.thermal_conductivity >= thermal_conductivity_min
+        )
     if thermal_conductivity_max is not None:
-        query = query.filter(IndexedMaterial.thermal_conductivity <= thermal_conductivity_max)
+        query = query.filter(
+            IndexedMaterial.thermal_conductivity <= thermal_conductivity_max
+        )
 
     # Magnetic
     if magnetic_ordering:
@@ -171,20 +199,36 @@ def search(
 
     # Use fast approximate row count when no filters are applied
     # (avoids full-table sequential scan which takes 25+ seconds)
-    _has_filters = any([
-        q, elements, crystal_system, band_gap_min, band_gap_max,
-        formation_energy_min, formation_energy_max, bulk_modulus_min,
-        bulk_modulus_max, shear_modulus_min, shear_modulus_max,
-        thermal_conductivity_min, thermal_conductivity_max,
-        magnetic_ordering, has_elastic_data, is_stable is not None, source_db,
-    ])
+    _has_filters = any(
+        [
+            q,
+            elements,
+            crystal_system,
+            band_gap_min,
+            band_gap_max,
+            formation_energy_min,
+            formation_energy_max,
+            bulk_modulus_min,
+            bulk_modulus_max,
+            shear_modulus_min,
+            shear_modulus_max,
+            thermal_conductivity_min,
+            thermal_conductivity_max,
+            magnetic_ordering,
+            has_elastic_data,
+            is_stable is not None,
+            source_db,
+        ]
+    )
     if _has_filters:
         total = query.count()
     else:
         # pg_class reltuples is updated by VACUUM/ANALYZE — fast O(1) lookup
         try:
             result = db.execute(
-                text("SELECT reltuples::bigint FROM pg_class WHERE relname = 'indexed_materials'")
+                text(
+                    "SELECT reltuples::bigint FROM pg_class WHERE relname = 'indexed_materials'"
+                )
             ).scalar()
             total = int(result) if result and result > 0 else query.count()
         except Exception:
@@ -192,12 +236,24 @@ def search(
 
     # Sorting
     allowed_sort = {
-        "formula", "band_gap", "formation_energy", "energy_above_hull",
-        "density", "n_elements", "crystal_system", "space_group",
-        "source_db", "external_id", "fetched_at",
-        "bulk_modulus", "shear_modulus", "young_modulus",
-        "thermal_conductivity", "seebeck_coefficient",
-        "total_magnetization", "dielectric_constant",
+        "formula",
+        "band_gap",
+        "formation_energy",
+        "energy_above_hull",
+        "density",
+        "n_elements",
+        "crystal_system",
+        "space_group",
+        "source_db",
+        "external_id",
+        "fetched_at",
+        "bulk_modulus",
+        "shear_modulus",
+        "young_modulus",
+        "thermal_conductivity",
+        "seebeck_coefficient",
+        "total_magnetization",
+        "dielectric_constant",
     }
     if sort_by not in allowed_sort:
         sort_by = "formula"
@@ -209,6 +265,7 @@ def search(
     if _cache_key and results:
         try:
             from app.core.redis_connector import get_redis
+
             redis_client = get_redis()
             payload = json.dumps({"ids": [m.id for m in results], "total": total})
             redis_client.setex(_cache_key, _SEARCH_CACHE_TTL, payload)
@@ -248,14 +305,20 @@ def get_related(
     # Try Redis cache first
     cache_key = _RELATED_CACHE_PREFIX + material.id
     try:
-        from app.core.redis_connector import get_redis
         import json as _json
+
+        from app.core.redis_connector import get_redis
 
         cached = _json.loads(get_redis().get(cache_key) or "null")
         if cached:
             ids = cached[:limit]
             if ids:
-                id_map = {m.id: m for m in db.query(IndexedMaterial).filter(IndexedMaterial.id.in_(ids)).all()}
+                id_map = {
+                    m.id: m
+                    for m in db.query(IndexedMaterial)
+                    .filter(IndexedMaterial.id.in_(ids))
+                    .all()
+                }
                 return [id_map[i] for i in ids if i in id_map]
     except Exception:
         pass
@@ -295,10 +358,13 @@ def get_related(
 
     # Cache the IDs
     try:
-        from app.core.redis_connector import get_redis
         import json as _json
 
-        get_redis().setex(cache_key, _RELATED_CACHE_TTL, _json.dumps([m.id for m in results]))
+        from app.core.redis_connector import get_redis
+
+        get_redis().setex(
+            cache_key, _RELATED_CACHE_TTL, _json.dumps([m.id for m in results])
+        )
     except Exception:
         pass
 
@@ -313,8 +379,9 @@ def get_stats(db: Session) -> dict[str, Any]:
     """Aggregate statistics across all indexed materials (Redis cached)."""
     # Try cache first
     try:
-        from app.core.redis_connector import get_redis
         import json as _json
+
+        from app.core.redis_connector import get_redis
 
         redis_client = get_redis()
         cached = redis_client.get(_STATS_CACHE_KEY)
@@ -327,7 +394,7 @@ def get_stats(db: Session) -> dict[str, Any]:
     total = db.query(func.count(IndexedMaterial.id)).scalar() or 0
     stable = (
         db.query(func.count(IndexedMaterial.id))
-        .filter(IndexedMaterial.is_stable == True)  # noqa: E712
+        .filter(IndexedMaterial.is_stable == True)
         .scalar()
         or 0
     )
@@ -372,8 +439,9 @@ def get_stats(db: Session) -> dict[str, Any]:
 
     # Cache for 5 minutes
     try:
-        from app.core.redis_connector import get_redis
         import json as _json
+
+        from app.core.redis_connector import get_redis
 
         redis_client = get_redis()
         redis_client.setex(_STATS_CACHE_KEY, _STATS_CACHE_TTL, _json.dumps(result))
@@ -395,8 +463,9 @@ def get_element_counts(db: Session) -> dict[str, int]:
     """
     # Try cache first
     try:
-        from app.core.redis_connector import get_redis
         import json as _json
+
+        from app.core.redis_connector import get_redis
 
         redis_client = get_redis()
         cached = redis_client.get(_ELEMENTS_CACHE_KEY)
@@ -406,20 +475,25 @@ def get_element_counts(db: Session) -> dict[str, int]:
         logger.warning("Element counts cache read failed: %s", e)
 
     # Single SQL query — orders of magnitude faster than Python iteration
-    result = db.execute(text(
-        "SELECT elem, COUNT(*) as cnt "
-        "FROM indexed_materials, jsonb_array_elements_text(elements) AS elem "
-        "GROUP BY elem ORDER BY cnt DESC"
-    ))
+    result = db.execute(
+        text(
+            "SELECT elem, COUNT(*) as cnt "
+            "FROM indexed_materials, jsonb_array_elements_text(elements) AS elem "
+            "GROUP BY elem ORDER BY cnt DESC"
+        )
+    )
     counts = {row[0]: row[1] for row in result}
 
     # Cache for 10 minutes
     try:
-        from app.core.redis_connector import get_redis
         import json as _json
 
+        from app.core.redis_connector import get_redis
+
         redis_client = get_redis()
-        redis_client.setex(_ELEMENTS_CACHE_KEY, _ELEMENTS_CACHE_TTL, _json.dumps(counts))
+        redis_client.setex(
+            _ELEMENTS_CACHE_KEY, _ELEMENTS_CACHE_TTL, _json.dumps(counts)
+        )
     except Exception as e:
         logger.warning("Element counts cache write failed: %s", e)
 
@@ -434,8 +508,9 @@ def get_categories(db: Session) -> dict[str, Any]:
     """Aggregate category counts in a single SQL query. Cached for 5 min."""
     # Try cache first
     try:
-        from app.core.redis_connector import get_redis
         import json as _json
+
+        from app.core.redis_connector import get_redis
 
         redis_client = get_redis()
         cached = redis_client.get(_CATEGORIES_CACHE_KEY)
@@ -445,7 +520,8 @@ def get_categories(db: Session) -> dict[str, Any]:
         logger.warning("Categories cache read failed: %s", e)
 
     # Single query with FILTER aggregation — replaces 10+ separate COUNT queries
-    row = db.execute(text("""
+    row = db.execute(
+        text("""
         SELECT
             COUNT(*) AS total,
             COUNT(*) FILTER (WHERE band_gap = 0) AS metals,
@@ -457,18 +533,21 @@ def get_categories(db: Session) -> dict[str, Any]:
             COUNT(*) FILTER (WHERE dielectric_constant IS NOT NULL) AS has_dielectric,
             COUNT(*) FILTER (WHERE structure_data IS NOT NULL) AS has_structure
         FROM indexed_materials
-    """)).fetchone()
+    """)
+    ).fetchone()
 
     # Crystal system counts
-    cs_rows = db.execute(text(
-        "SELECT crystal_system, COUNT(*) FROM indexed_materials "
-        "WHERE crystal_system IS NOT NULL GROUP BY crystal_system"
-    )).fetchall()
+    cs_rows = db.execute(
+        text(
+            "SELECT crystal_system, COUNT(*) FROM indexed_materials "
+            "WHERE crystal_system IS NOT NULL GROUP BY crystal_system"
+        )
+    ).fetchall()
 
     # Source DB counts
-    src_rows = db.execute(text(
-        "SELECT source_db, COUNT(*) FROM indexed_materials GROUP BY source_db"
-    )).fetchall()
+    src_rows = db.execute(
+        text("SELECT source_db, COUNT(*) FROM indexed_materials GROUP BY source_db")
+    ).fetchall()
 
     result = {
         "total_materials": row[0],
@@ -490,11 +569,14 @@ def get_categories(db: Session) -> dict[str, Any]:
 
     # Cache for 5 minutes
     try:
-        from app.core.redis_connector import get_redis
         import json as _json
 
+        from app.core.redis_connector import get_redis
+
         redis_client = get_redis()
-        redis_client.setex(_CATEGORIES_CACHE_KEY, _CATEGORIES_CACHE_TTL, _json.dumps(result))
+        redis_client.setex(
+            _CATEGORIES_CACHE_KEY, _CATEGORIES_CACHE_TTL, _json.dumps(result)
+        )
     except Exception as e:
         logger.warning("Categories cache write failed: %s", e)
 

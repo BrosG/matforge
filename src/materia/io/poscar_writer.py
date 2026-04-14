@@ -7,7 +7,6 @@ from pathlib import Path
 from materia.material import Material
 from materia.mdl import MaterialDef
 
-
 _LATTICE_DEFAULTS = {"a": 5.0, "b": 5.0, "c": 5.0}
 
 
@@ -97,11 +96,13 @@ def export_poscar(
         # Single file: concatenate with separator
         blocks = []
         for i, m in enumerate(sorted_materials):
-            blocks.append(material_to_poscar(m, material_def, title=f"Material_{i+1}"))
+            blocks.append(
+                material_to_poscar(m, material_def, title=f"Material_{i + 1}")
+            )
         p.write_text("\n\n".join(blocks), encoding="utf-8")
     else:
         # Directory: one file per material
         p.mkdir(parents=True, exist_ok=True)
         for i, m in enumerate(sorted_materials):
-            content = material_to_poscar(m, material_def, title=f"Material_{i+1}")
-            (p / f"POSCAR_{i+1}").write_text(content, encoding="utf-8")
+            content = material_to_poscar(m, material_def, title=f"Material_{i + 1}")
+            (p / f"POSCAR_{i + 1}").write_text(content, encoding="utf-8")

@@ -71,7 +71,9 @@ def material_to_structure(material: Material):
     return Structure(lattice, species, coords)
 
 
-def structure_to_material(structure, material_def: MaterialDef | None = None) -> Material:
+def structure_to_material(
+    structure, material_def: MaterialDef | None = None
+) -> Material:
     """Convert a pymatgen Structure to a Material.
 
     Args:
@@ -83,7 +85,9 @@ def structure_to_material(structure, material_def: MaterialDef | None = None) ->
     """
     composition_raw = structure.composition.as_dict()
     total = sum(composition_raw.values())
-    composition = {k: v / total for k, v in composition_raw.items()} if total > 0 else {}
+    composition = (
+        {k: v / total for k, v in composition_raw.items()} if total > 0 else {}
+    )
 
     input_dim = material_def.input_dim if material_def else max(len(composition), 1)
     params = np.full(input_dim, 0.5)
@@ -105,7 +109,9 @@ def structure_to_material(structure, material_def: MaterialDef | None = None) ->
         source=MaterialSource.EXPERIMENT,
         metadata={
             "lattice": lattice_meta,
-            "space_group": structure.get_space_group_info()[0] if hasattr(structure, "get_space_group_info") else "",
+            "space_group": structure.get_space_group_info()[0]
+            if hasattr(structure, "get_space_group_info")
+            else "",
             "num_sites": len(structure),
         },
     )

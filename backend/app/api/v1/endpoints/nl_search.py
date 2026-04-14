@@ -10,12 +10,11 @@ import logging
 import re
 from typing import Any
 
+from app.db.base import get_db
+from app.services import material_service
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
-from app.db.base import get_db
-from app.services import material_service
 
 logger = logging.getLogger(__name__)
 
@@ -26,32 +25,105 @@ router = APIRouter(prefix="/nl", tags=["natural-language"])
 # ---------------------------------------------------------------------------
 
 ELEMENT_MAP: dict[str, str] = {
-    "hydrogen": "H", "helium": "He", "lithium": "Li", "beryllium": "Be",
-    "boron": "B", "carbon": "C", "nitrogen": "N", "oxygen": "O",
-    "fluorine": "F", "neon": "Ne", "sodium": "Na", "magnesium": "Mg",
-    "aluminum": "Al", "aluminium": "Al", "silicon": "Si", "phosphorus": "P",
-    "sulfur": "S", "sulphur": "S", "chlorine": "Cl", "argon": "Ar",
-    "potassium": "K", "calcium": "Ca", "scandium": "Sc", "titanium": "Ti",
-    "vanadium": "V", "chromium": "Cr", "manganese": "Mn", "iron": "Fe",
-    "cobalt": "Co", "nickel": "Ni", "copper": "Cu", "zinc": "Zn",
-    "gallium": "Ga", "germanium": "Ge", "arsenic": "As", "selenium": "Se",
-    "bromine": "Br", "krypton": "Kr", "rubidium": "Rb", "strontium": "Sr",
-    "yttrium": "Y", "zirconium": "Zr", "niobium": "Nb", "molybdenum": "Mo",
-    "technetium": "Tc", "ruthenium": "Ru", "rhodium": "Rh", "palladium": "Pd",
-    "silver": "Ag", "cadmium": "Cd", "indium": "In", "tin": "Sn",
-    "antimony": "Sb", "tellurium": "Te", "iodine": "I", "xenon": "Xe",
-    "cesium": "Cs", "caesium": "Cs", "barium": "Ba", "lanthanum": "La",
-    "cerium": "Ce", "praseodymium": "Pr", "neodymium": "Nd",
-    "promethium": "Pm", "samarium": "Sm", "europium": "Eu",
-    "gadolinium": "Gd", "terbium": "Tb", "dysprosium": "Dy",
-    "holmium": "Ho", "erbium": "Er", "thulium": "Tm", "ytterbium": "Yb",
-    "lutetium": "Lu", "hafnium": "Hf", "tantalum": "Ta", "tungsten": "W",
-    "rhenium": "Re", "osmium": "Os", "iridium": "Ir", "platinum": "Pt",
-    "gold": "Au", "mercury": "Hg", "thallium": "Tl", "lead": "Pb",
-    "bismuth": "Bi", "polonium": "Po", "astatine": "At", "radon": "Rn",
-    "francium": "Fr", "radium": "Ra", "actinium": "Ac", "thorium": "Th",
-    "protactinium": "Pa", "uranium": "U", "neptunium": "Np",
-    "plutonium": "Pu", "americium": "Am", "curium": "Cm",
+    "hydrogen": "H",
+    "helium": "He",
+    "lithium": "Li",
+    "beryllium": "Be",
+    "boron": "B",
+    "carbon": "C",
+    "nitrogen": "N",
+    "oxygen": "O",
+    "fluorine": "F",
+    "neon": "Ne",
+    "sodium": "Na",
+    "magnesium": "Mg",
+    "aluminum": "Al",
+    "aluminium": "Al",
+    "silicon": "Si",
+    "phosphorus": "P",
+    "sulfur": "S",
+    "sulphur": "S",
+    "chlorine": "Cl",
+    "argon": "Ar",
+    "potassium": "K",
+    "calcium": "Ca",
+    "scandium": "Sc",
+    "titanium": "Ti",
+    "vanadium": "V",
+    "chromium": "Cr",
+    "manganese": "Mn",
+    "iron": "Fe",
+    "cobalt": "Co",
+    "nickel": "Ni",
+    "copper": "Cu",
+    "zinc": "Zn",
+    "gallium": "Ga",
+    "germanium": "Ge",
+    "arsenic": "As",
+    "selenium": "Se",
+    "bromine": "Br",
+    "krypton": "Kr",
+    "rubidium": "Rb",
+    "strontium": "Sr",
+    "yttrium": "Y",
+    "zirconium": "Zr",
+    "niobium": "Nb",
+    "molybdenum": "Mo",
+    "technetium": "Tc",
+    "ruthenium": "Ru",
+    "rhodium": "Rh",
+    "palladium": "Pd",
+    "silver": "Ag",
+    "cadmium": "Cd",
+    "indium": "In",
+    "tin": "Sn",
+    "antimony": "Sb",
+    "tellurium": "Te",
+    "iodine": "I",
+    "xenon": "Xe",
+    "cesium": "Cs",
+    "caesium": "Cs",
+    "barium": "Ba",
+    "lanthanum": "La",
+    "cerium": "Ce",
+    "praseodymium": "Pr",
+    "neodymium": "Nd",
+    "promethium": "Pm",
+    "samarium": "Sm",
+    "europium": "Eu",
+    "gadolinium": "Gd",
+    "terbium": "Tb",
+    "dysprosium": "Dy",
+    "holmium": "Ho",
+    "erbium": "Er",
+    "thulium": "Tm",
+    "ytterbium": "Yb",
+    "lutetium": "Lu",
+    "hafnium": "Hf",
+    "tantalum": "Ta",
+    "tungsten": "W",
+    "rhenium": "Re",
+    "osmium": "Os",
+    "iridium": "Ir",
+    "platinum": "Pt",
+    "gold": "Au",
+    "mercury": "Hg",
+    "thallium": "Tl",
+    "lead": "Pb",
+    "bismuth": "Bi",
+    "polonium": "Po",
+    "astatine": "At",
+    "radon": "Rn",
+    "francium": "Fr",
+    "radium": "Ra",
+    "actinium": "Ac",
+    "thorium": "Th",
+    "protactinium": "Pa",
+    "uranium": "U",
+    "neptunium": "Np",
+    "plutonium": "Pu",
+    "americium": "Am",
+    "curium": "Cm",
 }
 
 # Reverse: symbol (lowered) -> symbol (canonical case)
@@ -61,13 +133,43 @@ for _sym in list(SYMBOL_SET.values()):
     SYMBOL_SET[_sym.lower()] = _sym
 
 CRYSTAL_SYSTEMS = [
-    "cubic", "hexagonal", "tetragonal", "orthorhombic",
-    "monoclinic", "triclinic", "trigonal",
+    "cubic",
+    "hexagonal",
+    "tetragonal",
+    "orthorhombic",
+    "monoclinic",
+    "triclinic",
+    "trigonal",
 ]
 
-TRANSITION_METALS = ["Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
-                     "Y", "Zr", "Nb", "Mo", "Ru", "Rh", "Pd", "Ag",
-                     "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au"]
+TRANSITION_METALS = [
+    "Sc",
+    "Ti",
+    "V",
+    "Cr",
+    "Mn",
+    "Fe",
+    "Co",
+    "Ni",
+    "Cu",
+    "Zn",
+    "Y",
+    "Zr",
+    "Nb",
+    "Mo",
+    "Ru",
+    "Rh",
+    "Pd",
+    "Ag",
+    "Hf",
+    "Ta",
+    "W",
+    "Re",
+    "Os",
+    "Ir",
+    "Pt",
+    "Au",
+]
 
 # ---------------------------------------------------------------------------
 # Request / Response schemas
@@ -210,7 +312,9 @@ def parse_query(query: str) -> tuple[dict[str, Any], str]:
         filters["band_gap_min"] = 0.5
         filters["band_gap_max"] = 4.0
         interpretations.append("semiconductor (band gap 0.5-4.0 eV)")
-    elif re.search(r"\bmetal(?:lic)?\b", q) and not re.search(r"\btransition\s+metal", q):
+    elif re.search(r"\bmetal(?:lic)?\b", q) and not re.search(
+        r"\btransition\s+metal", q
+    ):
         filters["band_gap_max"] = 0.0
         interpretations.append("metallic (zero band gap)")
 
@@ -303,13 +407,20 @@ def nl_search(body: NLSearchRequest, db: Session = Depends(get_db)):
 
     # Direct pass-through keys
     for key in [
-        "crystal_system", "is_stable", "magnetic_ordering",
-        "band_gap_min", "band_gap_max",
-        "formation_energy_min", "formation_energy_max",
+        "crystal_system",
+        "is_stable",
+        "magnetic_ordering",
+        "band_gap_min",
+        "band_gap_max",
+        "formation_energy_min",
+        "formation_energy_max",
         "energy_above_hull_max",
-        "bulk_modulus_min", "bulk_modulus_max",
-        "shear_modulus_min", "shear_modulus_max",
-        "thermal_conductivity_min", "thermal_conductivity_max",
+        "bulk_modulus_min",
+        "bulk_modulus_max",
+        "shear_modulus_min",
+        "shear_modulus_max",
+        "thermal_conductivity_min",
+        "thermal_conductivity_max",
     ]:
         if key in filters:
             search_kwargs[key] = filters[key]

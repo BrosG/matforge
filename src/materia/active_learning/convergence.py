@@ -42,10 +42,10 @@ class ParetoStabilized(ConvergenceCriterion):
             return False
 
         # Check if Pareto front size has been stable
-        recent_sizes = [len(h.pareto_front) for h in history[-self.patience:]]
+        recent_sizes = [len(h.pareto_front) for h in history[-self.patience :]]
         if len(set(recent_sizes)) == 1:
             # Also check if best score hasn't improved
-            recent_scores = [h.best_score for h in history[-self.patience:]]
+            recent_scores = [h.best_score for h in history[-self.patience :]]
             improvement = abs(recent_scores[-1] - recent_scores[0])
             if improvement < 1e-6:
                 return True

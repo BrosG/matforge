@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -38,19 +37,19 @@ class OnnxSurrogate(SurrogateModel):
         self,
         input_dim: int,
         output_dim: int,
-        config: Optional[OnnxConfig] = None,
+        config: OnnxConfig | None = None,
     ) -> None:
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.config = config or OnnxConfig()
         self._session = None
         self._rng = np.random.default_rng()
-        self._residual_std: Optional[np.ndarray] = None
+        self._residual_std: np.ndarray | None = None
         self._trained = False
         self._fallback = None
 
         try:
-            import onnxruntime  # noqa: F401
+            import onnxruntime
 
             self._ort = onnxruntime
         except ImportError:
@@ -123,9 +122,7 @@ class OnnxSurrogate(SurrogateModel):
 
         preds = np.stack(predictions, axis=0)
         Y_mean = preds.mean(axis=0)
-        residual_var = (
-            self._residual_std**2 if self._residual_std is not None else 0
-        )
+        residual_var = self._residual_std**2 if self._residual_std is not None else 0
         Y_std = np.sqrt(preds.var(axis=0) + residual_var)
         return Y_mean, Y_std
 

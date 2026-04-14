@@ -7,13 +7,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
+from app.core.config import settings
+from app.db.base import get_db
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-
-from app.core.config import settings
-from app.db.base import get_db
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(

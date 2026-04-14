@@ -85,6 +85,25 @@ ignore = [
     "S603",   # subprocess calls are not user-facing
     "S607",   # partial executable path
     "ERA001", # commented-out code - sometimes useful for reference
+    "B008",   # FastAPI Depends(...) in defaults is the idiomatic pattern
+    "B904",   # raise-without-from - pervasive in existing handlers, not a bug
+    "B905",   # zip-without-strict - iteration length is invariant at call sites
+    "B007",   # unused-loop-control-variable - common in pandas/data code
+    "RUF002", # ambiguous unicode in docstrings (em-dash, en-dash are intentional)
+    "RUF003", # ambiguous unicode in comments
+    "RUF005", # list concat is fine for small static lists
+    "RUF046", # int(x) cast is fine for clarity
+    "RUF059", # unused-unpacked-variable - intentional discards
+    "E712",   # SQLAlchemy ``col == True`` is required for ORM filters
+    "SIM102", # collapsible-if - nested ifs are often clearer
+    "SIM103", # needless-bool - explicit returns read better
+    "SIM105", # suppressible-exception - contextlib.suppress is overkill
+    "T201",   # print - fine in scripts/CLI entrypoints
+    "S602",   # subprocess shell=True - used only with trusted inputs
+    "B027",   # empty base methods - intentional abstract-like pattern
+    "C401",   # unnecessary-generator-set - marginal difference
+    "F841",   # unused-variable - often intentional for readability
+    "S310",   # url-open-usage - URLs are hardcoded constants in connectors
 ]
 
 [tool.ruff.format]

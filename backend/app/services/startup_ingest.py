@@ -37,7 +37,7 @@ def _has_real_data(db) -> bool:
     If no records have the current version marker, all data is stale
     and needs re-ingestion.
     """
-    from sqlalchemy import cast, String
+    from sqlalchemy import String, cast
 
     real_count = (
         db.query(IndexedMaterial)
@@ -147,11 +147,16 @@ def ensure_real_data() -> None:
             total = db.query(IndexedMaterial).count()
             # Check how many sources we have
             from sqlalchemy import func
-            source_count = db.query(func.count(func.distinct(IndexedMaterial.source_db))).scalar() or 0
+
+            source_count = (
+                db.query(func.count(func.distinct(IndexedMaterial.source_db))).scalar()
+                or 0
+            )
 
             logger.info(
                 "Real API data present (%d materials, %d sources)",
-                total, source_count,
+                total,
+                source_count,
             )
             # Queue full ingestion if missing sources (e.g. only AFLOW, no MP)
             if source_count < 3:
@@ -169,9 +174,7 @@ def ensure_real_data() -> None:
         total += _ingest_from_aflow(db, batch_size)
         total += _ingest_from_jarvis(db, batch_size)
 
-        logger.info(
-            "Phase 1 complete: %d real materials available immediately", total
-        )
+        logger.info("Phase 1 complete: %d real materials available immediately", total)
 
     # Phase 2: queue background job for full ingestion
     _queue_full_ingestion()
