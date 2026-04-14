@@ -51,10 +51,14 @@ async def lifespan(app: FastAPI):
         "Starting %s environment=%s", settings.PROJECT_NAME, settings.ENVIRONMENT
     )
 
-    # Create tables in development mode only (production uses migrations)
-    if settings.ENVIRONMENT == "development":
+    # Create any missing tables (idempotent — create_all never drops existing tables)
+    # Safe to run in all environments; new models like InvestorAccessRequest
+    # are created on first startup after being added to the ORM.
+    try:
         create_tables()
-        logger.info("Database tables created/verified")
+        logger.info("Database tables verified/created")
+    except Exception as e:
+        logger.warning("Table creation partially failed (non-fatal): %s", e)
 
     # Apply DB indexes (idempotent — skips existing, creates missing)
     from app.db.base import apply_indexes, warm_pool
