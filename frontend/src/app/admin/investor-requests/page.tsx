@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, XCircle, Clock, Copy } from "lucide-react";
+import { CheckCircle, XCircle, Copy, KeyRound, RefreshCw } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://api.matcraft.ai/api/v1";
 const ADMIN_EMAIL = "gauthier.bros@gmail.com";
@@ -33,37 +33,64 @@ export default function InvestorRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending");
   const [copied, setCopied] = useState("");
+  const [justApproved, setJustApproved] = useState<{ id: string; email: string; password: string } | null>(null);
 
-  const getToken = () => (session as any)?.accessToken || "";
+  const token = (session as any)?.accessToken as string | undefined;
+
+  const fetchRequests = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    const res = await fetch(`${API}/admin/investor-requests?status=${filter}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const d = await res.json();
+      setRequests(d.requests || []);
+    }
+    setLoading(false);
+  }, [token, filter]);
 
   useEffect(() => {
     if (status === "loading") return;
     const email = (session?.user as any)?.email;
-    if (!email) { router.replace("/login?callbackUrl=/admin/investor-requests"); return; }
-    if (email !== ADMIN_EMAIL) { router.replace("/?error=not_admin"); return; }
+    if (!email) {
+      router.replace("/login?callbackUrl=/admin/investor-requests");
+      return;
+    }
+    if (email !== ADMIN_EMAIL) {
+      router.replace("/?error=not_admin");
+      return;
+    }
     fetchRequests();
-  }, [session, status, filter]);
+  }, [session, status, router, fetchRequests]);
 
-  const fetchRequests = async () => {
-    const token = getToken();
-    const res = await fetch(`${API}/admin/investor-requests?status=${filter}`, { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) { const d = await res.json(); setRequests(d.requests || []); }
-    setLoading(false);
-  };
-
-  const approve = async (id: string) => {
-    const token = getToken();
-    const res = await fetch(`${API}/admin/investor-requests/${id}/approve`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) {
-      const data = await res.json();
-      alert(`Approved! Password: ${data.access_password}\n\nShare this password with ${data.email}`);
+  const approve = async (id: string, opts: { regenerate?: boolean } = {}) => {
+    if (!token) return;
+    const res = await fetch(`${API}/admin/investor-requests/${id}/approve`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      alert(`Failed to ${opts.regenerate ? "regenerate" : "approve"}: ${res.status}`);
+      return;
+    }
+    const data = await res.json();
+    setJustApproved({ id, email: data.email, password: data.access_password });
+    // Move to "approved" filter so the user can see the code row
+    if (filter === "pending") {
+      setFilter("approved");
+    } else {
       fetchRequests();
     }
   };
 
   const reject = async (id: string) => {
-    const token = getToken();
-    await fetch(`${API}/admin/investor-requests/${id}/reject`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    if (!token) return;
+    if (!window.confirm("Reject this request?")) return;
+    await fetch(`${API}/admin/investor-requests/${id}/reject`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
     fetchRequests();
   };
 
@@ -79,6 +106,42 @@ export default function InvestorRequestsPage() {
         <h1 className="text-2xl font-black text-white mb-1">Investor Access Requests</h1>
         <p className="text-sm text-gray-400">Review and approve data room access requests</p>
       </div>
+
+      {justApproved && (
+        <div className="mb-6 bg-green-500/10 border border-green-500/30 rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <KeyRound className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-white mb-1">
+                Access code generated for {justApproved.email}
+              </div>
+              <div className="text-xs text-gray-400 mb-3">
+                Share this code with the investor. You can regenerate it anytime from the row below.
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-lg font-mono tracking-wider bg-gray-900 border border-gray-800 px-4 py-2.5 rounded-xl text-green-400 select-all">
+                  {justApproved.password}
+                </code>
+                <button
+                  onClick={() => copyPw(justApproved.password)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-green-600/20 border border-green-500/30 text-green-400 rounded-xl text-xs hover:bg-green-600/30 transition-colors"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  {copied === justApproved.password ? "Copied!" : "Copy"}
+                </button>
+                <button
+                  onClick={() => setJustApproved(null)}
+                  className="p-2.5 text-gray-500 hover:text-white rounded-xl"
+                  aria-label="Dismiss"
+                >
+                  <XCircle className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 mb-6">
         {["pending", "approved", "rejected", "all"].map((s) => (
           <button key={s} onClick={() => setFilter(s)}
@@ -124,6 +187,19 @@ export default function InvestorRequestsPage() {
                       <XCircle className="h-3.5 w-3.5" /> Reject
                     </button>
                   </div>
+                )}
+                {r.status === "approved" && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Generate a new access code for ${r.email}? The old code will stop working.`)) {
+                        approve(r.id, { regenerate: true });
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-amber-600/20 border border-amber-500/30 text-amber-400 rounded-xl text-xs hover:bg-amber-600/30 transition-colors"
+                    title="Regenerate access code"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" /> Regenerate
+                  </button>
                 )}
               </div>
             </div>
