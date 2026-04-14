@@ -234,7 +234,7 @@ export default function ExplorePage() {
             asChild
             variant="outline"
             size="lg"
-            className="border-white text-white hover:bg-white hover:text-blue-600"
+            className="bg-transparent border-white text-white hover:bg-white hover:text-blue-600"
           >
             <Link href="/register">Get Started Free</Link>
           </Button>

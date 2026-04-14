@@ -176,7 +176,7 @@ export default function DocsPage() {
               asChild
               variant="outline"
               size="lg"
-              className="border-white text-white hover:bg-white hover:text-blue-600"
+              className="bg-transparent border-white text-white hover:bg-white hover:text-blue-600"
             >
               <Link href="/materials">
                 Browse Materials
@@ -187,7 +187,7 @@ export default function DocsPage() {
               asChild
               variant="outline"
               size="lg"
-              className="border-white/50 text-white hover:bg-white hover:text-blue-600"
+              className="bg-transparent border-white/50 text-white hover:bg-white hover:text-blue-600"
             >
               <Link href="/docs/tutorials/getting-started">
                 Getting Started Tutorial
