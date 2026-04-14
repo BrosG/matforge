@@ -1,14 +1,4 @@
-import {
-  FlaskConical,
-  Cpu,
-  GraduationCap,
-  Rocket,
-  Shield,
-  Brain,
-  Pill,
-  Building2,
-  type LucideIcon,
-} from "lucide-react";
+// No lucide imports here — icons are string keys resolved in client components
 
 export interface PersonaPain {
   title: string;
@@ -45,7 +35,7 @@ export interface PersonaPricing {
 export interface Persona {
   slug: string;
   label: string;
-  icon: LucideIcon;
+  icon: string; // lucide icon name, resolved in client component
   iconColor: string;
   gradientFrom: string;
   gradientTo: string;
@@ -65,7 +55,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "materials-scientists",
     label: "Materials Scientists",
-    icon: FlaskConical,
+    icon: "FlaskConical",
     iconColor: "text-blue-500",
     gradientFrom: "from-blue-600",
     gradientTo: "to-cyan-500",
@@ -145,7 +135,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "engineers",
     label: "Engineers & Product Teams",
-    icon: Cpu,
+    icon: "Cpu",
     iconColor: "text-orange-500",
     gradientFrom: "from-orange-500",
     gradientTo: "to-amber-400",
@@ -225,7 +215,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "students",
     label: "Students & Educators",
-    icon: GraduationCap,
+    icon: "GraduationCap",
     iconColor: "text-emerald-500",
     gradientFrom: "from-emerald-500",
     gradientTo: "to-teal-400",
@@ -305,7 +295,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "startups",
     label: "Deep Tech Startups",
-    icon: Rocket,
+    icon: "Rocket",
     iconColor: "text-violet-500",
     gradientFrom: "from-violet-600",
     gradientTo: "to-purple-500",
@@ -385,7 +375,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "ip-lawyers",
     label: "Patent Attorneys & IP Teams",
-    icon: Shield,
+    icon: "Shield",
     iconColor: "text-slate-500",
     gradientFrom: "from-slate-700",
     gradientTo: "to-slate-500",
@@ -465,7 +455,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "ai-researchers",
     label: "AI & ML Researchers",
-    icon: Brain,
+    icon: "Brain",
     iconColor: "text-indigo-500",
     gradientFrom: "from-indigo-600",
     gradientTo: "to-blue-500",
@@ -545,7 +535,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "pharma-biotech",
     label: "Pharma & Biotech",
-    icon: Pill,
+    icon: "Pill",
     iconColor: "text-rose-500",
     gradientFrom: "from-rose-500",
     gradientTo: "to-pink-400",
@@ -625,7 +615,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "academia-labs",
     label: "Academic Labs & Institutes",
-    icon: Building2,
+    icon: "Building2",
     iconColor: "text-teal-500",
     gradientFrom: "from-teal-600",
     gradientTo: "to-cyan-500",

@@ -32,6 +32,13 @@ import {
   Lock,
   GraduationCap,
   BookOpen,
+  FlaskConical,
+  Cpu,
+  Rocket,
+  Brain,
+  Pill,
+  Building2,
+  Atom,
   type LucideIcon,
 } from "lucide-react";
 import { Header } from "@/components/landing/Header";
@@ -67,6 +74,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Lock,
   GraduationCap,
   BookOpen,
+  FlaskConical,
+  Cpu,
+  Rocket,
+  Brain,
+  Pill,
+  Building2,
+  Atom,
 };
 
 const fadeUp = {
@@ -83,7 +97,7 @@ interface PersonaPageProps {
 }
 
 export function PersonaPage({ persona }: PersonaPageProps) {
-  const Icon = persona.icon;
+  const Icon = ICON_MAP[persona.icon] ?? Atom;
 
   // Accent colour classes derived from accentColor string
   const accent = persona.accentColor;
