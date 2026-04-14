@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+// Rewritten: no Firebase dependency, proper cross-links login↔register
+
+import { useState, useRef, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
