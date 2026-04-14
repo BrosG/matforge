@@ -1,0 +1,389 @@
+"""Stripe integration: checkout sessions, webhooks, subscriptions, credit purchases.
+
+Best practices 2026:
+- Never log full API keys
+- Verify webhook signatures
+- Idempotent webhook handlers
+- Stripe-hosted Checkout (PCI SAQ-A compliant, no card data touches our server)
+- Subscription + one-time payment support
+- Metadata-driven fulfillment (user_id + package in session metadata)
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from datetime import datetime, timezone
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.core.security import get_current_user
+from app.db.base import get_db
+from app.db.models import CreditTransaction, User
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+# ---------------------------------------------------------------------------
+# Environment-based configuration (NEVER hardcode keys)
+# ---------------------------------------------------------------------------
+
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://matcraft.ai")
+
+# ---------------------------------------------------------------------------
+# Product catalog — single source of truth for pricing
+# Maps internal SKU → Stripe Price ID + credit amount
+# ---------------------------------------------------------------------------
+
+CREDIT_PACKAGES = {
+    "starter_10": {
+        "credits": 10,
+        "price_usd": 29,
+        "stripe_price_id": os.environ.get("STRIPE_PRICE_STARTER_10", ""),
+        "label": "Starter",
+        "description": "10 credits — Try the platform",
+    },
+    "pro_50": {
+        "credits": 50,
+        "price_usd": 99,
+        "stripe_price_id": os.environ.get("STRIPE_PRICE_PRO_50", ""),
+        "label": "Pro",
+        "description": "50 credits — Most popular",
+    },
+    "enterprise_200": {
+        "credits": 200,
+        "price_usd": 299,
+        "stripe_price_id": os.environ.get("STRIPE_PRICE_ENTERPRISE_200", ""),
+        "label": "Enterprise",
+        "description": "200 credits — Best value",
+    },
+    "deep_scan_pack_50": {
+        "credits": 50,
+        "price_usd": 199,
+        "stripe_price_id": os.environ.get("STRIPE_PRICE_DEEP_SCAN_50", ""),
+        "label": "Deep Scan Pack",
+        "description": "5 Deep Scans (50 credits)",
+    },
+}
+
+SUBSCRIPTION_PLANS = {
+    "researcher_monthly": {
+        "credits_per_month": 50,
+        "price_usd": 49,
+        "stripe_price_id": os.environ.get("STRIPE_PRICE_SUB_RESEARCHER", ""),
+        "label": "Researcher",
+        "description": "50 credits/month — Academics & individuals",
+    },
+    "professional_monthly": {
+        "credits_per_month": 200,
+        "price_usd": 149,
+        "stripe_price_id": os.environ.get("STRIPE_PRICE_SUB_PROFESSIONAL", ""),
+        "label": "Professional",
+        "description": "200 credits/month — Industry R&D",
+    },
+    "enterprise_monthly": {
+        "credits_per_month": 1000,
+        "price_usd": 499,
+        "stripe_price_id": os.environ.get("STRIPE_PRICE_SUB_ENTERPRISE", ""),
+        "label": "Enterprise",
+        "description": "1,000 credits/month + priority support",
+    },
+}
+
+
+def _get_stripe():
+    """Lazy import + configure Stripe SDK."""
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Payment system not configured. Please contact support.",
+        )
+    try:
+        import stripe  # type: ignore[import-untyped]
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Stripe SDK not installed")
+    stripe.api_key = STRIPE_SECRET_KEY
+    return stripe
+
+
+# ---------------------------------------------------------------------------
+# Public config endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get("/config")
+def get_stripe_config():
+    """Return public Stripe config (publishable key, packages). Safe to expose."""
+    return {
+        "publishable_key": STRIPE_PUBLISHABLE_KEY,
+        "credit_packages": [
+            {
+                "id": sku,
+                "label": p["label"],
+                "credits": p["credits"],
+                "price_usd": p["price_usd"],
+                "description": p["description"],
+                "price_per_credit": round(p["price_usd"] / p["credits"], 2),
+            }
+            for sku, p in CREDIT_PACKAGES.items()
+        ],
+        "subscription_plans": [
+            {
+                "id": sku,
+                "label": p["label"],
+                "credits_per_month": p["credits_per_month"],
+                "price_usd": p["price_usd"],
+                "description": p["description"],
+            }
+            for sku, p in SUBSCRIPTION_PLANS.items()
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Credit package checkout
+# ---------------------------------------------------------------------------
+
+
+class CheckoutRequest(BaseModel):
+    package: str
+    success_url: str = ""
+    cancel_url: str = ""
+
+
+@router.post("/create-checkout-session")
+def create_checkout_session(
+    body: CheckoutRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a Stripe Checkout session for a one-time credit purchase."""
+    stripe = _get_stripe()
+
+    pkg = CREDIT_PACKAGES.get(body.package)
+    if not pkg:
+        raise HTTPException(status_code=400, detail=f"Unknown package: {body.package}")
+
+    price_id = pkg["stripe_price_id"]
+    if not price_id:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Price not configured for {body.package}. Contact support.",
+        )
+
+    success = body.success_url or f"{FRONTEND_URL}/dashboard/settings?payment=success"
+    cancel = body.cancel_url or f"{FRONTEND_URL}/dashboard/settings?payment=cancel"
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            payment_method_types=["card"],
+            customer_email=user.email,
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=success + "&session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=cancel,
+            metadata={
+                "user_id": user.id,
+                "package": body.package,
+                "credits": str(pkg["credits"]),
+                "type": "credit_purchase",
+            },
+            payment_intent_data={
+                "metadata": {
+                    "user_id": user.id,
+                    "package": body.package,
+                    "credits": str(pkg["credits"]),
+                },
+            },
+        )
+        return {"session_id": session.id, "url": session.url}
+    except Exception as exc:
+        logger.error("Stripe checkout creation failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Payment session creation failed")
+
+
+# ---------------------------------------------------------------------------
+# Subscription checkout
+# ---------------------------------------------------------------------------
+
+
+class SubscribeRequest(BaseModel):
+    plan: str
+    success_url: str = ""
+    cancel_url: str = ""
+
+
+@router.post("/create-subscription-session")
+def create_subscription_session(
+    body: SubscribeRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a Stripe Checkout session for a monthly subscription."""
+    stripe = _get_stripe()
+
+    plan = SUBSCRIPTION_PLANS.get(body.plan)
+    if not plan:
+        raise HTTPException(status_code=400, detail=f"Unknown plan: {body.plan}")
+
+    price_id = plan["stripe_price_id"]
+    if not price_id:
+        raise HTTPException(status_code=503, detail="Subscription price not configured")
+
+    success = body.success_url or f"{FRONTEND_URL}/dashboard/settings?subscription=active"
+    cancel = body.cancel_url or f"{FRONTEND_URL}/dashboard/settings?subscription=cancel"
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            payment_method_types=["card"],
+            customer_email=user.email,
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=success + "&session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=cancel,
+            metadata={
+                "user_id": user.id,
+                "plan": body.plan,
+                "credits_per_month": str(plan["credits_per_month"]),
+                "type": "subscription",
+            },
+            subscription_data={
+                "metadata": {
+                    "user_id": user.id,
+                    "plan": body.plan,
+                    "credits_per_month": str(plan["credits_per_month"]),
+                },
+            },
+        )
+        return {"session_id": session.id, "url": session.url}
+    except Exception as exc:
+        logger.error("Stripe subscription creation failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Subscription creation failed")
+
+
+# ---------------------------------------------------------------------------
+# Webhook handler (fulfills credit grants on payment_intent.succeeded)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    """Receive Stripe webhook events. MUST verify signature."""
+    if not STRIPE_WEBHOOK_SECRET:
+        logger.error("STRIPE_WEBHOOK_SECRET not configured")
+        raise HTTPException(status_code=503, detail="Webhook secret not configured")
+
+    stripe = _get_stripe()
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except ValueError:
+        logger.warning("Invalid Stripe webhook payload")
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:  # type: ignore[attr-defined]
+        logger.warning("Invalid Stripe webhook signature")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    event_type = event["type"]
+    logger.info("Stripe webhook: %s", event_type)
+
+    # Handle one-time credit purchases
+    if event_type == "checkout.session.completed":
+        session = event["data"]["object"]
+        metadata = session.get("metadata") or {}
+        tx_type = metadata.get("type")
+
+        if tx_type == "credit_purchase":
+            user_id = metadata.get("user_id")
+            credits = int(metadata.get("credits", 0))
+            package = metadata.get("package", "unknown")
+            if user_id and credits > 0:
+                _grant_credits(db, user_id, credits, f"Stripe purchase: {package}", event["id"])
+
+    # Handle recurring subscription charges
+    elif event_type == "invoice.payment_succeeded":
+        invoice = event["data"]["object"]
+        # Only grant credits on subscription renewals, not initial setup invoices
+        billing_reason = invoice.get("billing_reason")
+        if billing_reason in ("subscription_cycle", "subscription_create"):
+            subscription_id = invoice.get("subscription")
+            if subscription_id:
+                try:
+                    sub = stripe.Subscription.retrieve(subscription_id)
+                    metadata = sub.get("metadata") or {}
+                    user_id = metadata.get("user_id")
+                    credits = int(metadata.get("credits_per_month", 0))
+                    plan = metadata.get("plan", "unknown")
+                    if user_id and credits > 0:
+                        _grant_credits(db, user_id, credits, f"Subscription: {plan}", event["id"])
+                except Exception as exc:
+                    logger.error("Subscription lookup failed: %s", exc)
+
+    elif event_type == "customer.subscription.deleted":
+        # User cancelled — credits already granted, no action needed
+        logger.info("Subscription cancelled: %s", event["data"]["object"].get("id"))
+
+    return {"received": True}
+
+
+def _grant_credits(db: Session, user_id: str, credits: int, description: str, event_id: str) -> None:
+    """Idempotently grant credits based on a Stripe event ID."""
+    # Check idempotency: don't double-credit the same event
+    existing = (
+        db.query(CreditTransaction)
+        .filter(CreditTransaction.description.like(f"%{event_id}%"))
+        .first()
+    )
+    if existing:
+        logger.info("Event %s already processed, skipping", event_id)
+        return
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        logger.error("User %s not found for credit grant", user_id)
+        return
+
+    user.credits += credits
+    tx = CreditTransaction(
+        user_id=user.id,
+        amount=credits,
+        balance_after=user.credits,
+        description=f"{description} [event:{event_id}]",
+    )
+    db.add(tx)
+    db.commit()
+    logger.info("Granted %d credits to user %s (%s)", credits, user.email, description)
+
+
+# ---------------------------------------------------------------------------
+# Customer portal (subscription management)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/create-portal-session")
+def create_portal_session(user: User = Depends(get_current_user)):
+    """Create a Stripe Customer Portal session for managing subscription."""
+    stripe = _get_stripe()
+
+    # Find or create Stripe customer
+    customers = stripe.Customer.list(email=user.email, limit=1)
+    if not customers.data:
+        raise HTTPException(status_code=404, detail="No Stripe customer found")
+
+    try:
+        session = stripe.billing_portal.Session.create(
+            customer=customers.data[0].id,
+            return_url=f"{FRONTEND_URL}/dashboard/settings",
+        )
+        return {"url": session.url}
+    except Exception as exc:
+        logger.error("Portal session failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Portal session creation failed")

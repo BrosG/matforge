@@ -143,8 +143,8 @@ jobs:
             --platform managed \
             --vpc-connector matforge-connector \
             --add-cloudsql-instances ${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:matforge-db \
-            --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,REDIS_URL=REDIS_URL:latest,CELERY_BROKER_URL=CELERY_BROKER_URL:latest,CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest,WEBSOCKET_REDIS_URL=WEBSOCKET_REDIS_URL:latest" \
-            --update-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }},BACKEND_CORS_ORIGINS=https://matcraft.ai" \
+            --set-secrets "DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,REDIS_URL=REDIS_URL:latest,CELERY_BROKER_URL=CELERY_BROKER_URL:latest,CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest,WEBSOCKET_REDIS_URL=WEBSOCKET_REDIS_URL:latest,STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,STRIPE_PUBLISHABLE_KEY=STRIPE_PUBLISHABLE_KEY:latest,STRIPE_PRICE_STARTER_10=STRIPE_PRICE_STARTER_10:latest,STRIPE_PRICE_PRO_50=STRIPE_PRICE_PRO_50:latest,STRIPE_PRICE_ENTERPRISE_200=STRIPE_PRICE_ENTERPRISE_200:latest,STRIPE_PRICE_DEEP_SCAN_50=STRIPE_PRICE_DEEP_SCAN_50:latest,STRIPE_PRICE_SUB_RESEARCHER=STRIPE_PRICE_SUB_RESEARCHER:latest,STRIPE_PRICE_SUB_PROFESSIONAL=STRIPE_PRICE_SUB_PROFESSIONAL:latest,STRIPE_PRICE_SUB_ENTERPRISE=STRIPE_PRICE_SUB_ENTERPRISE:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest" \
+            --update-env-vars "ENVIRONMENT=${{ needs.determine-env.outputs.environment }},BACKEND_CORS_ORIGINS=https://matcraft.ai,FRONTEND_URL=https://matcraft.ai" \
             --service-account matforge-api@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances 1 \
             --max-instances 10 \

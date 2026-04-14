@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import builder, campaigns, credits, data_pipeline, datasets, deep_scan, electronic_structure, health, ip_radar, jobs, materials, nl_search, templates, users, websockets
+from app.api.v1.endpoints import admin, builder, campaigns, credits, data_pipeline, datasets, deep_scan, electronic_structure, health, investor_access, ip_radar, jobs, materials, nl_search, stripe_payments, templates, users, websockets
 
 api_router = APIRouter()
 
@@ -22,4 +22,7 @@ api_router.include_router(nl_search.router, tags=["natural-language"])
 api_router.include_router(ip_radar.router, prefix="/ip-radar", tags=["ip-radar"])
 api_router.include_router(deep_scan.router, prefix="/deep-scan", tags=["deep-scan"])
 api_router.include_router(credits.router, prefix="/credits", tags=["credits"])
+api_router.include_router(stripe_payments.router, prefix="/stripe", tags=["stripe"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(investor_access.router, prefix="/investor-access", tags=["investor-access"])
 api_router.include_router(health.router, tags=["health"])

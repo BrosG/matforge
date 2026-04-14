@@ -8,20 +8,28 @@ const FOOTER_LINKS = {
   Platform: [
     { href: "/materials", label: "Materials Database" },
     { href: "/material-builder", label: "3D Material Builder" },
-    { href: "/builder", label: "Structure Tools" },
-    { href: "/compare", label: "Compare Materials" },
     { href: "/ip-radar", label: "IP Radar" },
+    { href: "/compare", label: "Compare" },
+    { href: "/builder", label: "Structure Tools" },
   ],
   Resources: [
     { href: "/docs", label: "Documentation" },
     { href: "/docs/tutorials/getting-started", label: "Getting Started" },
     { href: "/docs/materials-api/overview", label: "API Reference" },
     { href: "/faq", label: "FAQ" },
+    { href: "/press", label: "Press" },
   ],
   Company: [
     { href: "/about", label: "About" },
     { href: "/pricing", label: "Pricing" },
+    { href: "/investors", label: "Investors" },
     { href: "/domains", label: "Domains" },
+  ],
+  Legal: [
+    { href: "/legal/privacy", label: "Privacy Policy" },
+    { href: "/legal/terms", label: "Terms of Service" },
+    { href: "/legal/cookies", label: "Cookies" },
+    { href: "/legal/mentions", label: "Mentions légales" },
   ],
 };
 

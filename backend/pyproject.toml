@@ -36,6 +36,10 @@ dependencies = [
     "httpx>=0.25",
     # Electronic structure: band structure, DOS, XRD, phase diagrams
     "mp-api>=0.41",
+    # Payments
+    "stripe>=11.0",
+    # AI
+    "google-generativeai>=0.8",
     "pymatgen>=2024.2.8",
     # Firebase Auth
     "firebase-admin>=6.2",

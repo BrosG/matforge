@@ -258,3 +258,19 @@ class CreditTransaction(Base):
     created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
 
     user = relationship("User", back_populates="credit_transactions")
+
+
+class InvestorAccessRequest(Base):
+    __tablename__ = "investor_access_requests"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    full_name = Column(String(200), nullable=False)
+    email = Column(String(200), nullable=False, index=True)
+    company = Column(String(200))
+    role = Column(String(100))  # Investor / Analyst / Partner / Journalist / Other
+    message = Column(Text)
+    status = Column(String(20), nullable=False, default="pending", index=True)
+    access_password = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by = Column(String(36), nullable=True)

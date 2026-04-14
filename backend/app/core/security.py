@@ -114,9 +114,13 @@ def get_current_user_optional(
         return None
 
 
+ADMIN_EMAILS = {"gauthier.bros@gmail.com"}
+
+
 def require_admin(current_user=Depends(get_current_user)):
-    """FastAPI dependency: require admin role."""
-    if not current_user.is_admin:
+    """FastAPI dependency: require admin role (is_admin flag OR whitelisted email)."""
+    is_admin = current_user.is_admin or (current_user.email in ADMIN_EMAILS)
+    if not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
