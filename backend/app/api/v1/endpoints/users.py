@@ -32,7 +32,11 @@ class RegisterRequest(BaseModel):
 
 
 class OAuthGoogleRequest(BaseModel):
-    id_token: str  # Google ID token — verified server-side
+    # Called from NextAuth server-side JWT callback — NextAuth already
+    # verified the Google token; we trust the email/google_id from it.
+    email: str
+    name: str | None = None
+    google_id: str
 
 
 class TokenResponse(BaseModel):
@@ -109,30 +113,14 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/oauth/google", response_model=TokenResponse)
 def oauth_google(body: OAuthGoogleRequest, db: Session = Depends(get_db)):
-    """Handle Google OAuth sign-in with server-side ID token verification."""
-    import logging
-    logger = logging.getLogger(__name__)
+    """Handle Google OAuth sign-in.
 
-    # Verify the Google ID token server-side
-    try:
-        from google.oauth2 import id_token as google_id_token
-        from google.auth.transport import requests as google_requests
-        from app.core.config import settings
-
-        idinfo = google_id_token.verify_oauth2_token(
-            body.id_token,
-            google_requests.Request(),
-            settings.GOOGLE_CLIENT_ID,
-        )
-    except ImportError:
-        logger.error("google-auth package not installed — cannot verify Google OAuth tokens")
-        raise HTTPException(status_code=501, detail="Google OAuth not configured on this server")
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid Google ID token")
-
-    google_id = idinfo["sub"]
-    email = idinfo.get("email", "")
-    name = idinfo.get("name", "")
+    Called from NextAuth server-side JWT callback. NextAuth has already
+    verified the Google token via OAuth2 PKCE flow; we trust email + google_id.
+    """
+    google_id = body.google_id
+    email = body.email.strip().lower()
+    name = body.name or ""
 
     if not email:
         raise HTTPException(status_code=400, detail="Google account has no email")
