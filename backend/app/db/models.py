@@ -43,7 +43,7 @@ class User(Base):
     oauth_id = Column(String(255), nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    credits = Column(Integer, nullable=False, default=10)  # 10 free starter credits
+    credits = Column(Integer, nullable=False, default=10, server_default="10")  # 10 free starter credits
     created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
 
