@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -485,7 +486,13 @@ function ChartTooltip({
 export function IPRadar() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get auth token from NextAuth session
+  const getAuthToken = useCallback(() => {
+    return (session as any)?.accessToken || null;
+  }, [session]);
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [maxPatents, setMaxPatents] = useState(50);
@@ -496,9 +503,10 @@ export function IPRadar() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [showSettings, setShowSettings] = useState(false);
 
-  // Credit state
+  // Credit + auth state
   const [userCredits, setUserCredits] = useState<number | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Scoping agent state
   const [scopeModal, setScopeModal] = useState(false);
@@ -623,7 +631,7 @@ export function IPRadar() {
       }
 
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+        const token = getAuthToken();
         const fetchHeaders: Record<string, string> = { "Content-Type": "application/json" };
         if (token) fetchHeaders["Authorization"] = `Bearer ${token}`;
 
@@ -633,17 +641,26 @@ export function IPRadar() {
           body: JSON.stringify({ query: q, max_patents: maxPatents }),
         });
 
-        if (res.status === 402) {
-          setError("Insufficient credits. Purchase more to continue searching.");
-          setShowPurchaseModal(true);
-          setLoading(false);
+        if (res.status === 401) {
+          // Not logged in — show login modal
           stepTimers.forEach(clearTimeout);
+          setLoading(false);
+          setShowLoginModal(true);
+          return;
+        }
+        if (res.status === 402) {
+          // Logged in but out of credits
+          stepTimers.forEach(clearTimeout);
+          setLoading(false);
+          setError("You've used all your credits. Purchase more to continue.");
+          setShowPurchaseModal(true);
           return;
         }
         if (res.status === 429) {
-          setError("Free search limit reached (3/day). Sign in for unlimited access.");
-          setLoading(false);
           stepTimers.forEach(clearTimeout);
+          setLoading(false);
+          setError("Free daily limit reached (3/day). Sign in for more searches.");
+          setShowLoginModal(true);
           return;
         }
         if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -1402,6 +1419,42 @@ export function IPRadar() {
           </div>
         </section>
       )}
+
+      {/* Login Gate Modal */}
+      <AnimatePresence>
+        {showLoginModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setShowLoginModal(false)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95 }}
+              className="bg-card border border-border rounded-3xl p-8 max-w-sm w-full text-center"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center mx-auto mb-4">
+                <Search className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-2">Sign in to search patents</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Get 10 free credits on signup. Each IP Radar search costs 1 credit.
+                Anonymous users get 3 free searches per day.
+              </p>
+              <div className="flex flex-col gap-2">
+                <a href="/login?callbackUrl=/ip-radar"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity">
+                  Sign In
+                </a>
+                <a href="/register?callbackUrl=/ip-radar"
+                  className="w-full py-3 rounded-xl border border-border text-foreground text-sm font-medium hover:bg-muted transition-colors">
+                  Create free account — 10 credits included
+                </a>
+                <button onClick={() => setShowLoginModal(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground mt-1">
+                  Continue with 3 free daily searches
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

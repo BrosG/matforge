@@ -7,6 +7,8 @@ import { Menu, X, Atom, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggleButton } from "@/components/ui/theme-toggle";
+import { CreditsIndicator } from "@/components/ui/CreditsIndicator";
+import { LowCreditsBanner } from "@/components/ui/LowCreditsBanner";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -67,6 +69,7 @@ export function Header() {
 
           {/* Desktop Auth + Theme */}
           <div className="hidden md:flex items-center gap-2">
+            <CreditsIndicator />
             <ThemeToggleButton />
             {isAuthenticated ? (
               <Button asChild variant="gradient" size="sm">
@@ -99,6 +102,9 @@ export function Header() {
           </button>
         </div>
       </div>
+
+      {/* Low credits warning */}
+      <LowCreditsBanner />
 
       {/* Mobile menu */}
       <AnimatePresence>

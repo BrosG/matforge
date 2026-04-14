@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/core/ThemeProvider";
 import { ApiStatusProvider } from "@/lib/api-status";
+import { BuyModalProvider } from "@/components/ui/BuyCreditsModal";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -34,7 +35,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <TooltipProvider delayDuration={200}>
-            <ApiStatusProvider>{children}</ApiStatusProvider>
+            <ApiStatusProvider>
+              <BuyModalProvider>{children}</BuyModalProvider>
+            </ApiStatusProvider>
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>
