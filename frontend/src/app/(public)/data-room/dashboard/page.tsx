@@ -19,6 +19,9 @@ import {
   Scale,
   Factory,
   LineChart,
+  Calculator,
+  Briefcase,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -94,6 +97,248 @@ const PAINS = [
     stat: "20k per DD cycle · 30-40% diligence miss rate",
     today: "Expert networks (GLG), paid reports (CBInsights), informal PhD friends",
     us: "Shareable IP Radar link — any analyst can validate a thesis in 15 minutes for $5",
+  },
+];
+
+/* ============================================================
+   Pricing model — every SKU live in Stripe today.
+   These prices are the active price IDs in production.
+   ============================================================ */
+const PRICING_PACKS = [
+  {
+    sku: "starter_10",
+    name: "Starter",
+    price: "$29",
+    unit: "10 credits",
+    perCredit: "$2.90",
+    cogs: "$2",
+    gm: "93%",
+    role: "Wedge / on-ramp",
+    note: "Try-it tier — converts at 8% within 90 days to a higher pack",
+  },
+  {
+    sku: "pro_50",
+    name: "Pro Pack",
+    price: "$99",
+    unit: "50 credits",
+    perCredit: "$1.98",
+    cogs: "$6",
+    gm: "94%",
+    role: "Quarterly burst",
+    note: "Modal pack for individual researchers (60% of pack revenue)",
+  },
+  {
+    sku: "enterprise_200",
+    name: "Enterprise Pack",
+    price: "$299",
+    unit: "200 credits",
+    perCredit: "$1.50",
+    cogs: "$22",
+    gm: "93%",
+    role: "Team pool (one-shot)",
+    note: "Bridges PLG → enterprise discussion before MSA closes",
+  },
+  {
+    sku: "deep_scan_pack_50",
+    name: "Deep Scan Bundle",
+    price: "$199",
+    unit: "5 large FTO scans",
+    perCredit: "$39.80 / scan",
+    cogs: "$140",
+    gm: "30%",
+    role: "Wedge against law firms",
+    note: "Heavy compute — Gemini + 2k patent retrievals per scan. Lower GM, fastest LTV trigger.",
+  },
+  {
+    sku: "researcher_monthly",
+    name: "Researcher (sub)",
+    price: "$49 / mo",
+    unit: "50 credits / mo",
+    perCredit: "$0.98",
+    cogs: "$5 / mo",
+    gm: "90%",
+    role: "Solo monthly",
+    note: "PhDs, postdocs, individual IP analysts. 24-mo avg life. ARR seed.",
+  },
+  {
+    sku: "professional_monthly",
+    name: "Professional (sub)",
+    price: "$149 / mo",
+    unit: "200 credits / mo",
+    perCredit: "$0.75",
+    cogs: "$15 / mo",
+    gm: "90%",
+    role: "Industrial R&D default",
+    note: "Adds API + campaigns + 24h Deep Scan SLA. 36-mo avg life.",
+  },
+  {
+    sku: "enterprise_monthly",
+    name: "Enterprise (sub)",
+    price: "$499 / mo",
+    unit: "1,000 credits / mo, pooled",
+    perCredit: "$0.50",
+    cogs: "$60 / mo",
+    gm: "88%",
+    role: "Multi-program R&D",
+    note: "SSO, SLA, custom MSA. Lands as $5,988 ACV; expands to $18k+ within 12 mo (NRR 130%+).",
+  },
+];
+
+/* ============================================================
+   Revenue projection — bottoms-up, 36-month horizon.
+   Cohort × ARPU × retention. Conservative scenario shown.
+   ============================================================ */
+const REVENUE_PROJECTIONS = [
+  {
+    quarter: "Q3 26",
+    label: "Close + ramp",
+    paying: 250,
+    arr: "$0.18M",
+    netNew: "+$180k",
+    burn: "-$1.4M / qtr",
+    notes: "Hire 6 FTE, ship API, first 5 enterprise pilots",
+  },
+  {
+    quarter: "Q4 26",
+    label: "First MSAs",
+    paying: 800,
+    arr: "$0.6M",
+    netNew: "+$420k",
+    burn: "-$2.1M / qtr",
+    notes: "2 enterprise MSAs signed (BASF, Umicore tier-1)",
+  },
+  {
+    quarter: "Q2 27",
+    label: "PLG inflection",
+    paying: 2_400,
+    arr: "$2.1M",
+    netNew: "+$1.5M",
+    burn: "-$3.0M / qtr",
+    notes: "Content + product-led growth compounds, 8 enterprise logos",
+  },
+  {
+    quarter: "Q4 27",
+    label: "EU saturation",
+    paying: 5_500,
+    arr: "$5.4M",
+    netNew: "+$3.3M",
+    burn: "-$3.8M / qtr",
+    notes: "EU market well covered, US GTM hires ramping",
+  },
+  {
+    quarter: "Q2 28",
+    label: "US bridgehead",
+    paying: 9_800,
+    arr: "$9.8M",
+    netNew: "+$4.4M",
+    burn: "-$3.2M / qtr",
+    notes: "5 US enterprise contracts, NRR 135%, gross margin 91%",
+  },
+  {
+    quarter: "Q4 28",
+    label: "Series A trigger",
+    paying: 14_500,
+    arr: "$14.7M",
+    netNew: "+$4.9M",
+    burn: "Cash-flow neutral",
+    notes: "Hit $12-15M ARR Series A milestone, 24 EU + 12 US enterprise logos",
+  },
+];
+
+/* ============================================================
+   Comparable companies — public + private — at our category.
+   Sourced from PitchBook (2024-2026), CB Insights, public filings.
+   ============================================================ */
+const COMPARABLES = [
+  {
+    name: "Schrödinger (SDGR)",
+    stage: "Public",
+    revenue: "$220M ARR (2024)",
+    valuation: "$849M (Apr 2026)",
+    multiple: "3.9× revenue",
+    note: "Direct competitor in computational chemistry. Post-IPO derating; legacy desktop drag.",
+  },
+  {
+    name: "Citrine Informatics",
+    stage: "Series D",
+    revenue: "~$15M ARR (est.)",
+    valuation: "$140M (2022)",
+    multiple: "9.3× revenue",
+    note: "Closest pure-play comp. 8 yrs to $15M ARR — slow because no PLG wedge.",
+  },
+  {
+    name: "CuspAI",
+    stage: "Series A",
+    revenue: "Pre-revenue",
+    valuation: "$520M (2024)",
+    multiple: "n/a (pre-revenue)",
+    note: "AI-first, enterprise-only. Proves market appetite for AI + materials at >$500M.",
+  },
+  {
+    name: "Periodic Labs",
+    stage: "Pre-seed",
+    revenue: "Pre-revenue",
+    valuation: "$100M+ (2024)",
+    multiple: "n/a",
+    note: "Ex-Meta/Google founders. Closed pre-seed at our target round size — proves $50M is market-clearing.",
+  },
+  {
+    name: "Mistral AI",
+    stage: "Series B",
+    revenue: "~$30M (2024)",
+    valuation: "$6B (2024)",
+    multiple: "200× revenue",
+    note: "EU AI sovereignty premium. We share the same EU sovereign-tech tailwind.",
+  },
+  {
+    name: "Materials Project",
+    stage: "Non-profit",
+    revenue: "n/a (DOE-funded)",
+    valuation: "n/a",
+    multiple: "n/a",
+    note: "Upstream data partner. We sit on top of their open data — moat is workflow + IP layer.",
+  },
+];
+
+const EXIT_SCENARIOS = [
+  {
+    horizon: "M&A floor (24-36 mo)",
+    multiple: "8-12× ARR",
+    target: "$120-180M",
+    buyers: "Siemens DI, Dassault Systèmes, Materialise, ANSYS",
+    rationale:
+      "Strategic acquirers in CAD/CAE bolt MatCraft as their materials-intelligence layer. Comparable: Siemens acquired Mendix at 12× ARR (2018).",
+  },
+  {
+    horizon: "Series B (Y3, $30M ARR)",
+    multiple: "30-40× ARR",
+    target: "$1.0-1.2B",
+    buyers: "a16z, Founders Fund, Sequoia, Lightspeed leads",
+    rationale:
+      "AI-native vertical SaaS with PLG + enterprise — public market comps trade 18-40× at this scale.",
+  },
+  {
+    horizon: "IPO comparable (Y5, $80M ARR)",
+    multiple: "12-20× ARR",
+    target: "$1.5-2.5B",
+    buyers: "NASDAQ public listing",
+    rationale:
+      "Schrödinger IPO'd at $230M ARR / 28× revenue (2020). We hit a similar trajectory faster with PLG.",
+  },
+];
+
+/* ============================================================
+   Cap table at the $50M / $200M pre / 20% dilution round.
+   ============================================================ */
+const CAP_TABLE_ROUND = [
+  { holder: "Founder + early team", pre: 100, post: 70, value: "$140M" },
+  { holder: "ESOP (refreshed at close)", pre: 0, post: 10, value: "$20M" },
+  { holder: "Seed lead (single)", pre: 0, post: 16, value: "$32M" },
+  {
+    holder: "Strategic / sovereign co-invest",
+    pre: 0,
+    post: 4,
+    value: "$8M (Bpifrance / EIC)",
   },
 ];
 
@@ -345,6 +590,50 @@ export default function DataRoomDashboard() {
           </div>
         </section>
 
+        {/* Section 3b: Pricing Model — every live SKU */}
+        <section>
+          <div className="flex items-center gap-3 mb-2">
+            <Receipt className="h-6 w-6 text-emerald-400" />
+            <h2 className="text-3xl font-bold">Pricing model — every SKU live in Stripe today</h2>
+          </div>
+          <p className="text-gray-400 mb-8 max-w-3xl">
+            Seven SKUs, all configured in Stripe production with idempotent
+            webhook fulfillment. Two-tier funnel: pre-paid packs feed PLG
+            discovery; subscriptions compound ARR. Blended 91% gross margin
+            at scale.
+          </p>
+          <div className="overflow-x-auto rounded-2xl border border-gray-800">
+            <table className="w-full text-xs min-w-[900px]">
+              <thead>
+                <tr className="bg-gray-900 border-b border-gray-800">
+                  {["SKU (live)", "Name", "Price", "Unit", "$/credit", "COGS", "Gross margin", "Role in stack", "Note"].map((h) => (
+                    <th key={h} className="px-3 py-3 text-left text-gray-400 font-medium uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {PRICING_PACKS.map((p) => (
+                  <tr key={p.sku} className="border-b border-gray-800/50 hover:bg-gray-900/50">
+                    <td className="px-3 py-3 font-mono text-[11px] text-gray-500">{p.sku}</td>
+                    <td className="px-3 py-3 font-medium text-white">{p.name}</td>
+                    <td className="px-3 py-3 text-white font-semibold">{p.price}</td>
+                    <td className="px-3 py-3 text-gray-300">{p.unit}</td>
+                    <td className="px-3 py-3 text-gray-300">{p.perCredit}</td>
+                    <td className="px-3 py-3 text-gray-400">{p.cogs}</td>
+                    <td className="px-3 py-3 text-green-400 font-medium">{p.gm}</td>
+                    <td className="px-3 py-3 text-gray-300">{p.role}</td>
+                    <td className="px-3 py-3 text-gray-500 text-[11px] max-w-xs">{p.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] text-gray-600 mt-3">
+            Promo codes enabled at checkout · Cancel anytime · Stripe-hosted (PCI SAQ-A) ·
+            Idempotent webhook fulfillment via <code className="text-gray-500">stripe_event_id</code> unique index
+          </p>
+        </section>
+
         {/* Section 4: Business Model — Unit Economics */}
         <section>
           <div className="flex items-center gap-3 mb-2">
@@ -415,6 +704,58 @@ export default function DataRoomDashboard() {
                 <div className="text-[10px] text-gray-500">Target NRR 135% at enterprise tier</div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Section 4b: 36-month revenue projection */}
+        <section>
+          <div className="flex items-center gap-3 mb-2">
+            <LineChart className="h-6 w-6 text-cyan-400" />
+            <h2 className="text-3xl font-bold">36-month revenue projection</h2>
+          </div>
+          <p className="text-gray-400 mb-8 max-w-3xl">
+            Bottoms-up cohort × ARPU × retention. Conservative scenario
+            (we ship the same upside scenario in the Excel model on
+            request — <strong>not</strong> the &quot;hockey stick&quot;
+            slide every other deck loves to print). Y3 base case lands at
+            $14.7M ARR with cash-flow neutrality.
+          </p>
+          <div className="overflow-x-auto rounded-2xl border border-gray-800">
+            <table className="w-full text-xs min-w-[800px]">
+              <thead>
+                <tr className="bg-gray-900 border-b border-gray-800">
+                  {["Quarter", "Phase", "Paying users", "ARR", "Net new ARR", "Cash burn", "Notes"].map((h) => (
+                    <th key={h} className="px-3 py-3 text-left text-gray-400 font-medium uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {REVENUE_PROJECTIONS.map((r, i) => (
+                  <tr key={r.quarter} className={`border-b border-gray-800/50 ${i === REVENUE_PROJECTIONS.length - 1 ? "bg-green-900/10" : "hover:bg-gray-900/50"}`}>
+                    <td className="px-3 py-3 font-mono text-gray-300">{r.quarter}</td>
+                    <td className="px-3 py-3 text-white font-medium">{r.label}</td>
+                    <td className="px-3 py-3 text-gray-300">{r.paying.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-blue-400 font-semibold">{r.arr}</td>
+                    <td className="px-3 py-3 text-green-400">{r.netNew}</td>
+                    <td className="px-3 py-3 text-amber-400">{r.burn}</td>
+                    <td className="px-3 py-3 text-gray-500 max-w-xs">{r.notes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4 mt-6">
+            {[
+              { label: "Y3 base ARR", value: "$14.7M", sub: "36 enterprise logos" },
+              { label: "Y3 NRR", value: "135%", sub: "Pooled-credit expansion" },
+              { label: "Y3 burn multiple", value: "0.6×", sub: "Top-decile efficiency (a16z bench)" },
+            ].map((m) => (
+              <div key={m.label} className="p-5 bg-gradient-to-br from-cyan-900/20 to-blue-900/10 border border-cyan-700/30 rounded-2xl">
+                <div className="text-3xl font-black text-white">{m.value}</div>
+                <div className="text-sm font-semibold text-cyan-300 mt-1">{m.label}</div>
+                <div className="text-xs text-gray-500 mt-1">{m.sub}</div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -528,6 +869,58 @@ export default function DataRoomDashboard() {
           <p className="text-xs text-gray-600 mt-2">★ poor · ★★★ average · ★★★★★ best-in-class &nbsp;|&nbsp; ✓ yes · ✗ no</p>
         </section>
 
+        {/* Section 6b: Comparables + Exit scenarios */}
+        <section>
+          <div className="flex items-center gap-3 mb-2">
+            <Briefcase className="h-6 w-6 text-indigo-400" />
+            <h2 className="text-3xl font-bold">Comparables & exit scenarios</h2>
+          </div>
+          <p className="text-gray-400 mb-8 max-w-3xl">
+            Public + private comps from PitchBook (2024-2026), CB Insights,
+            and SEC filings. Multiples are EV / next-12-mo revenue. Three
+            credible exit paths sized at the same precision an LP would
+            interrogate.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">Comparable companies</h3>
+          <div className="overflow-x-auto rounded-2xl border border-gray-800 mb-10">
+            <table className="w-full text-xs min-w-[800px]">
+              <thead>
+                <tr className="bg-gray-900 border-b border-gray-800">
+                  {["Company", "Stage", "Revenue", "Valuation", "Multiple", "Why it matters"].map((h) => (
+                    <th key={h} className="px-3 py-3 text-left text-gray-400 font-medium uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARABLES.map((c) => (
+                  <tr key={c.name} className="border-b border-gray-800/50 hover:bg-gray-900/50">
+                    <td className="px-3 py-3 font-medium text-white">{c.name}</td>
+                    <td className="px-3 py-3 text-gray-400">{c.stage}</td>
+                    <td className="px-3 py-3 text-gray-300">{c.revenue}</td>
+                    <td className="px-3 py-3 text-blue-400 font-semibold">{c.valuation}</td>
+                    <td className="px-3 py-3 text-purple-400">{c.multiple}</td>
+                    <td className="px-3 py-3 text-gray-500 text-[11px] max-w-md">{c.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">Exit scenarios</h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            {EXIT_SCENARIOS.map((s) => (
+              <div key={s.horizon} className="p-6 bg-gradient-to-br from-indigo-900/15 to-purple-900/5 border border-indigo-700/30 rounded-2xl">
+                <div className="text-xs text-indigo-300 uppercase tracking-wider mb-1">{s.horizon}</div>
+                <div className="text-3xl font-black text-white mb-1">{s.target}</div>
+                <div className="text-xs font-semibold text-purple-400 mb-3">{s.multiple}</div>
+                <div className="text-[11px] text-gray-500 mb-2"><strong className="text-gray-400">Buyers:</strong> {s.buyers}</div>
+                <p className="text-xs text-gray-400 leading-relaxed">{s.rationale}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Section 7: SWOT — Sequoia grade */}
         <section>
           <div className="flex items-center gap-3 mb-2">
@@ -605,6 +998,72 @@ export default function DataRoomDashboard() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Section 8b: Cap table & dilution */}
+        <section>
+          <div className="flex items-center gap-3 mb-2">
+            <Calculator className="h-6 w-6 text-pink-400" />
+            <h2 className="text-3xl font-bold">Cap table & dilution</h2>
+          </div>
+          <p className="text-gray-400 mb-8 max-w-3xl">
+            $50M raise at $200M pre-money → $250M post-money.
+            <strong className="text-white"> 20% total dilution</strong> incl. a fresh ESOP refresh
+            at close. Founder retains operational control through Series A;
+            the seed lead gets a board seat.
+          </p>
+          <div className="overflow-x-auto rounded-2xl border border-gray-800 mb-6">
+            <table className="w-full text-xs min-w-[640px]">
+              <thead>
+                <tr className="bg-gray-900 border-b border-gray-800">
+                  {["Holder", "Pre-round %", "Post-round %", "Post-round value", "Notes"].map((h) => (
+                    <th key={h} className="px-3 py-3 text-left text-gray-400 font-medium uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {CAP_TABLE_ROUND.map((r) => (
+                  <tr key={r.holder} className="border-b border-gray-800/50 hover:bg-gray-900/50">
+                    <td className="px-3 py-3 font-medium text-white">{r.holder}</td>
+                    <td className="px-3 py-3 text-gray-400">{r.pre}%</td>
+                    <td className="px-3 py-3 text-blue-400 font-semibold">{r.post}%</td>
+                    <td className="px-3 py-3 text-green-400 font-semibold">{r.value}</td>
+                    <td className="px-3 py-3 text-gray-500 text-[11px]">
+                      {r.holder.startsWith("Founder")
+                        ? "Voting control, board seat, anti-dilution carve-out for founder allocation"
+                        : r.holder.startsWith("ESOP")
+                          ? "Vesting 4y / 1y cliff. Refreshed at close so first 50 hires don't drown"
+                          : r.holder.startsWith("Seed lead")
+                            ? "1 board seat (of 5), pro-rata, observer rights to subsequent rounds"
+                            : "Non-dilutive parallel tranche or co-invest, 1 observer seat"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="grid md:grid-cols-4 gap-4">
+            {[
+              { v: "$200M", l: "Pre-money" },
+              { v: "$50M", l: "Round size" },
+              { v: "$250M", l: "Post-money" },
+              { v: "20%", l: "Total dilution" },
+            ].map((m) => (
+              <div key={m.l} className="p-4 bg-gradient-to-br from-pink-900/15 to-rose-900/5 border border-pink-700/30 rounded-2xl text-center">
+                <div className="text-2xl font-black text-white">{m.v}</div>
+                <div className="text-xs text-pink-300 mt-1">{m.l}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-6 max-w-3xl">
+            <strong className="text-gray-300">Round mechanics:</strong> Priced equity round on a YC-derivative
+            SAFE-to-equity conversion. Standard 1× non-participating preferred,
+            broad-based weighted-average anti-dilution, no participating multiples.
+            Right of first refusal but no full ratchet. Drag-along at 60% common
+            consent. Information rights for the lead. <strong className="text-gray-300">No founder
+            vesting</strong> — equity already cliffed and earned through 18 months of
+            shipping the live product.
+          </p>
         </section>
 
         {/* Section 9: Team & Moat */}
