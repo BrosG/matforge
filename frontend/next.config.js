@@ -50,6 +50,14 @@ const nextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Required by Firebase Auth signInWithPopup: the parent must
+          // retain a window reference into the popup so it can detect
+          // close. The browser default `same-origin` blocks
+          // window.opener.closed checks across origins (the popup runs
+          // on matforge-50499.firebaseapp.com). `same-origin-allow-popups`
+          // keeps the same isolation for everything else but lets popups
+          // stay reachable.
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
         ],
       },
     ];

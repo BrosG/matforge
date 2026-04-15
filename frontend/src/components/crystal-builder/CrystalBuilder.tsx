@@ -412,6 +412,8 @@ function BuilderScene({
       }}
       style={{ background: "#111827" }}
       dpr={[1, 2]}
+      frameloop="demand"
+      gl={{ powerPreference: "low-power" }}
       onPointerMissed={() => onSelect(null)}
       onCreated={attachContextLossHandlers}
     >

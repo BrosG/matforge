@@ -161,6 +161,11 @@ export default function MaterialStructureScene({
       style={{ background: "#111827" }}
       dpr={isMobile ? [1, 1.5] : [1, 2]}
       performance={{ min: 0.5 }}
+      // Render only on user interaction (drag / zoom / mount) — material
+      // structures are static, no need to repaint at 60fps. Cuts GPU
+      // pressure ~50× and prevents context-loss under multi-canvas pages.
+      frameloop="demand"
+      gl={{ powerPreference: "low-power", antialias: !isMobile }}
       onCreated={attachContextLossHandlers}
     >
       <ambientLight intensity={0.5} />

@@ -157,6 +157,10 @@ export function CrystalViewer({ className, showControls = true }: CrystalViewerP
       <Canvas
         camera={{ position: [5, 3, 5], fov: 45 }}
         style={{ background: "transparent" }}
+        // Hero viewer animates; keep "always" but cap DPR + low-power
+        // to limit GPU pressure when stacked with other Canvases.
+        dpr={[1, 1.5]}
+        gl={{ powerPreference: "low-power", antialias: true }}
         onCreated={attachContextLossHandlers}
       >
         <ambientLight intensity={0.6} />
