@@ -179,32 +179,56 @@ def create_checkout_session(
     success = body.success_url or f"{FRONTEND_URL}/dashboard/settings?payment=success"
     cancel = body.cancel_url or f"{FRONTEND_URL}/dashboard/settings?payment=cancel"
 
+    # customer_email is optional in Stripe Checkout — only pass it when we
+    # actually have one (phone-only signups have user.email = None and
+    # Stripe rejects empty strings with an InvalidRequestError).
+    metadata = {
+        "user_id": user.id,
+        "package": body.package,
+        "credits": str(pkg["credits"]),
+        "type": "credit_purchase",
+    }
+    create_kwargs: dict[str, Any] = {
+        "mode": "payment",
+        "payment_method_types": ["card"],
+        "line_items": [{"price": price_id, "quantity": 1}],
+        "success_url": success + "&session_id={CHECKOUT_SESSION_ID}",
+        "cancel_url": cancel,
+        "metadata": metadata,
+        "payment_intent_data": {
+            "metadata": {k: v for k, v in metadata.items() if k != "type"}
+        },
+    }
+    if user.email:
+        create_kwargs["customer_email"] = user.email
+
     try:
-        session = stripe.checkout.Session.create(
-            mode="payment",
-            payment_method_types=["card"],
-            customer_email=user.email,
-            line_items=[{"price": price_id, "quantity": 1}],
-            success_url=success + "&session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=cancel,
-            metadata={
-                "user_id": user.id,
-                "package": body.package,
-                "credits": str(pkg["credits"]),
-                "type": "credit_purchase",
-            },
-            payment_intent_data={
-                "metadata": {
-                    "user_id": user.id,
-                    "package": body.package,
-                    "credits": str(pkg["credits"]),
-                },
-            },
-        )
+        session = stripe.checkout.Session.create(**create_kwargs)
         return {"session_id": session.id, "url": session.url}
+    except stripe.error.StripeError as exc:  # type: ignore[attr-defined]
+        # Specific Stripe error — surface the Stripe message verbatim so the
+        # client can show something meaningful (invalid price ID, locked
+        # account, network issue, etc.).
+        body_text = ""
+        try:
+            body_text = exc.user_message or str(exc)
+        except Exception:
+            body_text = str(exc)
+        logger.error(
+            "Stripe checkout creation failed (%s, http_status=%s, code=%s): %s",
+            type(exc).__name__,
+            getattr(exc, "http_status", None),
+            getattr(exc, "code", None),
+            body_text,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail=f"Stripe error: {body_text or 'upstream payment provider unavailable'}",
+        )
     except Exception as exc:
-        logger.error("Stripe checkout creation failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Payment session creation failed")
+        logger.error("Stripe checkout creation failed (unexpected): %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Payment session creation failed: {exc}")
 
 
 # ---------------------------------------------------------------------------
