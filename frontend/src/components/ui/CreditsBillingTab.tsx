@@ -83,7 +83,9 @@ const QUICK_PACKS = [
     icon: <Shield className="h-4 w-4 text-purple-500" />,
   },
   {
-    key: "deep_scan_5",
+    // Must match backend CREDIT_PACKAGES key in stripe_payments.py.
+    // Older value 'deep_scan_5' returned 400 'Unknown package'.
+    key: "deep_scan_pack_50",
     label: "Deep Scan",
     credits: 50,
     price: 199,
@@ -119,6 +121,7 @@ export function CreditsBillingTab() {
   const [loadingTx, setLoadingTx] = useState(true);
   const [managingPortal, setManagingPortal] = useState(false);
   const [buyingPack, setBuyingPack] = useState<string | null>(null);
+  const [buyError, setBuyError] = useState<string>("");
 
   // Detect ?payment=success in URL
   const [showSuccess, setShowSuccess] = useState(false);
@@ -182,7 +185,11 @@ export function CreditsBillingTab() {
   }, [fetchBalance, fetchTransactions, fetchUsage]);
 
   const handleManagePortal = async () => {
-    if (!accessToken) return;
+    setBuyError("");
+    if (!accessToken) {
+      setBuyError("You're signed out. Please sign in again.");
+      return;
+    }
     setManagingPortal(true);
     try {
       const res = await fetch(`${API_BASE}/stripe/create-portal-session`, {
@@ -195,16 +202,32 @@ export function CreditsBillingTab() {
           return_url: `${window.location.origin}/dashboard/settings`,
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const detail =
+          (data && (data.detail || data.message)) ||
+          (res.status === 404
+            ? "No Stripe customer for your account yet — buy any pack first to create one."
+            : `Portal session failed (HTTP ${res.status}).`);
+        setBuyError(typeof detail === "string" ? detail : "Portal session failed.");
+        console.error("[stripe] portal-session failed", res.status, data);
+        return;
       }
-    } catch {}
-    setManagingPortal(false);
+      if (data?.url) window.location.href = data.url;
+    } catch (err) {
+      console.error("[stripe] portal-session network error", err);
+      setBuyError("Network error. Check your connection and try again.");
+    } finally {
+      setManagingPortal(false);
+    }
   };
 
   const handleQuickBuy = async (packKey: string) => {
-    if (!accessToken) return;
+    setBuyError("");
+    if (!accessToken) {
+      setBuyError("You're signed out. Please sign in again to buy credits.");
+      return;
+    }
     setBuyingPack(packKey);
     try {
       const res = await fetch(`${API_BASE}/stripe/create-checkout-session`, {
@@ -219,12 +242,29 @@ export function CreditsBillingTab() {
           cancel_url: `${window.location.origin}/dashboard/settings`,
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        // Show the actual reason — silent failure was the bug.
+        const detail =
+          (data && (data.detail || data.message)) ||
+          (res.status === 401
+            ? "Your session expired. Please sign in again."
+            : `Checkout failed (HTTP ${res.status}).`);
+        setBuyError(typeof detail === "string" ? detail : "Checkout failed.");
+        console.error("[stripe] checkout-session failed", res.status, data);
+        return;
       }
-    } catch {}
-    setBuyingPack(null);
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        setBuyError("Checkout session created but no redirect URL was returned.");
+      }
+    } catch (err) {
+      console.error("[stripe] checkout-session network error", err);
+      setBuyError("Network error. Check your connection and try again.");
+    } finally {
+      setBuyingPack(null);
+    }
   };
 
   const txTypeColors: Record<string, string> = {
@@ -387,6 +427,19 @@ export function CreditsBillingTab() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {buyError && (
+              <div className="mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm flex items-start justify-between gap-3">
+                <span>{buyError}</span>
+                <button
+                  type="button"
+                  onClick={() => setBuyError("")}
+                  className="text-red-400 hover:text-red-600 text-lg leading-none"
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {QUICK_PACKS.map((pack) => (
                 <button

@@ -80,7 +80,8 @@ const CREDIT_PACKAGES: CreditPackage[] = [
     icon: <Shield className="h-5 w-5 text-purple-500" />,
   },
   {
-    key: "deep_scan_5",
+    // Must match backend CREDIT_PACKAGES key in stripe_payments.py.
+    key: "deep_scan_pack_50",
     label: "Deep Scan Pack",
     credits: 50,
     price: 199,
