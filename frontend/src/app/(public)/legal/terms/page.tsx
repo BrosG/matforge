@@ -14,11 +14,16 @@ export default function TermsPage() {
       <main className="min-h-screen bg-background pt-24 pb-20">
         <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">Terms of Service</h1>
-          <p className="text-sm text-muted-foreground mb-8">Last updated: April 14, 2026</p>
+          <p className="text-sm text-muted-foreground mb-8">Last updated: April 15, 2026</p>
 
           <section className="text-foreground/90 space-y-4 text-sm leading-relaxed">
             <h2 className="text-2xl font-semibold mt-8">1. Acceptance</h2>
-            <p>By using MatCraft you agree to these Terms. If you do not agree, do not use the service.</p>
+            <p>
+              The MatCraft platform (matcraft.ai) is operated by <strong>1B RACE</strong>, a French
+              SAS (SIREN 945&nbsp;025&nbsp;286, RCS Nîmes), registered office at 199 Chemin de
+              Saint-Germain, 30140 Saint-Jean-du-Pin, France. By using MatCraft you agree to these
+              Terms. If you do not agree, do not use the service.
+            </p>
 
             <h2 className="text-2xl font-semibold mt-8">2. Account</h2>
             <p>You must be 16 or older, provide accurate information, and keep credentials secure. One account per person.</p>
@@ -52,7 +57,11 @@ export default function TermsPage() {
             <p>Our aggregate liability is limited to the amount you paid in the last 12 months. We are not liable for indirect, incidental, or consequential damages.</p>
 
             <h2 className="text-2xl font-semibold mt-8">10. Governing Law</h2>
-            <p>French law applies. Exclusive jurisdiction: courts of Marseille, France.</p>
+            <p>
+              These Terms are governed by French law. Any dispute that cannot be resolved
+              amicably will fall under the exclusive jurisdiction of the competent courts of the
+              jurisdiction of <strong>Nîmes (Gard, France)</strong>, where 1B RACE is registered.
+            </p>
 
             <h2 className="text-2xl font-semibold mt-8">11. Changes</h2>
             <p>Material changes will be communicated by email with 30 days notice. Continued use constitutes acceptance.</p>

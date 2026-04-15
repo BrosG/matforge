@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/core/Providers";
 import { AnalyticsProvider } from "@/components/core/AnalyticsProvider";
 import { VersionGuard } from "@/components/core/VersionGuard";
+import { ExtensionErrorFilter } from "@/components/core/ExtensionErrorFilter";
 
 // Force ALL pages to render dynamically on every request.
 // Without this, Next.js sets s-maxage=31536000 on SSG pages, causing
@@ -93,6 +94,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <Providers>
+          <ExtensionErrorFilter />
           <AnalyticsProvider>
             {children}
             <VersionGuard />

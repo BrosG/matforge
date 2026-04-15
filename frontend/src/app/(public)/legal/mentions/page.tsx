@@ -14,22 +14,29 @@ export default function MentionsPage() {
       <main className="min-h-screen bg-background pt-24 pb-20">
         <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">Mentions légales</h1>
-          <p className="text-sm text-muted-foreground mb-8">Dernière mise à jour : 14 avril 2026</p>
+          <p className="text-sm text-muted-foreground mb-8">Dernière mise à jour : 15 avril 2026</p>
 
           <section className="text-foreground/90 space-y-4 text-sm leading-relaxed">
             <h2 className="text-2xl font-semibold mt-8">Éditeur du site</h2>
             <p>
-              <strong>MatCraft</strong><br />
-              Plateforme de découverte de matériaux assistée par IA<br />
-              Siège social : Marseille, France<br />
-              Forme juridique : à déterminer<br />
-              SIRET : à venir<br />
-              TVA intracommunautaire : à venir<br />
-              Contact : <a href="mailto:contact@matcraft.ai" className="text-primary">contact@matcraft.ai</a>
+              Le site <strong>matcraft.ai</strong> est édité par&nbsp;:<br />
+              <strong>1B RACE</strong> — Société par actions simplifiée (SAS) au capital de 500&nbsp;€<br />
+              Siège social&nbsp;: 199 Chemin de Saint-Germain, 30140 Saint-Jean-du-Pin, France<br />
+              SIREN&nbsp;: 945 025 286<br />
+              SIRET (siège)&nbsp;: 945 025 286 00010<br />
+              N°&nbsp;TVA intracommunautaire&nbsp;: FR28&nbsp;945 025 286<br />
+              Code NAF / APE&nbsp;: 6201Z — Programmation informatique<br />
+              RCS&nbsp;: Nîmes<br />
+              Date d&apos;immatriculation&nbsp;: 30 mai 2025<br />
+              Convention collective applicable&nbsp;: SYNTEC (IDCC 1486)<br />
+              Contact&nbsp;: <a href="mailto:contact@matcraft.ai" className="text-primary">contact@matcraft.ai</a>
             </p>
 
             <h2 className="text-2xl font-semibold mt-8">Directeur de la publication</h2>
-            <p>Gauthier Bros</p>
+            <p>
+              Monsieur Bruno BROS, Président de 1B RACE.<br />
+              Contact&nbsp;: <a href="mailto:legal@matcraft.ai" className="text-primary">legal@matcraft.ai</a>
+            </p>
 
             <h2 className="text-2xl font-semibold mt-8">Hébergement</h2>
             <p>
@@ -41,7 +48,10 @@ export default function MentionsPage() {
 
             <h2 className="text-2xl font-semibold mt-8">Propriété intellectuelle</h2>
             <p>
-              L&apos;ensemble du contenu du site matcraft.ai (textes, graphismes, logos, icônes, images, ainsi que leur mise en forme) est la propriété exclusive de MatCraft, à l&apos;exception des données de Materials Project, AFLOW et JARVIS-DFT qui sont distribuées sous licence CC-BY-4.0 et restent la propriété de leurs organismes respectifs (LBNL, Duke University, NIST).
+              L&apos;ensemble du contenu du site matcraft.ai (textes, graphismes, logos, icônes, images, code source, bases de données dérivées, ainsi que leur mise en forme) est la propriété exclusive de la société 1B RACE, à l&apos;exception des données de Materials Project, AFLOW et JARVIS-DFT qui sont distribuées sous licence CC-BY-4.0 et restent la propriété de leurs organismes respectifs (LBNL, Duke University, NIST).
+            </p>
+            <p>
+              La marque «&nbsp;MatCraft&nbsp;» et son logo sont des marques exploitées par 1B RACE.
             </p>
             <p>
               Toute reproduction, représentation, modification, publication ou adaptation de tout ou partie des éléments du site est interdite sans autorisation écrite préalable.

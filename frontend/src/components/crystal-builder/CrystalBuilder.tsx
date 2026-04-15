@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Grid } from "@react-three/drei";
 import * as THREE from "three";
+import { attachContextLossHandlers } from "@/lib/webgl-recovery";
 import {
   ArrowLeft,
   Undo2,
@@ -412,6 +413,7 @@ function BuilderScene({
       style={{ background: "#111827" }}
       dpr={[1, 2]}
       onPointerMissed={() => onSelect(null)}
+      onCreated={attachContextLossHandlers}
     >
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} />

@@ -14,12 +14,15 @@ export default function PrivacyPage() {
       <main className="min-h-screen bg-background pt-24 pb-20">
         <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 prose prose-slate dark:prose-invert">
           <h1 className="text-4xl font-bold text-foreground mb-2">Privacy Policy</h1>
-          <p className="text-sm text-muted-foreground mb-8">Last updated: April 14, 2026</p>
+          <p className="text-sm text-muted-foreground mb-8">Last updated: April 15, 2026</p>
 
           <section className="text-foreground/90 space-y-4 text-sm leading-relaxed">
             <h2 className="text-2xl font-semibold mt-8">1. Data Controller</h2>
             <p>
-              MatCraft (&quot;we&quot;, &quot;us&quot;) is operated from Marseille, France. For any privacy inquiry, contact{" "}
+              The data controller for matcraft.ai is{" "}
+              <strong>1B RACE</strong>, a French SAS (SIREN 945&nbsp;025&nbsp;286), registered office at
+              199 Chemin de Saint-Germain, 30140 Saint-Jean-du-Pin, France. Director of publication:
+              Bruno BROS, President. For any privacy inquiry, contact{" "}
               <a href="mailto:privacy@matcraft.ai" className="text-primary">privacy@matcraft.ai</a>.
             </p>
 

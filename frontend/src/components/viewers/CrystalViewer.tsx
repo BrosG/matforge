@@ -4,6 +4,7 @@ import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Float, MeshDistortMaterial } from "@react-three/drei";
 import * as THREE from "three";
+import { attachContextLossHandlers } from "@/lib/webgl-recovery";
 
 interface AtomProps {
   position: [number, number, number];
@@ -156,6 +157,7 @@ export function CrystalViewer({ className, showControls = true }: CrystalViewerP
       <Canvas
         camera={{ position: [5, 3, 5], fov: 45 }}
         style={{ background: "transparent" }}
+        onCreated={attachContextLossHandlers}
       >
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
