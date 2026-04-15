@@ -47,6 +47,59 @@ type TokenPayload = {
   phone_number?: string;
 };
 
+/**
+ * Decode the `exp` claim of a JWT (HS256, no verification — we trust the
+ * server that issued it) so we know when to refresh. Returns absolute
+ * milliseconds since epoch, or null if the token is malformed.
+ */
+function readJwtExpiryMs(token: string | undefined): number | null {
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString(
+        "utf-8",
+      ),
+    );
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Exchange the long-lived refresh token for a fresh access token via the
+ * backend. Called from the NextAuth `jwt` callback whenever the access
+ * token is within 60 seconds of expiry.
+ */
+async function refreshAccessToken(token: {
+  refreshToken?: string;
+}): Promise<{
+  accessToken?: string;
+  refreshToken?: string;
+  accessTokenExpires?: number;
+  error?: "RefreshAccessTokenError";
+}> {
+  if (!token.refreshToken) {
+    return { error: "RefreshAccessTokenError" };
+  }
+  const data = await postJson<TokenPayload>(
+    "/users/refresh",
+    { refresh_token: token.refreshToken },
+    "refresh access token",
+  );
+  if (!data) {
+    return { error: "RefreshAccessTokenError" };
+  }
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token ?? token.refreshToken,
+    accessTokenExpires:
+      readJwtExpiryMs(data.access_token) ?? Date.now() + 25 * 60 * 1000,
+  };
+}
+
 type Profile = {
   id: string;
   email: string;
@@ -141,9 +194,12 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/login" },
   callbacks: {
     async jwt({ token, user, account }) {
+      // Initial sign-in — copy backend tokens onto the NextAuth JWT.
       if (user) {
         token.accessToken = user.accessToken;
         token.refreshToken = user.refreshToken;
+        token.accessTokenExpires =
+          readJwtExpiryMs(user.accessToken) ?? Date.now() + 25 * 60 * 1000;
         token.user = {
           id: user.id,
           email: user.email!,
@@ -152,6 +208,7 @@ export const authOptions: NextAuthOptions = {
         };
       }
 
+      // Google OAuth via NextAuth's own provider exchanges for a backend JWT.
       if (account?.provider === "google" && user) {
         const data = await postJson<TokenPayload>(
           "/users/oauth/google",
@@ -165,6 +222,26 @@ export const authOptions: NextAuthOptions = {
         if (data) {
           token.accessToken = data.access_token;
           token.refreshToken = data.refresh_token;
+          token.accessTokenExpires =
+            readJwtExpiryMs(data.access_token) ?? Date.now() + 25 * 60 * 1000;
+        }
+      }
+
+      // Refresh the backend access token when it is within 60s of expiry.
+      // The access token is only ~30 min long; without this the user gets
+      // 401 on every API call after half an hour.
+      const expiresAt = token.accessTokenExpires ?? 0;
+      const shouldRefresh =
+        token.refreshToken && Date.now() >= expiresAt - 60_000;
+      if (shouldRefresh && !user) {
+        const refreshed = await refreshAccessToken(token);
+        if (refreshed.error) {
+          token.error = refreshed.error;
+        } else {
+          token.accessToken = refreshed.accessToken;
+          token.refreshToken = refreshed.refreshToken;
+          token.accessTokenExpires = refreshed.accessTokenExpires;
+          delete token.error;
         }
       }
 
@@ -173,6 +250,11 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       session.accessToken = token.accessToken;
       session.refreshToken = token.refreshToken;
+      // Surface refresh errors so the client can prompt re-authentication
+      // instead of silently sending a stale token.
+      if (token.error) {
+        (session as { error?: string }).error = token.error;
+      }
       if (token.user) {
         session.user = token.user;
       }
