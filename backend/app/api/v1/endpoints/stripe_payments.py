@@ -30,10 +30,23 @@ router = APIRouter()
 # Environment-based configuration (NEVER hardcode keys)
 # ---------------------------------------------------------------------------
 
-STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://matcraft.ai")
+def _env(name: str, default: str = "") -> str:
+    """Read an env var and strip surrounding whitespace.
+
+    Secret Manager often stores values with a trailing newline (the
+    `echo "x" | gcloud secrets versions add` pattern). Passing such a
+    value into an HTTP Authorization header throws
+    ``InvalidHeader: Invalid leading whitespace, reserved character(s),
+    or return character(s) in header value`` — which is what crashed
+    every Stripe call.
+    """
+    return os.environ.get(name, default).strip()
+
+
+STRIPE_SECRET_KEY = _env("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = _env("STRIPE_WEBHOOK_SECRET")
+STRIPE_PUBLISHABLE_KEY = _env("STRIPE_PUBLISHABLE_KEY")
+FRONTEND_URL = _env("FRONTEND_URL", "https://matcraft.ai")
 
 # ---------------------------------------------------------------------------
 # Product catalog — single source of truth for pricing
@@ -44,28 +57,28 @@ CREDIT_PACKAGES = {
     "starter_10": {
         "credits": 10,
         "price_usd": 29,
-        "stripe_price_id": os.environ.get("STRIPE_PRICE_STARTER_10", ""),
+        "stripe_price_id": _env("STRIPE_PRICE_STARTER_10"),
         "label": "Starter",
         "description": "10 credits — Try the platform",
     },
     "pro_50": {
         "credits": 50,
         "price_usd": 99,
-        "stripe_price_id": os.environ.get("STRIPE_PRICE_PRO_50", ""),
+        "stripe_price_id": _env("STRIPE_PRICE_PRO_50"),
         "label": "Pro",
         "description": "50 credits — Most popular",
     },
     "enterprise_200": {
         "credits": 200,
         "price_usd": 299,
-        "stripe_price_id": os.environ.get("STRIPE_PRICE_ENTERPRISE_200", ""),
+        "stripe_price_id": _env("STRIPE_PRICE_ENTERPRISE_200"),
         "label": "Enterprise",
         "description": "200 credits — Best value",
     },
     "deep_scan_pack_50": {
         "credits": 50,
         "price_usd": 199,
-        "stripe_price_id": os.environ.get("STRIPE_PRICE_DEEP_SCAN_50", ""),
+        "stripe_price_id": _env("STRIPE_PRICE_DEEP_SCAN_50"),
         "label": "Deep Scan Pack",
         "description": "5 Deep Scans (50 credits)",
     },
@@ -75,21 +88,21 @@ SUBSCRIPTION_PLANS = {
     "researcher_monthly": {
         "credits_per_month": 50,
         "price_usd": 49,
-        "stripe_price_id": os.environ.get("STRIPE_PRICE_SUB_RESEARCHER", ""),
+        "stripe_price_id": _env("STRIPE_PRICE_SUB_RESEARCHER"),
         "label": "Researcher",
         "description": "50 credits/month — Academics & individuals",
     },
     "professional_monthly": {
         "credits_per_month": 200,
         "price_usd": 149,
-        "stripe_price_id": os.environ.get("STRIPE_PRICE_SUB_PROFESSIONAL", ""),
+        "stripe_price_id": _env("STRIPE_PRICE_SUB_PROFESSIONAL"),
         "label": "Professional",
         "description": "200 credits/month — Industry R&D",
     },
     "enterprise_monthly": {
         "credits_per_month": 1000,
         "price_usd": 499,
-        "stripe_price_id": os.environ.get("STRIPE_PRICE_SUB_ENTERPRISE", ""),
+        "stripe_price_id": _env("STRIPE_PRICE_SUB_ENTERPRISE"),
         "label": "Enterprise",
         "description": "1,000 credits/month + priority support",
     },
