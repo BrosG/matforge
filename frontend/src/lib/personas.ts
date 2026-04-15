@@ -32,6 +32,27 @@ export interface PersonaPricing {
   href: string;
 }
 
+/**
+ * Real-money pricing table rendered on persona pages.
+ * Every `sku` MUST match the backend key in
+ * backend/app/api/v1/endpoints/stripe_payments.py (CREDIT_PACKAGES /
+ * SUBSCRIPTION_PLANS). Drift returns 400 "Unknown package".
+ */
+export interface PersonaPricingTier {
+  sku?: string;                  // backend SKU (omit for "Free" row)
+  name: string;
+  price: string;                 // display price, e.g. "$49" or "Free"
+  period?: string;               // "/mo", "one-time", etc.
+  perCredit?: string;            // effective unit rate, for nerds
+  billing: "free" | "one-time" | "subscription";
+  credits: string;               // "10 starter credits", "50 / mo", etc.
+  features: string[];            // bullet list on the card
+  recommended?: boolean;         // highlight + scale up
+  whyForYou: string;             // persona-tailored reason for this tier
+  cta: string;
+  href: string;                  // /register, /pricing, /register?plan=xxx
+}
+
 export interface Persona {
   slug: string;
   label: string;
@@ -48,7 +69,8 @@ export interface Persona {
   solutions: PersonaSolution[];
   features: PersonaFeature[];
   testimonial: PersonaTestimonial;
-  pricing: PersonaPricing;
+  pricing: PersonaPricing;             // legacy single-tier callout (kept for compat)
+  pricingTable: PersonaPricingTier[];  // 3-tier comparison, rendered on the page
 }
 
 export const PERSONAS: Persona[] = [
@@ -131,6 +153,64 @@ export const PERSONAS: Persona[] = [
       cta: "Start 14-day free trial",
       href: "/register",
     },
+    pricingTable: [
+      {
+        name: "Free",
+        price: "$0",
+        period: "forever",
+        billing: "free",
+        credits: "10 signup credits · rolls over",
+        features: [
+          "Materials search (205k+)",
+          "3D structure viewer & exports (CIF, POSCAR, XYZ)",
+          "Band structures & DOS plots",
+          "Community support",
+        ],
+        whyForYou:
+          "Use this to decide if MatCraft replaces your ICSD/VESTA workflow before committing any cash.",
+        cta: "Create free account",
+        href: "/register",
+      },
+      {
+        sku: "researcher_monthly",
+        name: "Researcher",
+        price: "$49",
+        period: "/mo",
+        perCredit: "$0.98 / credit",
+        billing: "subscription",
+        credits: "50 credits / month · rolls 30 days",
+        recommended: true,
+        features: [
+          "Everything in Free",
+          "IP Radar searches & AI inverse design",
+          "Active-learning campaigns (NSGA-II Pareto)",
+          "Email support (24h SLA)",
+        ],
+        whyForYou:
+          "Modal tier for an active PhD / postdoc — covers the monthly screening budget without lab-software price tags.",
+        cta: "Start Researcher →",
+        href: "/register?plan=researcher_monthly",
+      },
+      {
+        sku: "professional_monthly",
+        name: "Professional",
+        price: "$149",
+        period: "/mo",
+        perCredit: "$0.75 / credit",
+        billing: "subscription",
+        credits: "200 credits / month · pooled across seats",
+        features: [
+          "Everything in Researcher",
+          "REST API (60 req/min)",
+          "Deep Scan with 24h SLA",
+          "Priority support (4h SLA)",
+        ],
+        whyForYou:
+          "Drop-in upgrade when your group moves from individual research to a shared lab pipeline.",
+        cta: "Try Professional →",
+        href: "/register?plan=professional_monthly",
+      },
+    ],
   },
   {
     slug: "engineers",
@@ -211,6 +291,64 @@ export const PERSONAS: Persona[] = [
       cta: "Start free",
       href: "/register",
     },
+    pricingTable: [
+      {
+        name: "Free",
+        price: "$0",
+        period: "forever",
+        billing: "free",
+        credits: "10 signup credits",
+        features: [
+          "Full 16-property filter panel",
+          "Scatter plot explorer",
+          "Materials comparator (up to 5)",
+          "CSV export of filtered results",
+        ],
+        whyForYou:
+          "Validate the tool on a single spec sheet before putting it on the BOM workflow.",
+        cta: "Start free",
+        href: "/register",
+      },
+      {
+        sku: "pro_50",
+        name: "Pro Pack",
+        price: "$99",
+        period: "one-time",
+        perCredit: "$1.98 / credit",
+        billing: "one-time",
+        credits: "50 credits · valid 12 months",
+        recommended: true,
+        features: [
+          "Everything in Free",
+          "50 IP Radar searches for spec-matching",
+          "Or 5 Deep Scans for FTO review",
+          "No recurring charge — pay as you use",
+        ],
+        whyForYou:
+          "Engineers don't buy subscriptions for ad-hoc selection work — this pack covers a full NPI cycle.",
+        cta: "Buy Pro Pack →",
+        href: "/register?pack=pro_50",
+      },
+      {
+        sku: "professional_monthly",
+        name: "Professional",
+        price: "$149",
+        period: "/mo",
+        perCredit: "$0.75 / credit",
+        billing: "subscription",
+        credits: "200 credits / mo · team seats",
+        features: [
+          "Everything in Pro Pack, monthly",
+          "REST API for direct CAD integration",
+          "Campaign engine for multi-objective search",
+          "Priority support (4h SLA)",
+        ],
+        whyForYou:
+          "If you run ≥3 parallel programs, the subscription $0.75/credit beats one-off $1.98 purchases.",
+        cta: "Try Professional →",
+        href: "/register?plan=professional_monthly",
+      },
+    ],
   },
   {
     slug: "students",
@@ -291,6 +429,62 @@ export const PERSONAS: Persona[] = [
       cta: "Create free account",
       href: "/register",
     },
+    pricingTable: [
+      {
+        name: "Free — Student",
+        price: "$0",
+        period: "forever",
+        billing: "free",
+        credits: "10 signup credits · no card",
+        recommended: true,
+        features: [
+          "Materials search (205k+)",
+          "3D crystal builder with 20+ prototypes",
+          "Band structures & DOS",
+          "All exports (CIF, POSCAR, XYZ, BibTeX)",
+        ],
+        whyForYou:
+          "Coursework and thesis projects never need more than this tier. Assign homework freely.",
+        cta: "Create free account",
+        href: "/register",
+      },
+      {
+        sku: "starter_10",
+        name: "Starter Pack",
+        price: "$29",
+        period: "one-time",
+        perCredit: "$2.90 / credit",
+        billing: "one-time",
+        credits: "10 credits · valid 12 months",
+        features: [
+          "Everything in Free",
+          "10 IP Radar searches for your dissertation",
+          "Or 1 mid-size Deep Scan for prior art review",
+          "No subscription — buy once, use anywhere",
+        ],
+        whyForYou:
+          "When your thesis defence needs a patent landscape chart, buy exactly what you need.",
+        cta: "Get 10 credits →",
+        href: "/register?pack=starter_10",
+      },
+      {
+        name: "Educator programme",
+        price: "$0",
+        period: "for classrooms",
+        billing: "free",
+        credits: "Pooled class credits on request",
+        features: [
+          "Free Professional-tier access for verified educators",
+          "Classroom dashboard (students, assignments, progress)",
+          "Bulk account provisioning (CSV or .edu SSO)",
+          "DOI citations + Jupyter notebook exports",
+        ],
+        whyForYou:
+          "Teach 205k real materials instead of 4 textbook cases — we cover credits for your class.",
+        cta: "Apply for access",
+        href: "mailto:education@matcraft.ai?subject=Educator%20programme",
+      },
+    ],
   },
   {
     slug: "startups",
@@ -371,6 +565,66 @@ export const PERSONAS: Persona[] = [
       cta: "Get started free",
       href: "/register",
     },
+    pricingTable: [
+      {
+        sku: "starter_10",
+        name: "Starter Pack",
+        price: "$29",
+        period: "one-time",
+        perCredit: "$2.90 / credit",
+        billing: "one-time",
+        credits: "10 credits",
+        features: [
+          "10 IP Radar searches pre-diligence",
+          "Validate the FTO workflow on 1 real chemistry",
+          "No subscription commitment",
+          "Credits valid 12 months",
+        ],
+        whyForYou:
+          "The cheapest insurance before your next investor call asks about Freedom-to-Operate.",
+        cta: "Buy Starter →",
+        href: "/register?pack=starter_10",
+      },
+      {
+        sku: "deep_scan_pack_50",
+        name: "Deep Scan Bundle",
+        price: "$199",
+        period: "one-time",
+        perCredit: "$39.80 / scan",
+        billing: "one-time",
+        credits: "5 large FTO scans",
+        recommended: true,
+        features: [
+          "5× Deep Scan FTO reports (2,000 patents each)",
+          "Directive-aware AI ranking",
+          "Exportable JSON + exec summary for investor pack",
+          "Stored 12 months for re-run with fresh corpora",
+        ],
+        whyForYou:
+          "One Deep Scan for the Monday investor call + 4 in reserve for every term-sheet DD. Replaces a $30–100k law-firm FTO at 300× the speed.",
+        cta: "Buy Deep Scan Bundle →",
+        href: "/register?pack=deep_scan_pack_50",
+      },
+      {
+        sku: "professional_monthly",
+        name: "Professional",
+        price: "$149",
+        period: "/mo",
+        perCredit: "$0.75 / credit",
+        billing: "subscription",
+        credits: "200 credits / mo",
+        features: [
+          "REST API for product-integrated searches",
+          "Unlimited materials data + campaigns",
+          "Deep Scan with 24h SLA",
+          "Priority support (4h SLA)",
+        ],
+        whyForYou:
+          "When your product roadmap depends on continuous IP awareness — e.g., compound-library screeners or materials-aware SaaS.",
+        cta: "Try Professional →",
+        href: "/register?plan=professional_monthly",
+      },
+    ],
   },
   {
     slug: "ip-lawyers",
@@ -451,6 +705,66 @@ export const PERSONAS: Persona[] = [
       cta: "Book a demo",
       href: "/register",
     },
+    pricingTable: [
+      {
+        sku: "deep_scan_pack_50",
+        name: "Deep Scan Bundle",
+        price: "$199",
+        period: "one-time",
+        perCredit: "$39.80 / scan",
+        billing: "one-time",
+        credits: "5 large FTO scans",
+        features: [
+          "Per-matter budget — bill directly to the client file",
+          "Claim-by-claim AI analysis on 2,000 patents / scan",
+          "Exportable PDF/JSON for docket files",
+          "Materials-aware synonym expansion (IUPAC + CAS)",
+        ],
+        whyForYou:
+          "Drop-in replacement for the $5-10k preliminary FTO you'd otherwise bill your startup client — at 20× the turnaround.",
+        cta: "Buy Bundle →",
+        href: "/register?pack=deep_scan_pack_50",
+      },
+      {
+        sku: "professional_monthly",
+        name: "Professional",
+        price: "$149",
+        period: "/mo",
+        perCredit: "$0.75 / credit",
+        billing: "subscription",
+        credits: "200 credits / mo",
+        recommended: true,
+        features: [
+          "200 IP Radar + Deep Scan credits / mo",
+          "REST API for Foundation / Relativity integration",
+          "White-space detection for offensive prosecution",
+          "4h priority support SLA",
+        ],
+        whyForYou:
+          "Modal tier for a solo practitioner or small IP boutique running 10–20 active matters.",
+        cta: "Try Professional →",
+        href: "/register?plan=professional_monthly",
+      },
+      {
+        sku: "enterprise_monthly",
+        name: "Enterprise",
+        price: "$499",
+        period: "/mo",
+        perCredit: "$0.50 / credit",
+        billing: "subscription",
+        credits: "1,000 credits / mo · pooled",
+        features: [
+          "Unlimited seats across the IP practice",
+          "White-label PDF reports with firm letterhead",
+          "SSO (Google / Azure AD / Okta)",
+          "Dedicated CSM + 99.9% SLA + DPA",
+        ],
+        whyForYou:
+          "For AmLaw 100 or full-service IP boutiques — credits pooled across associates, one MSA for the firm.",
+        cta: "Book a demo",
+        href: "mailto:sales@matcraft.ai?subject=Enterprise%20demo%20(IP%20firm)",
+      },
+    ],
   },
   {
     slug: "ai-researchers",
@@ -531,6 +845,64 @@ export const PERSONAS: Persona[] = [
       cta: "Start free trial",
       href: "/register",
     },
+    pricingTable: [
+      {
+        name: "Free",
+        price: "$0",
+        period: "forever",
+        billing: "free",
+        credits: "10 signup credits",
+        features: [
+          "Materials search + 30+ normalised properties",
+          "Up to 1,000 rows per CSV export",
+          "Versioned data (DB snapshot hash on every export)",
+          "Public Python + cURL examples",
+        ],
+        whyForYou:
+          "Benchmark a proof-of-concept GNN on a real dataset before asking for budget.",
+        cta: "Start free",
+        href: "/register",
+      },
+      {
+        sku: "researcher_monthly",
+        name: "Researcher",
+        price: "$49",
+        period: "/mo",
+        perCredit: "$0.98 / credit",
+        billing: "subscription",
+        credits: "50 credits / month",
+        recommended: true,
+        features: [
+          "REST API (60 req/min) + paginated bulk access",
+          "JSON + CSV exports up to 50k rows",
+          "Train/test split helpers on request",
+          "Cancel any time — roll-over 30 days",
+        ],
+        whyForYou:
+          "Modal tier for a postdoc or PhD training a property predictor. $49 beats the GPU-hour bill of rerunning a MP pull.",
+        cta: "Start Researcher →",
+        href: "/register?plan=researcher_monthly",
+      },
+      {
+        sku: "professional_monthly",
+        name: "Professional",
+        price: "$149",
+        period: "/mo",
+        perCredit: "$0.75 / credit",
+        billing: "subscription",
+        credits: "200 credits / mo + bulk API",
+        features: [
+          "API (600 req/min) + parallel workers",
+          "Full-database exports (205k rows)",
+          "Versioned data with reproducible commit hashes",
+          "Priority support (4h SLA)",
+        ],
+        whyForYou:
+          "When your benchmark requires the full 205k corpus — or your lab is running 3+ predictors against our data.",
+        cta: "Try Professional →",
+        href: "/register?plan=professional_monthly",
+      },
+    ],
   },
   {
     slug: "pharma-biotech",
@@ -611,6 +983,66 @@ export const PERSONAS: Persona[] = [
       cta: "Start free trial",
       href: "/register",
     },
+    pricingTable: [
+      {
+        sku: "researcher_monthly",
+        name: "Researcher",
+        price: "$49",
+        period: "/mo",
+        perCredit: "$0.98 / credit",
+        billing: "subscription",
+        credits: "50 credits / month",
+        features: [
+          "Biocompatible-element filter (C/H/N/O/Ca/Mg/Ti/Zn/Fe)",
+          "Nanoparticle carver + LAMMPS/XYZ export",
+          "Implant alloy screening (Ti/Mg/Co-Cr)",
+          "Unlimited 3D viewer + structure exports",
+        ],
+        whyForYou:
+          "Cost-equivalent to a single 1h consultancy call — covers a full preclinical screening cycle.",
+        cta: "Start Researcher →",
+        href: "/register?plan=researcher_monthly",
+      },
+      {
+        sku: "professional_monthly",
+        name: "Professional",
+        price: "$149",
+        period: "/mo",
+        perCredit: "$0.75 / credit",
+        billing: "subscription",
+        credits: "200 credits / mo",
+        recommended: true,
+        features: [
+          "Everything in Researcher",
+          "REST API for in-silico screening pipelines",
+          "Active-learning campaigns for carrier optimisation",
+          "4h priority support SLA + onboarding call",
+        ],
+        whyForYou:
+          "Modal tier for a biomaterials team — 200 credits covers ~40 parallel carrier evaluations per month.",
+        cta: "Try Professional →",
+        href: "/register?plan=professional_monthly",
+      },
+      {
+        sku: "enterprise_monthly",
+        name: "Enterprise",
+        price: "$499",
+        period: "/mo",
+        perCredit: "$0.50 / credit",
+        billing: "subscription",
+        credits: "1,000 credits / mo · pooled",
+        features: [
+          "Unlimited team seats (SSO)",
+          "99.9% uptime SLA + dedicated CSM",
+          "Custom MSA, DPA, SOC2 evidence pack",
+          "On-prem / VPC option for GxP-validated environments",
+        ],
+        whyForYou:
+          "For large pharma R&D orgs that need GxP-adjacent data controls and pooled credits across multiple drug-delivery programmes.",
+        cta: "Book a demo",
+        href: "mailto:sales@matcraft.ai?subject=Enterprise%20demo%20(Pharma)",
+      },
+    ],
   },
   {
     slug: "academia-labs",
@@ -691,6 +1123,62 @@ export const PERSONAS: Persona[] = [
       cta: "Apply for academic access",
       href: "/register",
     },
+    pricingTable: [
+      {
+        name: "Free — Academic",
+        price: "$0",
+        period: "forever",
+        billing: "free",
+        credits: "10 signup credits + roll-over",
+        recommended: true,
+        features: [
+          "Unified workspace (search + 3D + plots + comparator)",
+          "DOI + BibTeX citations on every material",
+          "Jupyter notebook export with property data pre-loaded",
+          "GDPR-compliant — EU-only data processing option",
+        ],
+        whyForYou:
+          "The default tier for every academic lab — coursework, thesis work, and most published studies fit here.",
+        cta: "Create lab account",
+        href: "/register",
+      },
+      {
+        sku: "professional_monthly",
+        name: "Lab Professional",
+        price: "$149",
+        period: "/mo",
+        perCredit: "$0.75 / credit",
+        billing: "subscription",
+        credits: "200 credits / mo · shared by lab members",
+        features: [
+          "REST API for grant-funded data pipelines",
+          "Campaign engine for multi-objective search",
+          "Deep Scan credits for thesis IP reviews",
+          "Priority support (4h SLA)",
+        ],
+        whyForYou:
+          "When your group runs IP-Radar-heavy grant deliverables or publishes 5+ papers / yr using MatCraft data.",
+        cta: "Apply to upgrade",
+        href: "mailto:academic@matcraft.ai?subject=Lab%20Professional%20upgrade",
+      },
+      {
+        name: "Institute licence",
+        price: "Custom",
+        period: "annual",
+        billing: "subscription",
+        credits: "Unlimited seats · pooled credits",
+        features: [
+          "Institute-wide SSO (eduGAIN, Shibboleth, SAML)",
+          "Locked-in pricing for 3-year licence",
+          "DPA + public-sector procurement docs on request",
+          "Dedicated scientist CSM (PhD Materials)",
+        ],
+        whyForYou:
+          "For universities or national labs — one invoice, unlimited student seats, and a named CSM who understands DFT.",
+        cta: "Talk to academic sales",
+        href: "mailto:institutes@matcraft.ai?subject=Institute%20licence",
+      },
+    ],
   },
 ];
 

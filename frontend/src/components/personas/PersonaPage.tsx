@@ -356,10 +356,11 @@ export function PersonaPage({ persona }: PersonaPageProps) {
         </div>
       </section>
 
-      {/* ── PRICING CALLOUT ──────────────────────────────────────────────── */}
+      {/* ── PRICING TABLE ────────────────────────────────────────────────── */}
       <section className="py-20 bg-muted/30">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
+            className="text-center mb-10"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -367,32 +368,132 @@ export function PersonaPage({ persona }: PersonaPageProps) {
             custom={0}
           >
             <span className={`text-sm font-semibold uppercase tracking-wider ${accentText}`}>
-              Pricing
+              Pricing built for {persona.label.toLowerCase()}
             </span>
-            <h2 className="text-3xl font-bold mt-3 mb-2">
-              {persona.pricing.tier}
+            <h2 className="text-3xl md:text-4xl font-bold mt-3 mb-3">
+              Pick the plan that matches your workflow
             </h2>
-            <div className="flex items-end justify-center gap-1 mb-4">
-              <span className="text-5xl font-black">{persona.pricing.price}</span>
-              {persona.pricing.period && (
-                <span className="text-muted-foreground text-lg mb-1">
-                  {persona.pricing.period}
-                </span>
-              )}
-            </div>
-            <p className="text-muted-foreground mb-8">{persona.pricing.highlight}</p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Button asChild variant="gradient" size="lg">
-                <Link href={persona.pricing.href}>
-                  {persona.pricing.cta}
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/pricing">See all plans</Link>
-              </Button>
-            </div>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
+              Real Stripe-live prices. Every credit pack is{" "}
+              <strong className="text-foreground">valid 12 months</strong>; every subscription
+              rolls 30 days and cancels any time. Stripe-hosted checkout — we never see a card
+              number.
+            </p>
           </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {persona.pricingTable.map((tier, i) => (
+              <motion.div
+                key={tier.name}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i + 1}
+                variants={fadeUp}
+                className={`relative flex flex-col rounded-2xl border p-6 transition-all ${
+                  tier.recommended
+                    ? `bg-card border-${accent}-400 dark:border-${accent}-600 shadow-lg ring-2 ring-${accent}-300/50 dark:ring-${accent}-700/50`
+                    : "bg-card border-border hover:border-muted-foreground/30"
+                }`}
+              >
+                {tier.recommended && (
+                  <span
+                    className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gradient-to-r ${persona.gradientFrom} ${persona.gradientTo} text-white shadow`}
+                  >
+                    Recommended for you
+                  </span>
+                )}
+
+                {/* Billing mode tag */}
+                <span
+                  className={`self-start inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider mb-3 ${
+                    tier.billing === "free"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                      : tier.billing === "one-time"
+                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                        : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                  }`}
+                >
+                  {tier.billing === "free"
+                    ? "Free tier"
+                    : tier.billing === "one-time"
+                      ? "One-time pack"
+                      : "Monthly subscription"}
+                </span>
+
+                <h3 className="text-lg font-bold">{tier.name}</h3>
+
+                <div className="flex items-end gap-1 mt-2">
+                  <span className="text-4xl font-black">{tier.price}</span>
+                  {tier.period && (
+                    <span className="text-muted-foreground text-sm mb-1.5">
+                      {tier.period}
+                    </span>
+                  )}
+                </div>
+                {tier.perCredit && (
+                  <div className="text-[11px] text-muted-foreground font-medium">
+                    {tier.perCredit}
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground mt-1 mb-4">
+                  {tier.credits}
+                </div>
+
+                <p className="text-xs leading-relaxed text-foreground/80 mb-4 italic border-l-2 border-muted pl-3">
+                  {tier.whyForYou}
+                </p>
+
+                <ul className="space-y-2 mb-6 flex-1">
+                  {tier.features.map((f) => (
+                    <li
+                      key={f}
+                      className="flex items-start gap-2 text-xs text-muted-foreground leading-snug"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  asChild
+                  variant={tier.recommended ? "gradient" : "outline"}
+                  size="sm"
+                  className="w-full"
+                >
+                  <Link href={tier.href}>
+                    {tier.cta}
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+
+                {tier.sku && (
+                  <div className="mt-3 text-[10px] text-muted-foreground/60 font-mono text-center">
+                    sku: {tier.sku}
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Shield className="h-3.5 w-3.5" /> Stripe-hosted (PCI SAQ-A)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5" /> Credits grant via idempotent webhook
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Cancel any time, no lock-in
+            </span>
+            <Link
+              href="/pricing"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Compare all 7 SKUs →
+            </Link>
+          </div>
         </div>
       </section>
 
