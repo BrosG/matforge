@@ -451,11 +451,19 @@ export default function DataRoomDashboard() {
     setName(localStorage.getItem("investor_access_name") || "");
   }, [router]);
 
-  const filtered = COMPETITORS.filter((c) => {
+  // Always pin the MatCraft row at the top, regardless of category /
+  // search filter — investors should never lose sight of the comparison
+  // baseline when they slice the table.
+  const matcraftRow = COMPETITORS.find((c) => c.cat === "matcraft")!;
+  const others = COMPETITORS.filter((c) => c.cat !== "matcraft").filter((c) => {
     const matchCat = cat === "all" || c.cat === cat;
-    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      !search || c.name.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
+  const matcraftMatchesSearch =
+    !search || matcraftRow.name.toLowerCase().includes(search.toLowerCase());
+  const filtered = matcraftMatchesSearch ? [matcraftRow, ...others] : others;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
