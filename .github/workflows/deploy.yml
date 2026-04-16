@@ -108,7 +108,7 @@ jobs:
           docker build \
             -f frontend/Dockerfile \
             --target production \
-            --build-arg NEXT_PUBLIC_API_URL=https://api.matcraft.ai/api/v1 \
+            --build-arg NEXT_PUBLIC_API_URL=https://matforge-api-staging-mudewrootq-uc.a.run.app/api/v1 \
             --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }} \
             --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=matforge-50499.firebaseapp.com \
             --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=matforge-50499 \
