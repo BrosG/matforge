@@ -17,6 +17,12 @@ class InvestorRequestBody(BaseModel):
     company: str = Field("", max_length=200)
     role: str = Field("Investor", max_length=100)
     message: str = Field("", max_length=2000)
+    # Optional Google Places enrichment (set when the user picked a
+    # suggestion in the autocomplete on the frontend).
+    company_place_id: str | None = Field(None, max_length=255)
+    company_formatted_address: str | None = Field(None, max_length=500)
+    company_latitude: float | None = None
+    company_longitude: float | None = None
 
 
 @router.post("/request")
@@ -26,6 +32,10 @@ def request_access(body: InvestorRequestBody, db: Session = Depends(get_db)):
         full_name=body.full_name.strip(),
         email=body.email.strip().lower(),
         company=body.company.strip() or None,
+        company_place_id=body.company_place_id,
+        company_formatted_address=body.company_formatted_address,
+        company_latitude=body.company_latitude,
+        company_longitude=body.company_longitude,
         role=body.role.strip() or "Investor",
         message=body.message.strip() or None,
         status="pending",

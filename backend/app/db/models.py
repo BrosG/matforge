@@ -256,6 +256,35 @@ class IndexedMaterial(Base):
     updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
 
 
+class CachedPlace(Base):
+    """Local cache of Google Places lookups.
+
+    Backs the /places endpoints so we can:
+    1. Serve repeat lookups without billing Google (cache hit = $0)
+    2. Fall back to text-similarity search when the Google API is down
+       or over quota — the UI never sees an empty result for a previously
+       known place.
+    """
+
+    __tablename__ = "cached_places"
+
+    place_id = Column(String(255), primary_key=True)  # Google's canonical ID
+    display_name = Column(String(500), nullable=False)
+    formatted_address = Column(String(1000), nullable=False)
+    # Lowercased name+address, indexed for ILIKE fallback lookups.
+    normalized = Column(Text, nullable=False, index=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    # Full Google payload — kept so we can upgrade field usage later
+    # without re-billing.
+    raw_json = Column(JSON, nullable=True)
+    first_seen_at = Column(DateTime(timezone=True), default=_now, nullable=False)
+    last_used_at = Column(
+        DateTime(timezone=True), default=_now, onupdate=_now, nullable=False
+    )
+    use_count = Column(Integer, default=1, nullable=False)
+
+
 class CreditTransaction(Base):
     __tablename__ = "credit_transactions"
 
@@ -279,6 +308,13 @@ class InvestorAccessRequest(Base):
     full_name = Column(String(200), nullable=False)
     email = Column(String(200), nullable=False, index=True)
     company = Column(String(200))
+    # Optional Google Places enrichment — set when the user picked a
+    # suggestion in the autocomplete. Lets admins see a canonical address
+    # and plot the investor map later without calling Places again.
+    company_place_id = Column(String(255), nullable=True)
+    company_formatted_address = Column(String(500), nullable=True)
+    company_latitude = Column(Float, nullable=True)
+    company_longitude = Column(Float, nullable=True)
     role = Column(String(100))  # Investor / Analyst / Partner / Journalist / Other
     message = Column(Text)
     status = Column(String(20), nullable=False, default="pending", index=True)

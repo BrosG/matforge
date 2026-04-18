@@ -17,6 +17,7 @@ from app.api.v1.endpoints import (
     jobs,
     materials,
     nl_search,
+    places,
     stripe_payments,
     templates,
     users,
@@ -49,4 +50,5 @@ api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(
     investor_access.router, prefix="/investor-access", tags=["investor-access"]
 )
+api_router.include_router(places.router, prefix="/places", tags=["places"])
 api_router.include_router(health.router, tags=["health"])

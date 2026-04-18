@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
+import { PlacesAutocomplete, type PlaceValue } from "@/components/ui/PlacesAutocomplete";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://api.matcraft.ai/api/v1";
 
@@ -28,14 +29,27 @@ const WHY_NOW = [
 export default function InvestorsPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", company: "", role: "Investor", message: "" });
+  const [companyPlace, setCompanyPlace] = useState<PlaceValue>({ text: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      // Merge the Places-resolved value into the company field so the
+      // backend row gets both the display string and the canonical
+      // place_id (persisted on the InvestorAccessRequest for later
+      // investor-map enrichment).
+      const payload = {
+        ...form,
+        company: companyPlace.text || form.company,
+        company_place_id: companyPlace.place_id || null,
+        company_formatted_address: companyPlace.formatted_address || null,
+        company_latitude: companyPlace.latitude ?? null,
+        company_longitude: companyPlace.longitude ?? null,
+      };
       const res = await fetch(`${API}/investor-access/request`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
       if (res.ok) setSubmitted(true);
     } catch { /* ignore */ } finally { setLoading(false); }
@@ -221,7 +235,6 @@ export default function InvestorsPage() {
                     {[
                       { key: "full_name", label: "Full Name", type: "text", placeholder: "Jane Smith" },
                       { key: "email", label: "Work Email", type: "email", placeholder: "jane@fund.com" },
-                      { key: "company", label: "Organization", type: "text", placeholder: "Acme Ventures" },
                     ].map((f) => (
                       <div key={f.key}>
                         <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
@@ -230,6 +243,17 @@ export default function InvestorsPage() {
                           className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
                       </div>
                     ))}
+                    <PlacesAutocomplete
+                      label="Organization"
+                      placeholder="Acme Ventures — start typing…"
+                      value={companyPlace}
+                      onChange={setCompanyPlace}
+                    />
+                    {companyPlace.formatted_address && (
+                      <p className="text-[11px] text-green-500 flex items-center gap-1">
+                        ✓ Resolved to {companyPlace.formatted_address}
+                      </p>
+                    )}
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Role</label>
                       <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
